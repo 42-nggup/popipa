@@ -9,7 +9,8 @@
      5. 状态            S
      6. 渲染            renderLogin / renderBanks / renderSetup
                         / renderQuiz / renderResult
-     7. 事件与初始化
+     7. 交互规则        rules   —— 未提交就切题怎么办 / 提交后自动跳转
+     8. 事件与初始化
    ========================================================= */
 'use strict';
 
@@ -20,6 +21,8 @@
 const app = document.getElementById('app');
 const topbar = document.getElementById('top');
 const toastEl = document.getElementById('toast');
+const maskEl = document.getElementById('mask');
+const dialogEl = document.getElementById('dialog');
 
 const TYPE_LABEL = {
   single: { text: '单选题', cls: '' },
@@ -119,6 +122,7 @@ function stats(s) {
 const KEY = {
   user: 'popipa:user',
   records: 'popipa:records',
+  noPrompt: 'popipa:noPrompt',
   progress: (u, b) => 'popipa:progress:' + u + ':' + b
 };
 const store = {
@@ -176,6 +180,7 @@ const S = {
   bankId: null,
   chapters: [],       // 组卷时选中的章节
   mode: 'order',      // order | random
+  noPrompt: store.get(KEY.noPrompt, false),  // 未提交就切下一题时，不再询问直接提交
   session: null,
   reviewTab: 'all',
   reviewOpen: {},
@@ -302,6 +307,13 @@ function renderSetup() {
         '<button class="' + (S.mode === 'order' ? 'on' : '') + '" data-act="mode" data-mode="order">顺序</button>' +
         '<button class="' + (S.mode === 'random' ? 'on' : '') + '" data-act="mode" data-mode="random">随机</button>' +
       '</div>' +
+      '<div class="hr"></div>' +
+      '<h3>答题设置</h3><p class="hint">多选题 / 填空题选了答案却没提交就点「下一题」时，默认会先问一句；' +
+        '单选题 / 判断题则直接提交。这个开关可以改回来。</p>' +
+      '<div class="chips">' +
+        '<button class="chip ' + (S.noPrompt ? 'on' : '') + '" data-act="toggle-noprompt">' +
+          (S.noPrompt ? '✓ ' : '') + '不再提醒，直接提交</button>' +
+      '</div>' +
       '<div class="row mt"><span class="grow muted">本次将出 <b>' + picked + '</b> 道题</span>' +
         '<button class="btn" data-act="back-banks">返回</button>' +
         (prog ? '<button class="btn ghost" data-act="resume">继续上次</button>' : '') +
@@ -381,11 +393,14 @@ function renderQuiz() {
   /* 判题反馈（答题页与结果页共用 answerText / pickedText） */
   let tip = '';
   if (done) {
+    const counting = autoJump && autoJump.qid === qid;   // 只有刚提交、且还有下一题时才有倒计时
     tip = '<div class="tip ' + (ok ? 'ok' : 'no') + '">' +
       '<div class="tt">' + (ok ? '✓ 答对了' : '✕ 答错了') + '</div>' +
       (ok ? '' : '<div>正确答案：' + esc(answerText(q).replace(/\s+/g, ' ').trim()) + '</div>') +
       '<div class="an">你的答案：' + esc(pickedText(q, picked)) + '</div>' +
       (q.analysis ? '<div class="ana">解析：' + fmt(q.analysis) + '</div>' : '') +
+      (counting ? '<div class="autojump">⏳ <b id="autojump">' + autoJump.sec + '</b> 秒后自动进入下一题' +
+        '<button class="btn sm ghost" data-act="cancel-auto">取消跳转</button></div>' : '') +
       '</div>';
   }
 
@@ -452,16 +467,20 @@ function pickKey(k) {
   saveProgress();
   render();
 }
-function submitCurrent() {
+/* 提交本题。arm 为 false 时不启动 3s/10s 自动跳转（用于「提交并继续」这类马上就要切题的场景） */
+function submitCurrent(arm) {
   const s = S.session, qid = s.order[s.idx], q = QMAP[qid];
-  if (s.submitted[qid]) return;               /* 幂等：手抖多点几次，成绩不变 */
-  if (!hasAnswer(q, s.answers[qid])) { toast('请先作答'); return; }
+  if (s.submitted[qid]) return false;         /* 幂等：手抖多点几次，成绩不变 */
+  if (!hasAnswer(q, s.answers[qid])) { toast('请先作答'); return false; }
   s.submitted[qid] = true;
+  if (arm === false) autoJump = null; else armAuto();
   saveProgress();
   render();
+  return true;
 }
 function redoCurrent() {
   const s = S.session, qid = s.order[s.idx];
+  autoJump = null;
   delete s.submitted[qid];
   delete s.answers[qid];
   saveProgress();
@@ -478,6 +497,7 @@ function go(delta) {
   const s = S.session;
   const n = s.idx + delta;
   if (n < 0 || n >= s.order.length) return;   /* 边界检查，修掉原型越界的崩溃 */
+  autoJump = null;
   s.idx = n;
   saveProgress();
   render();
@@ -485,14 +505,71 @@ function go(delta) {
 function jump(i) {
   const s = S.session;
   if (i < 0 || i >= s.order.length) return;
+  autoJump = null;
   s.idx = i;
   saveProgress();
   render();
 }
+
+/* ---- 6.6.1 规则一：选了答案但没提交就点「下一题」----
+   单选题 / 判断题：自动提交（答案唯一，提交符合用户预期）
+   多选题 / 填空题：先问一句，提示框上可以勾「不再提醒」       */
+function step(delta) {
+  if (delta > 0 && !leaveCurrent()) return;    /* 询问框已弹出，等用户选 */
+  go(delta);
+}
+function leaveCurrent() {
+  const s = S.session, qid = s.order[s.idx], q = QMAP[qid];
+  if (s.submitted[qid]) return true;                        /* 已提交，直接走 */
+  if (!hasAnswer(q, s.answers[qid])) return true;            /* 没作答，也直接走 */
+  const auto = q.type === 'single' || q.type === 'judge';    /* 答案唯一的题型可以安全自动提交 */
+  if (auto || S.noPrompt) {
+    submitCurrent(false);
+    if (!auto) toast('已按「不再提醒」自动提交本题');
+    return true;
+  }
+  askUnsubmitted();
+  return false;
+}
+function askUnsubmitted() {
+  const q = QMAP[S.session.order[S.session.idx]];
+  dialogEl.innerHTML =
+    '<h3>这道题还没提交</h3>' +
+    '<p>你已经选了答案，但还没点「提交答案」。' + esc(TYPE_LABEL[q.type].text) +
+      '的答案可能不止一个，所以我没敢自作主张。</p>' +
+    '<button class="memory' + (S.noPrompt ? ' on' : '') + '" data-act="toggle-noprompt">' +
+      '<i>' + (S.noPrompt ? '✓' : '') + '</i>不再提醒，以后直接提交</button>' +
+    '<div class="dlg-acts">' +
+      '<button class="btn pri" data-act="dlg-submit">提交并继续</button>' +
+      '<button class="btn" data-act="dlg-skip">不提交，继续</button>' +
+      '<button class="btn ghost" data-act="dlg-cancel">留在此题</button>' +
+    '</div>';
+  maskEl.hidden = false;
+}
+function closeDialog() { maskEl.hidden = true; }
+
+/* ---- 6.6.2 规则二：提交后自动进入下一题（答对 3 秒，答错 10 秒）----
+   计时器只存内存，任何一次切题 / 重做都会取消它；最后一题不自动跳，免得误触交卷 */
+let autoJump = null;   /* { qid, target, sec, at } */
+function armAuto() {
+  const s = S.session, qid = s.order[s.idx];
+  if (s.idx >= s.order.length - 1) { autoJump = null; return; }
+  const sec = isCorrect(QMAP[qid], s.answers[qid]) ? 3 : 10;
+  autoJump = { qid, target: s.idx + 1, sec, at: Date.now() + sec * 1000 };
+}
+function tickAuto() {
+  if (!autoJump) return;
+  if (S.view !== 'quiz' || !S.session) { autoJump = null; return; }
+  const left = Math.max(0, Math.ceil((autoJump.at - Date.now()) / 1000));
+  const el = document.getElementById('autojump');
+  if (el) el.textContent = left;
+  if (left <= 0) { const t = autoJump.target; autoJump = null; jump(t); }
+}
 function finish() {
+  autoJump = null;
   const s = S.session, st = stats(s);
   if (st.unanswered > 0 &&
-      !confirm('还有 ' + st.unanswered + ' 题没有作答。未作答不计入正确率，确定交卷吗？')) return;
+      !confirm('还有 ' + st.unanswered + ' 题没有作答。未作答不计入正确率，确定交卷吗？')) { render(); return; }
   s.finished = true;
   s.finishedAt = Date.now();
   saveRecord({
@@ -590,6 +667,7 @@ function renderResult() {
 }
 function retryWrong() {
   const s = S.session;
+  autoJump = null;
   const ids = s.order.filter(qid => s.submitted[qid] && !isCorrect(QMAP[qid], s.answers[qid]));
   if (!ids.length) { toast('没有错题，太棒了'); return; }
   S.session = {
@@ -604,6 +682,7 @@ function retryWrong() {
 }
 function again() {
   const s = S.session;
+  autoJump = null;
   S.session = {
     id: 's' + Date.now(), bankId: s.bankId, bankName: s.bankName,
     chapters: s.chapters.slice(), mode: s.mode,
@@ -625,10 +704,11 @@ function tickTimer() {
   el.textContent = fmtTime(end - S.session.startedAt);
 }
 clearInterval(timer);
-timer = setInterval(() => { if (S.view === 'quiz') tickTimer(); }, 1000);
+timer = setInterval(() => { if (S.view === 'quiz') tickTimer(); tickAuto(); }, 1000);
 
 /* ============ 7. 事件 ============ */
 document.addEventListener('click', function (e) {
+  if (e.target.id === 'mask') { closeDialog(); return; }   /* 点遮罩关闭询问框 */
   const el = e.target.closest('[data-act]');
   if (!el) return;
   const act = el.dataset.act;
@@ -653,9 +733,18 @@ document.addEventListener('click', function (e) {
     case 'submit': submitCurrent(); break;
     case 'redo': redoCurrent(); break;
     case 'fav': toggleFav(); break;
-    case 'prev': go(-1); break;
-    case 'next': go(1); break;
+    case 'prev': step(-1); break;
+    case 'next': step(1); break;
     case 'jump': jump(Number(el.dataset.i)); break;
+    case 'cancel-auto': autoJump = null; render(); toast('已取消自动跳转'); break;
+    case 'toggle-noprompt':
+      S.noPrompt = !S.noPrompt; store.set(KEY.noPrompt, S.noPrompt);
+      toast(S.noPrompt ? '已开启：以后直接提交' : '已恢复提醒');
+      if (el.classList.contains('memory')) askUnsubmitted(); else render();
+      break;
+    case 'dlg-submit': closeDialog(); submitCurrent(false); go(1); break;
+    case 'dlg-skip': closeDialog(); go(1); break;
+    case 'dlg-cancel': closeDialog(); break;
     case 'finish': finish(); break;
     case 'tab': S.reviewTab = el.dataset.tab; S.reviewOpen = {}; render(); break;
     case 'toggle-rev': {
@@ -684,12 +773,12 @@ document.addEventListener('keydown', function (e) {
   if (S.view !== 'quiz' || !S.session) return;
   const typing = /input|textarea/i.test((document.activeElement || {}).tagName || '');
   const s = S.session, qid = s.order[s.idx], q = QMAP[qid];
-  if (e.key === 'ArrowLeft') { go(-1); return; }
-  if (e.key === 'ArrowRight') { go(1); return; }
+  if (e.key === 'ArrowLeft') { step(-1); return; }
+  if (e.key === 'ArrowRight') { step(1); return; }
   if (e.key === 'f' || e.key === 'F') { if (!typing) toggleFav(); return; }
   if (e.key === 'Enter') {
     e.preventDefault();
-    if (s.submitted[qid]) { s.idx < s.order.length - 1 ? go(1) : finish(); }
+    if (s.submitted[qid]) { s.idx < s.order.length - 1 ? step(1) : finish(); }
     else submitCurrent();
     return;
   }

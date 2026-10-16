@@ -33,9 +33,10 @@ const sandbox = {
 sandbox.window = sandbox;                 // demo.data.js 里用 window.BANKS
 vm.createContext(sandbox);
 vm.runInContext(dataSrc + '\n' + logicSrc + `
-globalThis.__hook = { S, stats, isCorrect, startSession, pickKey, submitCurrent, redoCurrent,
-  jump, finish, pickBank, doLogin, retryWrong, QMAP, bankById, bankQuestionIds, LETTERS,
-  loadRecords };`, sandbox);
+globalThis.__hook = { S, stats, isCorrect, hasAnswer, startSession, pickKey, submitCurrent, redoCurrent,
+  jump, go, step, finish, pickBank, doLogin, retryWrong, closeDialog, askUnsubmitted,
+  tickAuto, QMAP, bankById, bankQuestionIds, LETTERS, loadRecords,
+  getAuto: () => autoJump, maskHidden: () => maskEl.hidden, dialogHtml: () => dialogEl.innerHTML };`, sandbox);
 const H = sandbox.__hook;
 
 let pass = 0, fail = 0;
@@ -114,6 +115,77 @@ ok('进入结果页', H.S.view === 'result' && H.S.session.finished === true);
 const recs = H.loadRecords();
 ok('成绩已写入历史记录', recs.length >= 1 && recs[0].total === H.S.session.order.length);
 ok('记录里的正确率与统计一致', recs[0].correct === H.stats(H.S.session).correct);
+
+section('11. 未提交就点「下一题」');
+H.S.view = 'setup';
+H.S.chapters = H.bankById('web').chapters.map(c => c.id);
+H.S.mode = 'order';
+H.startSession();
+const ord = H.S.session.order;
+const sIdx = ord.findIndex(id => H.QMAP[id].type === 'single');
+H.jump(sIdx);
+H.pickKey(H.QMAP[ord[sIdx]].answer[0]);
+ok('单选题：选了但没提交', H.hasAnswer(H.QMAP[ord[sIdx]], H.S.session.answers[ord[sIdx]]) && !H.S.session.submitted[ord[sIdx]]);
+H.step(1);
+ok('单选：自动提交并进入下一题', H.S.session.submitted[ord[sIdx]] === true && H.S.session.idx === sIdx + 1);
+ok('单选：自动提交不启动倒计时', H.getAuto() === null);
+
+const mIdx2 = ord.findIndex((id, i) => i > sIdx && H.QMAP[id].type === 'multiple');
+H.jump(mIdx2);
+H.pickKey(H.QMAP[ord[mIdx2]].answer[0]);
+H.closeDialog();
+ok('多选：弹窗默认是关的', H.maskHidden() === true);
+H.step(1);
+ok('多选：不自动提交、停在原题', H.S.session.submitted[ord[mIdx2]] !== true && H.S.session.idx === mIdx2);
+ok('多选：弹出询问框且带「不再提醒」', H.maskHidden() === false && H.dialogHtml().indexOf('不再提醒') >= 0);
+H.closeDialog(); H.go(1);
+ok('选「不提交，继续」后进入下一题', H.S.session.idx === mIdx2 + 1 && !H.S.session.submitted[ord[mIdx2]]);
+
+const mIdx3 = ord.findIndex((id, i) => i > mIdx2 + 1 && H.QMAP[id].type === 'multiple');
+H.jump(mIdx3);
+H.pickKey(H.QMAP[ord[mIdx3]].answer[0]);
+H.S.noPrompt = true;                        /* 相当于在提示框上勾了「不再提醒」 */
+H.step(1);
+ok('开启「不再提醒」后：多选也直接提交', H.S.session.submitted[ord[mIdx3]] === true && H.S.session.idx === mIdx3 + 1);
+ok('开启后：不再弹询问框', H.maskHidden() === true);
+H.S.noPrompt = false;
+
+section('12. 提交后 3 秒 / 10 秒自动跳转');
+H.startSession();
+const ord2 = H.S.session.order;
+const wrongKeyOf = q => H.LETTERS.split('').slice(0, q.options.length).find(k => q.answer.indexOf(k) < 0);
+
+H.jump(0);
+H.pickKey(H.QMAP[ord2[0]].answer[0]);
+H.submitCurrent();
+let auto = H.getAuto();
+ok('答对：3 秒后跳转', !!auto && auto.sec === 3 && auto.target === 1 && auto.qid === ord2[0]);
+ok('倒计时期间页面显示剩余秒数', H.maskHidden() === true && H.S.session.submitted[ord2[0]] === true);
+
+const wIdx = ord2.findIndex((id, i) => i > 0 && wrongKeyOf(H.QMAP[id]));
+const wKey = wrongKeyOf(H.QMAP[ord2[wIdx]]);
+H.jump(wIdx);
+H.pickKey(wKey);
+H.submitCurrent();
+auto = H.getAuto();
+ok('答错：10 秒后跳转', !!auto && auto.sec === 10 && auto.target === wIdx + 1);
+
+H.getAuto().at = Date.now() - 1;            /* 把倒计时拨到已结束 */
+H.tickAuto();
+ok('倒计时结束自动跳到下一题', H.S.session.idx === wIdx + 1 && H.getAuto() === null);
+
+H.jump(wIdx);
+H.pickKey(wKey);
+H.redoCurrent();
+H.pickKey(wKey);
+H.submitCurrent();
+H.jump(0);
+ok('手动切题会取消自动跳转', H.getAuto() === null);
+
+H.jump(ord2.length - 1);
+H.pickKey(H.QMAP[ord2[ord2.length - 1]].answer[0]);
+H.submitCurrent();
+ok('最后一题不自动跳转（避免误触交卷）', H.getAuto() === null && H.S.view === 'quiz');
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

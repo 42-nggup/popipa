@@ -188,6 +188,31 @@ h1 .sub{display:block;font-size:14px;font-weight:400;color:var(--mut);margin-top
 .kbd{display:inline-block;padding:1px 6px;border:1px solid var(--bd);border-bottom-width:2px;
      border-radius:5px;background:#fff;font-size:11.5px;font-family:ui-monospace,monospace}
 
+/* ---------- 弹窗 ---------- */
+.mask{position:fixed;inset:0;z-index:80;background:rgba(15,23,42,.45);display:grid;
+      place-items:center;padding:20px;backdrop-filter:blur(3px)}
+.mask[hidden]{display:none}
+.dialog{width:100%;max-width:410px;background:#fff;border-radius:var(--r);padding:22px 22px 18px;
+        box-shadow:0 30px 60px -20px rgba(15,23,42,.5);animation:pop .18s ease-out}
+@keyframes pop{from{transform:translateY(10px) scale(.97);opacity:0}to{transform:none;opacity:1}}
+.dialog h3{margin:0 0 8px;font-size:17px}
+.dialog p{margin:0 0 14px;font-size:13.5px;color:var(--ink-2);line-height:1.7}
+.memory{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;
+        border:1px dashed var(--bd);color:var(--ink-2);font-size:13px;margin-bottom:16px}
+.memory:hover{border-color:var(--pri);color:var(--pri)}
+.memory i{width:15px;height:15px;border-radius:5px;border:1.5px solid var(--mut);display:grid;
+          place-items:center;font-size:11px;font-style:normal;color:#fff}
+.memory.on{border-style:solid;border-color:var(--pri);color:var(--pri);background:var(--pri-l)}
+.memory.on i{background:var(--pri);border-color:var(--pri)}
+.dlg-acts{display:flex;gap:9px;flex-wrap:wrap}
+.dlg-acts .btn{flex:1;min-width:0;padding:10px 12px;font-size:13.5px}
+
+/* ---------- 提交后自动跳转倒计时 ---------- */
+.autojump{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:9px;
+          border-top:1px dashed rgba(0,0,0,.14);font-size:13px}
+.autojump b{font-variant-numeric:tabular-nums}
+.autojump .btn{margin-left:auto}
+
 /* ---------- 结果页 ---------- */
 .score-hero{padding:28px;display:flex;align-items:center;gap:30px;flex-wrap:wrap;margin-top:20px}
 .ring{flex:0 0 auto;width:132px;height:132px;border-radius:50%;display:grid;place-items:center;
