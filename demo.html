@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>刷题吧 · 逻辑演示</title>
+<link rel="stylesheet" href="demo.css">
+</head>
+<body>
+
+<header class="top" id="top" hidden>
+  <div class="top-in">
+    <div class="brand"><span class="logo">刷</span><span id="brandName">刷题吧</span></div>
+    <div class="who">
+      <span class="avatar" id="avatar">?</span>
+      <span id="whoName"></span>
+      <button class="link" data-act="logout">退出</button>
+    </div>
+  </div>
+</header>
+
+<main class="shell" id="app"><!-- 由 demo.js 渲染 --></main>
+
+<div class="toast" id="toast"></div>
+
+<!-- 数据与逻辑分离：先数据，后逻辑 -->
+<script src="demo.data.js"></script>
+<script src="demo.js"></script>
+</body>
+</html>
