@@ -128,12 +128,24 @@ function stats(s) {
   };
 }
 
-/* ============ 4. 存储 ============ */
+/* ============ 4. 存储（用户表） ============
+   只维护两张表：
+     popipa:users  用户表，一人一条：
+                     name / lastLogin  最近一次谁登录了、什么时候
+                     theme             这个用户用暗色还是浅色
+                     books[banksId]    上次答到哪里（整个 session）
+                     wrong[qid]        错题本，答对后自动移除
+                     history[]         历次成绩
+     popipa:last   最近一次登录的昵称（退出登录也不清，用于回填表单）
+   之前那套 popipa:progress:<user>:<bank> 已经废弃：它不会校验题号，
+   题库一换版本，残留的旧题号就会让 stats() 里的 QMAP[id] 变成 undefined
+   而报错。现在统一收进用户表，并在读取时校验题号。 */
 const KEY = {
-  user: 'popipa:user',
-  records: 'popipa:records',
-  noPrompt: 'popipa:noPrompt',
-  progress: (u, b) => 'popipa:progress:' + u + ':' + b
+  user: 'popipa:user',    /* 当前登录的是谁（退出登录会清）*/
+  last: 'popipa:last',    /* 最近一次登录过谁（不清）*/
+  users: 'popipa:users',
+  theme: 'popipa:theme',
+  noPrompt: 'popipa:noPrompt'
 };
 const store = {
   get(k, d) {
@@ -143,21 +155,129 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
   del(k) { try { localStorage.removeItem(k); } catch (e) {} }
 };
-function loadRecords() {
-  const r = store.get(KEY.records, []);
-  return Array.isArray(r) ? r : [];
+
+/* ---- 用户表 ---- */
+function blankUser(name) {
+  return { name: name, lastLogin: 0, theme: null, books: {}, wrong: {}, history: [] };
 }
-function saveRecord(rec) {
-  const list = loadRecords();
-  list.unshift(rec);
-  store.set(KEY.records, list.slice(0, 20));
+function users() {
+  const u = store.get(KEY.users, {});
+  return u && typeof u === 'object' && !Array.isArray(u) ? u : {};
 }
+function userOf(name) {
+  if (!name) return blankUser(null);
+  const u = users()[name];
+  if (!u || typeof u !== 'object') return blankUser(name);
+  /* 补齐字段，旧数据少字段也不会崩 */
+  const base = blankUser(name);
+  return Object.assign(base, u, {
+    name: name,
+    books: u.books && typeof u.books === 'object' ? u.books : {},
+    wrong: u.wrong && typeof u.wrong === 'object' ? u.wrong : {},
+    history: Array.isArray(u.history) ? u.history : []
+  });
+}
+function saveUser(name, u) {
+  if (!name) return;
+  const all = users();
+  all[name] = u;
+  store.set(KEY.users, all);
+}
+/* 登录：记下"最近一次谁登录了" */
+function rememberLogin(name) {
+  const u = userOf(name);
+  u.name = name;
+  u.lastLogin = Date.now();
+  saveUser(name, u);
+  store.set(KEY.user, name);
+  store.set(KEY.last, name);
+  return u;
+}
+function lastName() {
+  const v = store.get(KEY.last, null);
+  return v == null || v === '' ? null : String(v);
+}
+
+/* ---- 答题进度 ---- */
 function saveProgress() {
-  if (S.user && S.session) store.set(KEY.progress(S.user, S.session.bankId), S.session);
+  if (!S.user || !S.session) return;
+  const u = userOf(S.user);
+  u.books[S.session.bankId] = S.session;
+  saveUser(S.user, u);
+}
+function clearProgress(bankId) {
+  if (!S.user) return;
+  const u = userOf(S.user);
+  delete u.books[bankId];
+  saveUser(S.user, u);
+}
+/* 读取进度时按当前题库校验题号：换题库 / 换版本后残留的旧题号必须丢掉，
+   否则 QMAP[id] 是 undefined，一进选题页就会报错（用户名 "11" 那个 bug）。*/
+function sanitizeSession(p, bankId) {
+  if (!p || !Array.isArray(p.order)) return null;
+  const order = p.order.filter(id => QMAP[id] && QPOS[id].bankId === bankId);
+  if (!order.length) return null;
+  const keep = {};
+  order.forEach(id => { keep[id] = 1; });
+  const pick = obj => {
+    const out = {};
+    Object.keys(obj || {}).forEach(id => { if (keep[id]) out[id] = obj[id]; });
+    return out;
+  };
+  const s = Object.assign({}, p, {
+    order: order, answers: pick(p.answers), submitted: pick(p.submitted), fav: pick(p.fav)
+  });
+  s.idx = Math.min(Math.max(0, s.idx | 0), order.length - 1);
+  s.finished = false;
+  return s;
 }
 function loadProgress(user, bankId) {
-  const p = store.get(KEY.progress(user, bankId), null);
-  return p && Array.isArray(p.order) && p.order.length ? p : null;
+  return sanitizeSession(userOf(user).books[bankId], bankId);
+}
+
+/* ---- 错题本：答错的记下，答对的移除，所以它只会随着刷题变小 ---- */
+function wrongIds(user, bankId) {
+  const w = userOf(user).wrong;
+  return Object.keys(w).filter(id => QMAP[id] && (!bankId || QPOS[id].bankId === bankId));
+}
+function syncWrong(user, session) {
+  const u = userOf(user);
+  const now = Date.now();
+  session.order.forEach(id => {
+    if (!session.submitted[id]) return;
+    if (isCorrect(QMAP[id], session.answers[id])) delete u.wrong[id];
+    else u.wrong[id] = now;
+  });
+  saveUser(user, u);
+}
+
+/* ---- 成绩历史（现在是每人一份，不再是一个本机大杂烩）---- */
+function historyOf(user) { return userOf(user).history; }
+function pushHistory(user, rec) {
+  const u = userOf(user);
+  u.history = [rec].concat(u.history).slice(0, 20);
+  saveUser(user, u);
+}
+
+/* ---- 主题：没登录时用本机默认，登录后用这个用户自己的 ---- */
+function systemTheme() {
+  return (typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches)
+    ? 'dark' : 'light';
+}
+function theme() {
+  const own = S.user ? userOf(S.user).theme : null;
+  return own || store.get(KEY.theme, null) || systemTheme();
+}
+function applyTheme(t) {
+  S.theme = t === 'dark' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = S.theme;
+  store.set(KEY.theme, S.theme);          /* 本机默认值，登录页也用它 */
+  if (S.user) { const u = userOf(S.user); u.theme = S.theme; saveUser(S.user, u); }
+  renderThemeBtn();
+}
+function toggleTheme() {
+  applyTheme(theme() === 'dark' ? 'light' : 'dark');
+  toast(S.theme === 'dark' ? '已切到深色' : '已切到浅色');
 }
 
 /* ============ 5. 题库索引与状态 ============ */
@@ -184,21 +304,39 @@ function countLegacy(bank) {
   return n;
 }
 
+/* 当前登录的是谁。老数据里可能是数字（比如以前把 11 存成了 number），
+   统一转成字符串，免得后面 S.user.slice 之类的地方挂掉 */
+function nameOrNull(v) { return v == null || v === '' ? null : String(v); }
+
 const S = {
-  user: store.get(KEY.user, null),
+  user: nameOrNull(store.get(KEY.user, null)),
   view: 'login',
   bankId: null,
   chapters: [],       // 组卷时选中的章节
   mode: 'order',      // order | random
+  wrongOnly: false,   // 只练错题本
   noPrompt: store.get(KEY.noPrompt, false),  // 未提交就切下一题时，不再询问直接提交
+  theme: 'light',
   session: null,
   reviewTab: 'all',
   reviewOpen: {},
   finishAt: 0
 };
 
+/* 主题按钮放在 #app 外面，所以所有页面都在同一个位置 */
+function renderThemeBtn() {
+  const btn = document.getElementById('themeBtn');
+  if (!btn) return;
+  const dark = S.theme === 'dark';
+  const tip = dark ? '切换到浅色' : '切换到深色';
+  btn.textContent = dark ? '☀' : '☾';
+  btn.title = tip;
+  btn.setAttribute('aria-label', tip);
+}
+
 /* ============ 6. 渲染 ============ */
 function render() {
+  renderThemeBtn();
   if (S.view === 'login' || !S.user) return renderLogin();
   topbar.hidden = false;
   document.getElementById('whoName').textContent = S.user;
@@ -212,16 +350,7 @@ function render() {
 /* ---- 6.1 登录主页 ---- */
 function renderLogin() {
   topbar.hidden = true;
-  const recs = loadRecords().slice(0, 5);
-  let hist = '';
-  if (recs.length) {
-    hist = '<div class="hist"><h3>本机最近记录</h3>' + recs.map(r => {
-      const cls = r.rate >= 80 ? 'good' : r.rate >= 60 ? 'mid' : 'bad';
-      return '<div class="rec"><span class="r-name">' + esc(r.user) + ' · ' + esc(r.bankName) + '</span>' +
-        '<span class="muted">' + r.correct + '/' + r.total + ' 题</span>' +
-        '<span class="r-rate ' + cls + '">' + r.rate + '%</span></div>';
-    }).join('') + '</div>';
-  }
+  const last = lastName();          /* 只用来回填昵称，不再列出"本机记录" */
   app.innerHTML =
     '<div class="hero">' +
       '<div class="logo-big">刷</div>' +
@@ -231,13 +360,14 @@ function renderLogin() {
     '<div class="card login-box">' +
       '<div class="field">' +
         '<label for="nick">你的昵称</label>' +
-        '<input class="input" id="nick" maxlength="16" placeholder="例如：小明" autocomplete="off">' +
+        '<input class="input" id="nick" maxlength="16" placeholder="例如：小明" autocomplete="off"' +
+          (last ? ' value="' + esc(last) + '"' : '') + '>' +
         '<div class="err" id="nickErr">请输入 1~16 个字符的昵称</div>' +
       '</div>' +
       '<button class="btn pri" style="width:100%" data-act="login">开始刷题</button>' +
-    '</div>' + hist;
+    '</div>';
   const nick = document.getElementById('nick');
-  if (nick) nick.focus();
+  if (nick) { nick.focus(); if (nick.select) nick.select(); }
 }
 function doLogin() {
   const nick = document.getElementById('nick');
@@ -246,18 +376,20 @@ function doLogin() {
   if (!v || v.length > 16) { err.classList.add('show'); nick.focus(); return; }
   err.classList.remove('show');
   S.user = v;
-  store.set(KEY.user, v);
+  rememberLogin(v);            /* 记下"最近一次谁登录了" */
+  applyTheme(theme());         /* 换成这个用户自己的主题 */
   S.view = 'banks';
   render();
 }
 
 /* ---- 6.2 选题界面 ---- */
 function renderBanks() {
-  const recs = loadRecords();
+  const recs = historyOf(S.user);
   const cards = (BANKS || []).map(bank => {
     const total = bankQuestionIds(bank).length;
     const legacy = countLegacy(bank);
     const prog = loadProgress(S.user, bank.id);
+    const wrong = wrongIds(S.user, bank.id).length;
     let counts = { single: 0, multiple: 0, judge: 0, fill: 0 };
     bank.chapters.forEach(ch => ch.questions.forEach(q => counts[q.type]++));
     const st = prog ? stats(prog) : null;
@@ -270,7 +402,8 @@ function renderBanks() {
         '<span><b>' + bank.chapters.length + '</b> 个章节</span>' +
         '<span>单选 ' + counts.single + ' · 多选 ' + counts.multiple +
               ' · 判断 ' + counts.judge + ' · 填空 ' + counts.fill + '</span>' +
-        (legacy ? '<span class="resume" style="color:var(--warn)">' + legacy + ' 题答案缺失（已容错）</span>' : '') +
+        (legacy ? '<span class="resume" style="color:var(--warn-tx)">' + legacy + ' 题答案缺失（已容错）</span>' : '') +
+        (wrong ? '<span class="resume" style="color:var(--bad-tx);background:var(--bad-l)">错题 ' + wrong + ' 道</span>' : '') +
         (st ? '<span class="resume">上次答到第 ' + (st.answered) + ' 题，继续？</span>' : '') +
       '</div>' +
       '<span class="b-go">›</span></div>';
@@ -279,10 +412,10 @@ function renderBanks() {
     '<h1>选择题库<span class="sub">共 ' + (BANKS || []).length + ' 个题库，' +
       (BANKS || []).reduce((n, b) => n + bankQuestionIds(b).length, 0) + ' 道题</span></h1>' +
     '<div style="margin-top:18px">' + cards + '</div>' +
-    (recs.length ? '<div class="hist"><h3>历史成绩</h3>' + recs.map(r => {
+    (recs.length ? '<div class="hist"><h3>我的成绩历史</h3>' + recs.map(r => {
       const cls = r.rate >= 80 ? 'good' : r.rate >= 60 ? 'mid' : 'bad';
-      return '<div class="rec"><span class="r-name">' + esc(r.user) + ' · ' + esc(r.bankName) + '</span>' +
-        '<span class="muted">' + esc((r.at || '').slice(5, 16).replace('T', ' ')) + '</span>' +
+      return '<div class="rec"><span class="r-name">' + esc(r.bankName) + '</span>' +
+        '<span class="muted">' + esc(String(r.at || '').slice(5, 16).replace('T', ' ')) + '</span>' +
         '<span class="muted">' + r.correct + '/' + r.total + '</span>' +
         '<span class="r-rate ' + cls + '">' + r.rate + '%</span></div>';
     }).join('') + '</div>' : '');
@@ -291,6 +424,7 @@ function pickBank(id) {
   S.bankId = id;
   S.chapters = bankById(id).chapters.map(c => c.id);
   S.mode = 'order';
+  S.wrongOnly = false;
   S.view = 'setup';
   render();
 }
@@ -301,15 +435,26 @@ function renderSetup() {
   if (!bank) { S.view = 'banks'; return render(); }
   const chips = bank.chapters.map(ch =>
     '<button class="chip ' + (S.chapters.indexOf(ch.id) >= 0 ? 'on' : '') +
-    '" data-act="toggle-chapter" data-id="' + ch.id + '">' + esc(ch.name) +
-    '<span class="n">' + ch.questions.length + '</span></button>').join('');
-  const picked = bank.chapters.filter(ch => S.chapters.indexOf(ch.id) >= 0)
-    .reduce((n, ch) => n + ch.questions.filter(q => q.answer.length).length, 0);
+    '" data-act="toggle-chapter" data-id="' + ch.id + '"' + (S.wrongOnly ? ' disabled' : '') + '>' +
+    esc(ch.name) + '<span class="n">' + ch.questions.length + '</span></button>').join('');
+  const picked = S.wrongOnly ? wrongIds(S.user, bank.id).length
+    : bank.chapters.filter(ch => S.chapters.indexOf(ch.id) >= 0)
+        .reduce((n, ch) => n + ch.questions.filter(q => q.answer.length).length, 0);
+  const wCount = wrongIds(S.user, bank.id).length;
   const prog = loadProgress(S.user, bank.id);
   app.innerHTML =
     '<h1>' + esc(bank.name) + '<span class="sub">选择章节与出题顺序，然后开始</span></h1>' +
     '<div class="card panel">' +
-      '<h3>章节</h3><p class="hint">点一下可取消 / 选中，只有选中的章节会进入本次练习。</p>' +
+      '<h3>练习范围</h3><p class="hint">错题本会一直攒着你答错的题，答对后自动移出；' +
+        '只练错题时不看章节。</p>' +
+      '<div class="chips">' +
+        '<button class="chip ' + (!S.wrongOnly ? 'on' : '') + '" data-act="wrong-only" data-on="0">按章节练</button>' +
+        '<button class="chip ' + (S.wrongOnly ? 'on' : '') + '" data-act="wrong-only" data-on="1" ' +
+          (wCount ? '' : 'disabled') + '>只练错题（' + wCount + ' 道）</button>' +
+      '</div>' +
+      '<div class="hr"></div>' +
+      '<h3>章节</h3><p class="hint">' + (S.wrongOnly ? '正在只练错题，章节不生效；' : '') +
+        '点一下可取消 / 选中，只有选中的章节会进入本次练习。</p>' +
       '<div class="chips">' + chips + '</div>' +
       '<div class="hr"></div>' +
       '<h3>出题顺序</h3><p class="hint">顺序即按题库原顺序；随机适合反复刷。</p>' +
@@ -338,15 +483,20 @@ function startSession() {
   const bank = bankById(S.bankId);
   if (!bank) { S.view = 'banks'; return render(); }
   let ids = [];
-  bank.chapters.forEach(ch => {
-    if (S.chapters.indexOf(ch.id) < 0) return;
-    ch.questions.forEach(q => { if (q.answer.length) ids.push(q.id); });
-  });
-  if (!ids.length) { toast('请至少选择一个章节'); return; }
+  if (S.wrongOnly) {
+    ids = wrongIds(S.user, bank.id);
+    if (!ids.length) { toast('错题本是空的，先按章节练一练'); return; }
+  } else {
+    bank.chapters.forEach(ch => {
+      if (S.chapters.indexOf(ch.id) < 0) return;
+      ch.questions.forEach(q => { if (q.answer.length) ids.push(q.id); });
+    });
+    if (!ids.length) { toast('请至少选择一个章节'); return; }
+  }
   if (S.mode === 'random') ids = shuffle(ids);
   S.session = {
     id: 's' + Date.now(),
-    bankId: bank.id, bankName: bank.name,
+    bankId: bank.id, bankName: bank.name + (S.wrongOnly ? ' · 错题本' : ''),
     chapters: S.chapters.slice(), mode: S.mode,
     order: ids, idx: 0,
     answers: {}, submitted: {}, fav: {},
@@ -455,11 +605,31 @@ function renderQuiz() {
         '<button class="btn ghost" data-act="finish">交卷</button>' +
       '</div>' +
     '</div>' +
-    '<div class="nav">' + nav + '</div>' +
+    '<div class="nav" id="nav">' + nav + '</div>' +
     '<div class="kbdhint">快捷键：<span class="kbd">←</span> <span class="kbd">→</span> 切题 · ' +
       '<span class="kbd">1</span>~<span class="kbd">4</span> 选项 · ' +
       '<span class="kbd">Enter</span> 提交 · <span class="kbd">F</span> 收藏</div>';
+  scrollNavToCurrent();
   tickTimer();
+}
+
+/* ---- 答题卡自动定位 ----
+   把当前题滚到导航条“中部稍偏左”（35% 处）；
+   两段到头时交给夹取，所以开头和结尾不会硬顶 */
+const NAV_ANCHOR = 0.35;
+function navTargetScroll(curLeft, boxW, totalW) {
+  const max = totalW - boxW;
+  if (max <= 0) return 0;
+  return Math.max(0, Math.min(max, curLeft - boxW * NAV_ANCHOR));
+}
+function scrollNavToCurrent() {
+  const box = document.getElementById('nav');
+  if (!box || !box.querySelector || !box.getBoundingClientRect) return;
+  const cur = box.querySelector('.cur');
+  if (!cur || !cur.getBoundingClientRect) return;
+  const boxLeft = box.getBoundingClientRect().left;
+  const curLeft = cur.getBoundingClientRect().left - boxLeft + (box.scrollLeft || 0);
+  box.scrollLeft = navTargetScroll(curLeft, box.clientWidth, box.scrollWidth);
 }
 
 /* ---- 6.6 答题操作 ---- */
@@ -582,13 +752,14 @@ function finish() {
       !confirm('还有 ' + st.unanswered + ' 题没有作答。未作答不计入正确率，确定交卷吗？')) { render(); return; }
   s.finished = true;
   s.finishedAt = Date.now();
-  saveRecord({
-    user: S.user, bankName: s.bankName, total: st.total,
+  pushHistory(S.user, {
+    bankName: s.bankName, total: st.total,
     correct: st.correct, wrong: st.wrong, rate: st.rate, score: st.score,
     seconds: Math.round((s.finishedAt - s.startedAt) / 1000),
     at: new Date().toISOString()
   });
-  store.del(KEY.progress(S.user, s.bankId));
+  syncWrong(S.user, s);      /* 错题本：答错的记下，答对的移除 */
+  clearProgress(s.bankId);   /* 交了卷就不再是"上次答到哪" */
   S.view = 'result';
   S.reviewTab = 'all';
   S.reviewOpen = {};
@@ -601,7 +772,9 @@ function renderResult() {
   if (!s) { S.view = 'banks'; return render(); }
   const st = stats(s);
   const used = (s.finishedAt || Date.now()) - s.startedAt;
-  const color = st.rate >= 80 ? 'var(--ok)' : st.rate >= 60 ? 'var(--warn)' : 'var(--bad)';
+  const tone = st.rate >= 80 ? 'ok' : st.rate >= 60 ? 'warn' : 'bad';
+  const color = 'var(--' + tone + ')';          /* 环形图用实心色 */
+  const toneText = 'var(--' + tone + '-tx)';    /* 数字用文字色，深色下才够亮 */
   const deg = Math.round(st.rate * 3.6);
   const verdict = st.rate >= 80 ? '很稳，继续保持！' : st.rate >= 60 ? '及格线以上，再刷一遍更稳。' : '基础还需巩固，建议专攻错题。';
 
@@ -641,7 +814,7 @@ function renderResult() {
         '<div class="q">' + fmt(q.stem) + '</div>' +
         '<div class="line">题型：' + TYPE_LABEL[q.type].text + '　章节：' + esc(QPOS[qid].chapterName) + '</div>' +
         '<div class="line">你的答案：<b>' + esc(pickedText(q, s.answers[qid])) + '</b></div>' +
-        '<div class="line">正确答案：<b style="color:var(--ok)">' +
+        '<div class="line">正确答案：<b style="color:var(--ok-tx)">' +
           esc(answerText(q).replace(/\s+/g, ' ').trim()) + '</b></div>' +
         (q.analysis ? '<div class="line" style="margin-top:6px">解析：' + fmt(q.analysis) + '</div>' : '') +
       '</div></div>';
@@ -651,7 +824,7 @@ function renderResult() {
     '<h1>答题结果<span class="sub">' + esc(s.bankName) + ' · ' + esc(s.mode === 'random' ? '随机顺序' : '顺序作答') + '</span></h1>' +
     '<div class="card score-hero">' +
       '<div class="ring" style="background:conic-gradient(' + color + ' ' + deg + 'deg,var(--track) ' + deg + 'deg)">' +
-        '<div class="in"><div><div class="v" style="color:' + color + '">' + st.rate + '%</div>' +
+        '<div class="in"><div><div class="v" style="color:' + toneText + '">' + st.rate + '%</div>' +
         '<div class="u">正确率</div></div></div>' +
       '</div>' +
       '<div class="hero-txt">' +
@@ -726,7 +899,9 @@ document.addEventListener('click', function (e) {
     case 'login': doLogin(); break;
     case 'logout':
       if (S.view === 'quiz' && !confirm('正在答题，退出后进度会保留在本地。确定退出登录吗？')) return;
-      S.user = null; store.del(KEY.user); S.view = 'login'; S.session = null; render(); break;
+      S.user = null; store.del(KEY.user); S.view = 'login'; S.session = null;
+      applyTheme(theme());     /* 回到本机默认主题 */
+      render(); break;
     case 'pick-bank': pickBank(el.dataset.id); break;
     case 'toggle-chapter': {
       const id = el.dataset.id, i = S.chapters.indexOf(id);
@@ -734,6 +909,8 @@ document.addEventListener('click', function (e) {
       render(); break;
     }
     case 'mode': S.mode = el.dataset.mode; render(); break;
+    case 'wrong-only': S.wrongOnly = el.dataset.on === '1'; render(); break;
+    case 'theme': toggleTheme(); break;
     case 'back-banks':
       if (S.view === 'quiz' && !confirm('返回会保存当前进度，确定离开吗？')) return;
       S.view = 'banks'; S.session = null; render(); break;
@@ -799,4 +976,5 @@ document.addEventListener('keydown', function (e) {
 });
 
 /* ============ 8. 启动 ============ */
+applyTheme(theme());   /* 页面一加载就把主题定下来，避免闪一下浅色 */
 render();
