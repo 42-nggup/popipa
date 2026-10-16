@@ -1,0 +1,5062 @@
+[
+  {
+    "id": "java",
+    "name": "Java程序设计题库",
+    "desc": "1 个章节 · 单选题 192 + 多选题 12 + 判断题 15",
+    "icon": "☕",
+    "source": "data/raw/Java题库.md",
+    "chapters": [
+      {
+        "id": "java-c1",
+        "name": "Java题库",
+        "questions": [
+          {
+            "id": "java-c1-q1",
+            "type": "single",
+            "stem": "安装Java开发环境时，需要配置的环境变量是（　）",
+            "options": [
+              "PATH和CLASSPATH",
+              "JAVA_HOME和PATH",
+              "JAVA_HOME和CLASSPATH",
+              "JRE_HOME和CLASSPATH"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "安装Java开发环境时，通常需要配置JAVA_HOME和PATH环境变量。JAVA_HOME指向JDK安装目录，PATH加入JDK的bin目录后，命令行才能直接运行java、javac等命令。CLASSPATH不是现代Java开发环境的必配项，JRE_HOME也不是编译环境的核心配置。"
+          },
+          {
+            "id": "java-c1-q2",
+            "type": "single",
+            "stem": "当子类中的方法与父类中的方法具有相同的名称、参数列表和返回类型时，这种情况称为（　）",
+            "options": [
+              "方法重载",
+              "方法重写",
+              "继承",
+              "多态"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "方法重写（Override）是指子类中定义与父类中同名、同参数列表、同返回类型的方法，覆盖父类方法。选项A方法重载要求参数列表不同；选项C继承是类间关系；选项D多态是重写实现的一种特性。"
+          },
+          {
+            "id": "java-c1-q3",
+            "type": "single",
+            "stem": "已知 `String str = \"Java\";`，则 `str.charAt(1)` 的结果是（　）",
+            "options": [
+              "'J'",
+              "'a'",
+              "'v'",
+              "\"\""
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "字符串索引从0开始，str.charAt(1)返回索引1处的字符，即'a'。选项A是索引0的字符，选项C是索引2的字符，选项D是空字符串，均错误。"
+          },
+          {
+            "id": "java-c1-q4",
+            "type": "single",
+            "stem": "在Java中，super关键字的作用不包括（　）",
+            "options": [
+              "调用父类的构造方法",
+              "调用父类的成员方法",
+              "调用父类的成员变量",
+              "调用本类的构造方法"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "super关键字用于访问父类的构造方法、成员方法和成员变量，但不能调用本类的构造方法。调用本类构造方法应使用this关键字。因此D选项错误。"
+          },
+          {
+            "id": "java-c1-q5",
+            "type": "single",
+            "stem": "当一个类没有显式地定义构造方法时，Java会自动提供一个（　）",
+            "options": [
+              "带一个参数的构造方法",
+              "带两个参数的构造方法",
+              "无参构造方法",
+              "编译会报错"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "Java中，如果一个类没有显式定义任何构造方法，编译器会自动提供一个无参构造方法，该方法体为空，用于创建对象。选项A和B错误，因为自动提供的构造方法不带参数；选项D错误，因为不会报错。"
+          },
+          {
+            "id": "java-c1-q6",
+            "type": "single",
+            "stem": "在Java中，以下哪种方式可以实现多态的动态绑定（　）",
+            "options": [
+              "通过对象调用方法",
+              "通过类名调用静态方法",
+              "通过父类引用调用子类重写的方法",
+              "通过接口调用实现类的方法"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "多态的动态绑定是指在运行时根据对象的实际类型调用相应的方法。选项C中，通过父类引用调用子类重写的方法，正是动态绑定的典型应用。选项A描述的是普通方法调用，不一定是多态；选项B是静态方法调用，属于静态绑定；选项D虽然涉及接口，但未明确体现动态绑定，且C更直接符合题意。"
+          },
+          {
+            "id": "java-c1-q7",
+            "type": "multiple",
+            "stem": "以下关于return语句的说法，正确的有（　）",
+            "options": [
+              "return语句用于从方法中返回一个值",
+              "一个方法中只能有一个return语句",
+              "如果方法的返回类型是void，则可以省略return语句",
+              "return语句可以提前结束方法的执行"
+            ],
+            "answer": [
+              "A",
+              "C",
+              "D"
+            ],
+            "analysis": "A正确，return用于从方法返回值（void方法可直接写return;）。B错误，一个方法可以有多个return语句，只要不产生不可达代码。C正确，void方法可以省略return。D正确，return会立即结束方法执行。"
+          },
+          {
+            "id": "java-c1-q8",
+            "type": "multiple",
+            "stem": "关于Java中的垃圾回收机制，以下说法正确的有（　）",
+            "options": [
+              "垃圾回收可以自动回收不再使用的对象所占用的内存",
+              "程序员可以手动调用垃圾回收方法来回收内存",
+              "垃圾回收会影响程序的性能",
+              "垃圾回收只回收堆内存中的对象"
+            ],
+            "answer": [
+              "A",
+              "B",
+              "C"
+            ],
+            "analysis": "A正确，GC自动回收不可达对象。B正确，可调用System.gc()建议JVM回收（但不保证立即执行）。C正确，GC会产生Stop-The-World暂停，影响性能。D错误，方法区中的类元数据同样会被回收。"
+          },
+          {
+            "id": "java-c1-q9",
+            "type": "single",
+            "stem": "Java语言中注释有三种类型，以下哪种注释方式会被Javadoc工具提取生成文档（　）",
+            "options": [
+              "//单行注释",
+              "/*多行注释*/",
+              "/**文档注释*/",
+              "以上都可以"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "Javadoc工具专门提取以/**开头、以*/结尾的文档注释，生成API文档。单行注释//和多行注释/* */不会被提取。因此正确答案是C。"
+          },
+          {
+            "id": "java-c1-q10",
+            "type": "single",
+            "stem": "以下代码的输出结果是（　）\n```java\nint a=10; int b=5;\nif(a>b){System.out.println(\"a大于b\");}\nelse if(a<b){System.out.println(\"a小于b\");}\nelse {System.out.println(\"a等于b\");}\n```",
+            "options": [
+              "a大于b",
+              "a小于b",
+              "a等于b",
+              "无输出"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "a=10，b=5，条件a>b成立，执行第一个分支输出\"a大于b\"，后续else if和else不执行。其他选项错误：B不满足条件，C不满足条件，D有输出。"
+          },
+          {
+            "id": "java-c1-q11",
+            "type": "single",
+            "stem": "以下集合类中，适合频繁插入和删除操作的是（　）",
+            "options": [
+              "ArrayList",
+              "LinkedList",
+              "Vector",
+              "HashSet"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "LinkedList基于双向链表实现，插入和删除操作只需修改节点指针，时间复杂度为O(1)，适合频繁插入和删除。ArrayList和Vector基于数组，插入删除需移动元素，效率低。HashSet基于哈希表，主要用于去重，不针对插入删除优化。"
+          },
+          {
+            "id": "java-c1-q12",
+            "type": "single",
+            "stem": "while循环和do-while循环，以下说法正确的是（　）",
+            "options": [
+              "while循环和do-while循环的执行逻辑完全相同",
+              "while循环先判断条件再执行循环体，do-while循环先执行循环体再判断条件",
+              "while循环至少会执行一次循环体",
+              "do-while循环有可能一次循环体都不执行"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "while循环先判断条件，条件为真才执行循环体，可能一次都不执行；do-while循环先执行一次循环体再判断条件，至少执行一次。选项B正确描述了这一区别。选项A错误，两者执行逻辑不同；选项C错误，while循环可能不执行；选项D错误，do-while至少执行一次。"
+          },
+          {
+            "id": "java-c1-q13",
+            "type": "single",
+            "stem": "若要在Java程序中使用Scanner类来获取用户输入，导入语句正确的是（　）",
+            "options": [
+              "java.util.Scanner",
+              "java.io.Scanner",
+              "import java.util.Scanner;",
+              "import java.io.Scanner;"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "在Java中，使用Scanner类需要导入java.util包，正确的导入语句是'import java.util.Scanner;'。选项A和B缺少import关键字，不是有效的导入语句。选项D导入了错误的包java.io.Scanner，该类不存在。因此，只有选项C正确。"
+          },
+          {
+            "id": "java-c1-q14",
+            "type": "single",
+            "stem": "已知类A，以下创建类A对象的正确方式是（　）",
+            "options": [
+              "A a;",
+              "A a = new;",
+              "A a = new A();",
+              "a = A();"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "选项C使用new关键字调用构造方法创建对象，语法正确。选项A只声明引用未创建对象；选项B缺少构造方法调用；选项D缺少new关键字且语法错误。"
+          },
+          {
+            "id": "java-c1-q15",
+            "type": "single",
+            "stem": "关于Java中的包，以下说法正确的是（　）",
+            "options": [
+              "包是用来组织类和接口的一种机制",
+              "不同包中的类不能同名",
+              "包名必须全部由大写字母组成",
+              "一个类只能属于一个包，不能跨包使用"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "选项A正确，包是Java中组织类和接口的机制，提供命名空间和访问控制。选项B错误，不同包中的类可以同名，通过包名区分。选项C错误，包名通常使用小写字母，如java.util。选项D错误，一个类只能属于一个包，但可以通过导入跨包使用。"
+          },
+          {
+            "id": "java-c1-q16",
+            "type": "single",
+            "stem": "已知类Student有属性name和age，以下定义构造方法正确的是（　）",
+            "options": [
+              "```java\nclass Student{\n    public Student(){\n        Student(\"zhangsan\",18);\n    }\n    private String name;\n    private int age;\n}\n```",
+              "```java\nclass Student{\n    public Student(){\n        this.name=\"zhangsan\";\n        this.age=18;\n    }\n    private String name;\n    private int age;\n}\n```",
+              "```java\nclass Student{\n    public void Student(){\n        this.name=\"zhangsan\";\n        this.age=18;\n    }\n    private String name;\n    private int age;\n}\n```",
+              "以上都正确"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "选项B正确，构造方法名与类名相同且没有返回值类型，可以在方法体内用this为name和age赋值。A错误，构造方法中不能像普通方法一样直接调用Student(\"zhangsan\",18)；C写了void，已经变成普通方法而不是构造方法；D因此不正确。"
+          },
+          {
+            "id": "java-c1-q17",
+            "type": "multiple",
+            "stem": "若 Animal 类定义了非私有实例方法 move()，Dog 继承 Animal，以下调用 move 方法的方式正确的有（　）",
+            "options": [
+              "Animal animal = new Animal(); animal.move();",
+              "Dog dog = new Dog(); dog.move();",
+              "Animal animal = new Dog(); animal.move();",
+              "Dog dog = (Dog)new Animal(); dog.move();"
+            ],
+            "answer": [
+              "A",
+              "B",
+              "C"
+            ],
+            "analysis": "A通过Animal对象调用；B通过Dog对象调用继承来的方法；C通过父类引用指向子类对象调用该实例方法——三者都正确。D错误，new Animal()创建的是Animal对象，向下转型为Dog会抛ClassCastException。"
+          },
+          {
+            "id": "java-c1-q18",
+            "type": "single",
+            "stem": "以下代码实现了面向对象的（　）特性\n```java\nclass Shape{\n    public void draw(){\n        System.out.println(\"Drawing a shape\");\n    }\n}\nclass Rectangle extends Shape{\n    public void draw(){\n        System.out.println(\"Drawing a rectangle\");\n    }\n}\n```",
+            "options": [
+              "封装",
+              "继承",
+              "多态",
+              "以上都是"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "代码中Rectangle类继承Shape类并重写draw方法，体现了继承特性。但题目问的是“以下代码实现了面向对象的（ ）特性”，代码中通过父类引用指向子类对象并调用draw方法时，会执行子类的重写方法，这体现了多态性。封装是指隐藏内部实现，代码未体现。因此正确答案是多态。"
+          },
+          {
+            "id": "java-c1-q19",
+            "type": "single",
+            "stem": "若要将一个字符串变量赋值为\"Hello,World!\"，正确的写法是（　）",
+            "options": [
+              "string s = \"Hello, World!\";",
+              "String s = \"Hello, World!\";",
+              "S = \"Hello, World!\";",
+              "char s = \"Hello, World!\";"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "Java中字符串类型为String，首字母大写，且变量声明需指定类型。选项B正确。A中string首字母小写，不是Java关键字；C缺少类型声明；D中char只能存储单个字符，不能赋值字符串。"
+          },
+          {
+            "id": "java-c1-q20",
+            "type": "single",
+            "stem": "若要将一个类的成员变量私有化，应该使用的访问修饰符是（　）",
+            "options": [
+              "public",
+              "protected",
+              "private",
+              "default"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "私有化成员变量需使用private修饰符，使其仅在本类中可见。public公开访问，protected允许子类和同包访问，default允许同包访问，均不符合私有化要求。"
+          },
+          {
+            "id": "java-c1-q21",
+            "type": "single",
+            "stem": "以下关于JDK、JRE和JVM的关系，正确的是（　）",
+            "options": [
+              "JVM包含JRE，JRE包含JDK",
+              "JDK包含JRE，JRE包含JVM",
+              "JRE包含JDK，JDK包含JVM",
+              "JVM、JRE、JDK相互独立"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "JDK（Java开发工具包）包含JRE（Java运行环境），而JRE包含JVM（Java虚拟机）。选项B正确描述了这一包含关系。其他选项顺序颠倒或错误。"
+          },
+          {
+            "id": "java-c1-q22",
+            "type": "single",
+            "stem": "以下运算符中，优先级最高的是（　）",
+            "options": [
+              "+",
+              "()",
+              "&&",
+              "="
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "在Java中，括号()的优先级最高，用于改变运算顺序。加号+优先级低于括号，逻辑与&&和赋值=优先级更低。因此正确答案是B。"
+          },
+          {
+            "id": "java-c1-q23",
+            "type": "single",
+            "stem": "泛型通配符 `?` 的作用是（　）",
+            "options": [
+              "表示任意类型",
+              "用于限制类型的下界",
+              "用于限制类型的上界",
+              "以上都不对"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "泛型通配符?表示未知类型，即任意类型，常用于泛型方法或泛型类的参数类型。选项B和C分别对应下界通配符? super T和上界通配符? extends T，不是?的直接作用。因此A正确。"
+          },
+          {
+            "id": "java-c1-q24",
+            "type": "single",
+            "stem": "若要限制一个类不能被其他类继承，应该使用的关键字是（　）",
+            "options": [
+              "final",
+              "abstract",
+              "static",
+              "private"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "final关键字用于修饰类时，表示该类不能被继承，符合题目要求。abstract类必须被继承才能使用，static不能修饰类，private不能修饰外部类。"
+          },
+          {
+            "id": "java-c1-q25",
+            "type": "single",
+            "stem": "以下关于接口与抽象类的说法，错误的是（　）",
+            "options": [
+              "接口中所有方法默认都是抽象的（JDK8之前）",
+              "一个类可以实现多个接口，但只能继承一个抽象类",
+              "接口不能有构造方法，抽象类可以有构造方法",
+              "接口中的成员变量默认是private，抽象类中的成员变量默认是public"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "选项D错误，因为接口中的成员变量默认是public static final，而非private；抽象类中的成员变量默认是default（包访问权限），而非public。其他选项正确：A接口方法默认抽象；B类可多实现接口但单继承抽象类；C接口无构造方法，抽象类有。"
+          },
+          {
+            "id": "java-c1-q26",
+            "type": "single",
+            "stem": "以下关于方法重写的说法，正确的是（　）",
+            "options": [
+              "方法重写要求方法名不同，参数列表必须相同",
+              "方法重写要求方法名相同，参数列表必须相同",
+              "方法重写要求返回类型必须不同",
+              "方法重写要求访问权限必须更严格"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "方法重写要求子类中方法名和参数列表与父类被重写方法完全相同，因此B正确。A错误，因为方法名必须相同；C错误，返回类型可以相同或是子类型；D错误，访问权限不能更严格，应相同或更宽松。"
+          },
+          {
+            "id": "java-c1-q27",
+            "type": "single",
+            "stem": "以下不属于面向对象三大特性的是（　）",
+            "options": [
+              "封装",
+              "继承",
+              "多态",
+              "接口"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "面向对象三大特性是封装、继承和多态。接口是实现多态的一种方式，但不是特性本身。因此，不属于三大特性的是接口。"
+          },
+          {
+            "id": "java-c1-q28",
+            "type": "single",
+            "stem": "以下关于break语句和continue语句的说法，错误的是（　）",
+            "options": [
+              "break语句用于跳出当前循环",
+              "continue语句用于跳过本次循环剩余的代码，继续下一次循环",
+              "break语句和continue语句只能用在循环语句中",
+              "在多层循环嵌套中，break语句默认只能跳出最内层循环"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "选项C错误，因为break语句除了用于循环，还可以用于switch语句中跳出switch块。A、B、D描述正确。"
+          },
+          {
+            "id": "java-c1-q29",
+            "type": "single",
+            "stem": "以下属于Java基本数据类型的是（　）",
+            "options": [
+              "String",
+              "Integer",
+              "double",
+              "ArrayList"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "Java基本数据类型包括byte、short、int、long、float、double、char、boolean。double是基本数据类型之一。String、Integer、ArrayList都是引用类型，其中Integer是包装类。"
+          },
+          {
+            "id": "java-c1-q30",
+            "type": "single",
+            "stem": "已知 `int num=123`；若要获取num的个位数，正确的表达式是（　）",
+            "options": [
+              "num / 10",
+              "num % 10",
+              "num / 100",
+              "num % 100"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "要获取个位数，应使用取模运算 num % 10，结果为 3。选项 A 得到十位数 12，选项 C 得到百位数 1，选项 D 得到后两位 23，均不正确。"
+          },
+          {
+            "id": "java-c1-q31",
+            "type": "single",
+            "stem": "当一个方法的返回类型为void时，表示该方法（　）",
+            "options": [
+              "没有返回值",
+              "返回一个空对象",
+              "返回值为null",
+              "返回值为0"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "void表示方法不返回任何值，因此选项A正确。选项B、C、D都表示有返回值，与void定义矛盾。"
+          },
+          {
+            "id": "java-c1-q32",
+            "type": "single",
+            "stem": "若要将一个整型变量num的值强制转换为float类型，正确的写法是（　）",
+            "options": [
+              "float f = num;",
+              "float f = (float)num;",
+              "float f = float(num);",
+              "f = (float)num;"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "在Java中，强制类型转换使用括号将目标类型括起来放在变量前，即(float)num。选项A是自动类型转换，但int到float是隐式转换，虽然正确但不符合“强制转换”要求；选项C语法错误；选项D缺少变量类型声明。因此B正确。"
+          },
+          {
+            "id": "java-c1-q33",
+            "type": "single",
+            "stem": "以下关于Java程序编译的说法，正确的是（　）",
+            "options": [
+              "编译后的文件可以直接在任何操作系统上运行",
+              "编译是将Java源文件(.java)转换为字节码文件(.class)",
+              "编译过程中不会检查语法错误",
+              "一个Java源文件只能生成一个字节码文件"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "选项B正确，Java编译过程将.java源文件转换为.class字节码文件。A错误，字节码需依赖JVM运行，不同操作系统需对应JVM。C错误，编译时会检查语法错误。D错误，一个源文件可生成多个字节码文件（如内部类）。"
+          },
+          {
+            "id": "java-c1-q34",
+            "type": "single",
+            "stem": "首次提出Java语言的时间是（　）",
+            "options": [
+              "1991年",
+              "1995年",
+              "2000年",
+              "2005年"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "Java语言由Sun Microsystems公司于1991年启动开发，最初名为Oak，1995年正式发布。因此首次提出时间是1991年，选项A正确。B是正式发布年份，C和D均晚于实际时间。"
+          },
+          {
+            "id": "java-c1-q35",
+            "type": "single",
+            "stem": "以下关于抽象类的说法，正确的是（　）",
+            "options": [
+              "抽象类可以被实例化",
+              "抽象类中只能有抽象方法",
+              "子类必须重写抽象父类中的所有抽象方法",
+              "抽象类不能包含非抽象方法"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "抽象类不能实例化，A错误；抽象类可以包含非抽象方法，B和D错误；子类如果是非抽象类，必须重写父类所有抽象方法，C正确。"
+          },
+          {
+            "id": "java-c1-q36",
+            "type": "single",
+            "stem": "若有类A和类B，B实现了接口C，以下说法正确的是（　）",
+            "options": [
+              "A可以继承B，同时实现C",
+              "A可以继承B，但不能再实现C",
+              "A不能继承B，但可以实现C",
+              "A既不能继承B，也不能实现C"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在Java中，类可以同时继承一个类和实现多个接口。因此，A可以继承B，同时实现C。选项B错误，因为继承类后仍可实现接口；选项C错误，因为A可以继承B；选项D错误，因为A可以继承B并实现C。"
+          },
+          {
+            "id": "java-c1-q37",
+            "type": "single",
+            "stem": "一个类实现接口时，必须（　）",
+            "options": [
+              "实现接口中的所有方法",
+              "实现接口中的部分方法",
+              "可以不实现接口中的方法",
+              "实现接口中的抽象方法"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "一个类实现接口时，必须实现接口中定义的所有抽象方法（除非该类是抽象类）。Java 8+中接口还可以包含default默认方法和static静态方法，这些方法不需要实现类重写。 选项A错误，'所有方法'说法不对，default和static方法无需实现。 选项B错误，抽象方法必须全部实现，不能只实现部分。 选项C错误，非抽象类必须实现全部抽象方法。 选项D正确，实现类只需实现接口中的抽象方法。"
+          },
+          {
+            "id": "java-c1-q38",
+            "type": "single",
+            "stem": "当子类继承父类时，子类可以（　）",
+            "options": [
+              "增加新的属性和方法",
+              "只能继承父类的属性和方法，不能进行修改和扩展",
+              "不能继承父类的私有属性和方法",
+              "A和C都正确"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "子类继承父类时，可以增加新的属性和方法（A正确），但不能直接访问父类的私有成员（C正确），因此D选项“A和C都正确”为正确答案。B选项错误，因为子类可以扩展和修改（通过重写）父类方法。"
+          },
+          {
+            "id": "java-c1-q39",
+            "type": "single",
+            "stem": "关于一维数组的遍历，以下代码正确的是（　）",
+            "options": [
+              "```java\nint[] arr={1,2,3};\nfor(int i=0;i<arr.length;i++){\n    System.out.println(arr[i]);\n}\n```",
+              "```java\nint[] arr={1,2,3};\nfor(int num : arr){\n    System.out.println(num);\n}\n```",
+              "A和B都正确",
+              "以上都不对"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "选项A使用传统for循环，通过索引遍历数组，正确。选项B使用增强for循环，直接遍历数组元素，也正确。因此A和B都正确，故选C。"
+          },
+          {
+            "id": "java-c1-q40",
+            "type": "single",
+            "stem": "已知 `int a=5; int b=2;` 则 `a / b` 的结果是（　）",
+            "options": [
+              "2.5",
+              "2",
+              "3",
+              "2.0"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "在Java中，两个整数相除结果为整数，小数部分直接舍弃。a=5，b=2，5/2=2，因此结果为2。选项A和D为浮点数，错误；选项C为3，错误。"
+          },
+          {
+            "id": "java-c1-q41",
+            "type": "single",
+            "stem": "关于final关键字，以下说法错误的是（　）",
+            "options": [
+              "用final修饰的类不能被继承",
+              "用final修饰的方法不能被重写",
+              "用final修饰的变量不能被重新赋值",
+              "final变量必须在声明时初始化"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "final变量可以在声明时初始化，也可以在构造器中初始化（对于实例变量）或静态初始化块中初始化（对于静态变量），因此D选项说法错误。A、B、C选项均正确描述了final的用法。"
+          },
+          {
+            "id": "java-c1-q42",
+            "type": "single",
+            "stem": "关于if-else语句，以下说法正确的是（　）",
+            "options": [
+              "else部分是必须的",
+              "if后面的条件表达式只能是布尔类型",
+              "if语句中不能嵌套if语句",
+              "当if条件为假时，程序直接结束"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "在Java中，if-else语句的else部分是可选的，不是必须的，故A错误。if后面的条件表达式必须是布尔类型，这是Java语法的规定，故B正确。if语句中可以嵌套if语句，形成多重判断，故C错误。当if条件为假时，如果有else部分则执行else块，否则跳过if语句继续执行后续代码，并非直接结束程序，故D错误。"
+          },
+          {
+            "id": "java-c1-q43",
+            "type": "single",
+            "stem": "Java程序的执行过程中，负责将字节码文件转换为机器码的是（　）",
+            "options": [
+              "JDK",
+              "JRE",
+              "JVM",
+              "IDE"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "JVM（Java虚拟机）负责将字节码文件解释或编译为机器码并执行。JDK是开发工具包，JRE是运行环境，IDE是集成开发环境，它们都不直接执行字节码转换。"
+          },
+          {
+            "id": "java-c1-q44",
+            "type": "single",
+            "stem": "对于类的成员变量，若不指定访问修饰符，其默认的访问权限是（　）",
+            "options": [
+              "public",
+              "protected",
+              "private",
+              "default（包访问权限）"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "在Java中，类的成员变量若不指定访问修饰符，默认具有包访问权限（即default），只能被同一包中的类访问。选项A、B、C分别对应public、protected、private，都不是默认权限。"
+          },
+          {
+            "id": "java-c1-q45",
+            "type": "single",
+            "stem": "以下代码中，main方法输出结果是（　）\n```java\nclass Parent{\n    public void method(){\n        System.out.println(\"Parent method\");\n    }\n}\nclass Child extends Parent{\n    public void method(){\n        System.out.println(\"Child method\");\n    }\n}\npublic class Test{\n    public static void main(String[] args){\n        Parent parent = new Child();\n        parent.method();\n    }\n}\n```",
+            "options": [
+              "Parent method",
+              "Child method",
+              "编译错误",
+              "运行时错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "由于Java动态绑定，父类引用指向子类对象时，调用的是子类重写的方法，因此输出\"Child method\"。编译和运行均无错误。"
+          },
+          {
+            "id": "java-c1-q46",
+            "type": "single",
+            "stem": "泛型方法的正确声明是（　）",
+            "options": [
+              "`public static <T> T add(T a,T b){ return a; }`",
+              "`public static add(int a,T b){ return a; }`",
+              "`public static <T> add(T a,T b){ return a; }`",
+              "`public static <T> add(T a,b){ return a; }`"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "泛型方法需要先声明类型参数`<T>`，随后写返回类型，再写方法名和参数列表。选项A中的返回类型为T，参数a和b也声明为T，语法完整。B缺少类型参数和返回类型；C缺少返回类型；D中参数b缺少类型声明。"
+          },
+          {
+            "id": "java-c1-q47",
+            "type": "single",
+            "stem": "关于Java中的继承，下列说法错误的是（　）",
+            "options": [
+              "子类可以继承父类所有属性和方法",
+              "一个子类只能有一个直接父类",
+              "继承可以提高代码的复用性",
+              "子类可以重写父类的方法"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "选项A错误，因为子类不能继承父类的私有属性和方法，也不能继承构造方法。其他选项正确：B符合单继承规则，C是继承的优点，D是方法重写的定义。"
+          },
+          {
+            "id": "java-c1-q48",
+            "type": "single",
+            "stem": "以下哪种情况体现了Java中的多态（　）",
+            "options": [
+              "父类引用指向子类对象，调用子类重写后的方法",
+              "子类重写父类的多个同名方法",
+              "在同一个类中，多个同名但参数不同的方法",
+              "定义多个变量，变量名相同但变量类型不同"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "多态指同一操作作用于不同对象产生不同执行结果，通常通过父类引用指向子类对象并调用重写方法实现。A正确；B描述重写但未体现父类引用；C是重载；D是变量声明，均不体现多态。"
+          },
+          {
+            "id": "java-c1-q49",
+            "type": "single",
+            "stem": "下面关于Java类的构造方法，说法正确的是（　）",
+            "options": [
+              "构造方法不能有参数",
+              "构造方法名必须与类名相同",
+              "构造方法必须有返回值",
+              "一个类只能有一个构造方法"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "构造方法名必须与类名相同，且没有返回值类型（void也不行）。A错误，构造方法可以有参数；C错误，构造方法没有返回值；D错误，一个类可以有多个重载的构造方法。"
+          },
+          {
+            "id": "java-c1-q50",
+            "type": "single",
+            "stem": "以下代码中，存在编译错误的是（　）\n```java\nclass Animal {\n    public void eat() {\n        System.out.println(\"Animal is eating\");\n    }\n}\nclass Dog extends Animal {\n    public void bark() {\n        System.out.println(\"Dog is barking\");\n    }\n}\npublic static void main(String[] args) {\n    Animal animal = new Dog();\n    animal.bark();\n}\n```",
+            "options": [
+              "无错误",
+              "animal.bark();这行代码",
+              "animal.eat();这行代码",
+              "整个代码都有错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "编译错误发生在 animal.bark() 这行。因为 animal 是 Animal 类型的引用，虽然实际指向 Dog 对象，但编译器只根据引用类型检查可调用的方法，Animal 类中没有 bark() 方法，所以编译失败。其他选项错误：A 有错误；C 的 eat() 方法在 Animal 中定义，可以调用；D 只有一行错误。"
+          },
+          {
+            "id": "java-c1-q51",
+            "type": "single",
+            "stem": "下列关于方法重载的描述，错误的是（　）",
+            "options": [
+              "方法重载要求方法名相同",
+              "方法重载要求参数列表不同",
+              "方法重载要求返回类型不同",
+              "方法重载的方法必须处在同一个类中"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "方法重载要求方法名相同且参数列表不同，与返回类型无关。选项C错误，因为返回类型不同不能作为重载的依据，仅靠返回类型不同无法构成重载。其他选项正确描述了重载的规则。"
+          },
+          {
+            "id": "java-c1-q52",
+            "type": "single",
+            "stem": "接口中定义的方法默认的访问修饰符是（　）",
+            "options": [
+              "public",
+              "protected",
+              "private",
+              "default"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在Java中，接口中的方法默认是public abstract的，因此访问修饰符默认为public。protected和private在接口中不允许用于方法（Java 9之前），default是包访问权限，但接口方法默认是public。"
+          },
+          {
+            "id": "java-c1-q53",
+            "type": "single",
+            "stem": "关于Java中的异常处理，以下说法正确的是（　）",
+            "options": [
+              "异常处理与面向对象无关",
+              "捕获异常后，程序一定会继续执行",
+              "异常分为运行时异常和编译异常",
+              "所有异常都必须使用try-catch处理"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "Java异常分为运行时异常（RuntimeException及其子类）和编译时异常（Checked Exception），因此C正确。A错误，异常处理基于面向对象，异常是类；B错误，捕获异常后可能退出程序；D错误，运行时异常可不处理。"
+          },
+          {
+            "id": "java-c1-q54",
+            "type": "single",
+            "stem": "在Java中，以下哪种方式不能实现多态的动态绑定（　）",
+            "options": [
+              "通过对象调用普通方法",
+              "通过类名调用静态方法",
+              "通过父类引用调用子类重写的方法",
+              "通过接口调用实现类的方法"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "多态的动态绑定发生在运行时，根据实际对象类型调用重写的方法。静态方法属于类，通过类名调用在编译时确定，不涉及动态绑定。A、C、D选项均涉及对象方法调用，可实现动态绑定。"
+          },
+          {
+            "id": "java-c1-q55",
+            "type": "single",
+            "stem": "关于this关键字的说法正确的是（　）",
+            "options": [
+              "this只能在构造方法中使用",
+              "this可以用来调用本类的其他构造方法",
+              "this可以用来调用父类的方法",
+              "this不能用于成员方法中"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "this关键字可以在构造方法和成员方法中使用，用于引用当前对象。选项B正确，因为this()可以调用本类的其他构造方法。选项A错误，this不仅限于构造方法；选项C错误，调用父类方法应使用super；选项D错误，this常用于成员方法中。"
+          },
+          {
+            "id": "java-c1-q56",
+            "type": "single",
+            "stem": "若要在一个类中定义一个常量，应该使用的关键字是（　）",
+            "options": [
+              "final",
+              "static",
+              "public",
+              "private"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在Java中，定义常量通常使用final关键字，表示该变量一旦赋值后不可修改。static用于类成员，public和private是访问修饰符，不能单独定义常量。因此正确答案是A。"
+          },
+          {
+            "id": "java-c1-q57",
+            "type": "single",
+            "stem": "以下代码实现了（　）设计模式的思想\n```java\ninterface Shape { void draw(); }\nclass Circle implements Shape {\n    @Override\n    public void draw() {\n        System.out.println(\"Drawing a circle\");\n    }\n}\nclass Rectangle implements Shape {\n    @Override\n    public void draw() {\n        System.out.println(\"Drawing a rectangle\");\n    }\n}\n```",
+            "options": [
+              "工厂模式",
+              "策略模式",
+              "单例模式",
+              "观察者模式"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "代码定义了Shape接口及其实现类Circle和Rectangle，每个类有自己的draw方法实现，体现了策略模式中定义算法族并使其可互换的思想。工厂模式涉及创建对象，单例模式确保唯一实例，观察者模式定义一对多依赖，均不匹配。"
+          },
+          {
+            "id": "java-c1-q58",
+            "type": "single",
+            "stem": "以下关于Java中的泛型，说法错误的是（　）",
+            "options": [
+              "泛型可以提高代码的类型安全性",
+              "泛型可以在编译时进行类型检查",
+              "泛型可以避免强制类型转换",
+              "泛型方法不能在类中单独定义"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "泛型方法可以在普通类或泛型类中单独定义，因此D选项错误。A、B、C选项均正确：泛型通过编译时类型检查提高安全性，并避免强制类型转换。"
+          },
+          {
+            "id": "java-c1-q59",
+            "type": "single",
+            "stem": "关于Java中的接口，以下说法正确的是（　）",
+            "options": [
+              "接口中可以定义成员变量",
+              "JDK7中接口里的方法可以有方法体",
+              "一个类只能实现一个接口",
+              "接口不能被实例化"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "接口中只能定义常量（public static final），不能定义普通成员变量，故A错。JDK7中接口方法只能是抽象方法，不能有方法体，JDK8才允许default和static方法，故B错。一个类可以实现多个接口，故C错。接口不能实例化，D正确。"
+          },
+          {
+            "id": "java-c1-q60",
+            "type": "single",
+            "stem": "以下代码中，Test类的main方法输出结果是（　）\n```java\nclass A{\n    int num = 10;\n    public void show(){\n        System.out.println(\"A:\"+num);\n    }\n}\nclass B extends A{\n    int num = 20;\n    public void show(){\n        System.out.println(\"B:\"+num);\n    }\n}\npublic class Test {\n    public static void main(String[] args) {\n        A a = new B();\n        a.show();\n    }\n}\n```",
+            "options": [
+              "A:10",
+              "A:20",
+              "B:10",
+              "B:20"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "由于多态性，父类引用指向子类对象，调用show()方法时执行子类的重写方法，输出B:20。成员变量num在子类中隐藏了父类的num，但方法中使用的num是子类的num，因此输出20。"
+          },
+          {
+            "id": "java-c1-q61",
+            "type": "single",
+            "stem": "当一个类实现了Serializable接口时，意味着该类的对象可以（　）",
+            "options": [
+              "被序列化保存到文件",
+              "被自动垃圾回收",
+              "被自动克隆",
+              "被自动转化为字符串"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "实现Serializable接口的对象可以被序列化，即转换为字节流保存到文件或通过网络传输。选项B错误，垃圾回收与Serializable无关；选项C错误，克隆需实现Cloneable接口；选项D错误，转化为字符串需重写toString方法。"
+          },
+          {
+            "id": "java-c1-q62",
+            "type": "single",
+            "stem": "已知int num=10;正确的语句是（　）",
+            "options": [
+              "int num = 10;",
+              "integer num = 10;",
+              "num = 10.0;",
+              "num = null;"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "选项A正确，因为变量num已声明为int类型，重新赋值10是合法的。选项B错误，因为Java中整数类型是int而非integer。选项C错误，因为10.0是double类型，不能直接赋值给int变量。选项D错误，因为int是基本类型，不能赋值为null。"
+          },
+          {
+            "id": "java-c1-q63",
+            "type": "single",
+            "stem": "以下循环可以输出1到10的代码是（　）",
+            "options": [
+              "for(int i=1;i<=10;i++){System.out.println(i);}",
+              "for(int i=1;i<10;i++){System.out.println(i);}",
+              "for(int i=0;i<=10;i++){System.out.println(i);}",
+              "for(int i=0;i<10;i++){System.out.println(i);}"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "选项A的循环从i=1开始，条件i<=10，每次递增1，输出1到10，正确。选项B输出1到9，缺少10；选项C输出0到10，多出0；选项D输出0到9，多出0且缺少10。"
+          },
+          {
+            "id": "java-c1-q64",
+            "type": "single",
+            "stem": "创建一个长度为5的整型数组，正确的语句是（　）",
+            "options": [
+              "int arr[5];",
+              "int arr[] = new int[5];",
+              "int arr = new int[5];",
+              "int arr[5] = new int[];"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "选项B正确，因为Java中创建数组需使用new关键字，且语法为int[] arr = new int[5]或int arr[] = new int[5]。A选项C语言语法，Java中不允许；C选项类型不匹配，arr应为数组类型；D选项声明时不能指定大小，且new int[]缺少长度。"
+          },
+          {
+            "id": "java-c1-q65",
+            "type": "single",
+            "stem": "获取字符串\"java is fun\"的长度，应使用的方法是（　）",
+            "options": [
+              "str.length()",
+              "str.size()",
+              "str.len()",
+              "str.length"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在Java中，获取字符串长度应使用length()方法，即str.length()。选项A正确。选项B的size()用于集合类；选项C的len()是Python中的用法；选项D的length是数组的属性，不是字符串的方法。"
+          },
+          {
+            "id": "java-c1-q66",
+            "type": "multiple",
+            "stem": "关于switch语句的说法正确的有（　）",
+            "options": [
+              "switch后面的表达式可以是字符",
+              "case后面的值必须是常量",
+              "case分支必须都写break语句",
+              "default分支可以放在任意位置"
+            ],
+            "answer": [
+              "A",
+              "B",
+              "D"
+            ],
+            "analysis": "A正确，switch支持char类型（JDK 7起还支持String）。B正确，case值必须是编译时常量。C错误，break用于跳出switch，不写会「贯穿」执行下一个case，并非必须。D正确，default可以出现在任意位置。"
+          },
+          {
+            "id": "java-c1-q67",
+            "type": "single",
+            "stem": "下面代码中，变量flag的值为（　）\n```java\nboolean flag = 5 > 3 && 2 < 1;\n```",
+            "options": [
+              "true",
+              "false",
+              "null",
+              "编译报错"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "表达式5>3为true，2<1为false，true && false结果为false，因此flag值为false。选项A错误，选项C null不能赋值给基本类型boolean，选项D编译不会报错。"
+          },
+          {
+            "id": "java-c1-q68",
+            "type": "single",
+            "stem": "下面关于equals()方法说法正确的是（　）",
+            "options": [
+              "==比较地址，equals()比较内容",
+              "所有类的equals()都自动重写",
+              "String类重写了equals方法用来比较字符内容",
+              "基本类型可以调用equals()"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "String类重写了equals()方法，用于比较字符串的字符内容是否相等，因此C正确。A错误，因为Object类的equals()默认比较地址，但许多类重写后比较内容；B错误，并非所有类都自动重写equals()；D错误，基本类型不能调用方法。"
+          },
+          {
+            "id": "java-c1-q69",
+            "type": "single",
+            "stem": "子类重写父类的方法，通过父类引用调用子类重写的方法，这属于（　）",
+            "options": [
+              "封装",
+              "继承",
+              "多态",
+              "方法重载"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "通过父类引用调用子类重写的方法，是运行时多态的典型表现，即动态绑定。封装是隐藏实现细节，继承是子类获得父类成员，方法重载是同一类中方法名相同参数不同，均不符合题意。"
+          },
+          {
+            "id": "java-c1-q70",
+            "type": "single",
+            "stem": "int a=1, b=3; 则 a++ + b++ 的结果为（　）",
+            "options": [
+              "4",
+              "5",
+              "6",
+              "7"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "a++是后置自增，先使用a的原值1参与运算，然后a自增为2；b++同理，先使用b的原值3参与运算，然后b自增为4。因此表达式结果为1+3=4，对应选项A。"
+          },
+          {
+            "id": "java-c1-q71",
+            "type": "single",
+            "stem": "在Java中，下列哪个关键字用于定义常量（　）",
+            "options": [
+              "static",
+              "final",
+              "const",
+              "abstract"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "final修饰的变量一旦赋值就不能再修改，用于定义常量；const是Java的保留字但未使用。"
+          },
+          {
+            "id": "java-c1-q72",
+            "type": "single",
+            "stem": "若要将num的值强制转换为float类型，正确的写法是（　）",
+            "options": [
+              "float(num);",
+              "(float)num;",
+              "num float;",
+              "float num;"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "在Java中，强制类型转换的语法是使用圆括号将目标类型括起来，放在要转换的变量或表达式之前，即 (float)num。选项A的写法是C语言风格，Java不支持；选项C和D的语法错误。因此正确答案是B。"
+          },
+          {
+            "id": "java-c1-q73",
+            "type": "single",
+            "stem": "关于Collections工具类的binarySearch()方法，说法正确的是（　）",
+            "options": [
+              "可以在无序集合中查找元素",
+              "要求集合元素必须实现Comparable接口或提供比较器",
+              "返回值是元素在集合中的索引，如果不存在则返回 -1",
+              "以上都正确"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "binarySearch()方法要求集合必须有序，且元素需实现Comparable接口或提供比较器。A错误，因为无序集合无法使用二分查找；C错误，因为未找到时返回的是插入点负值而非-1。B正确描述了前提条件。"
+          },
+          {
+            "id": "java-c1-q74",
+            "type": "single",
+            "stem": "以下关于Java中多态的说法，正确的是（　）",
+            "options": [
+              "父类引用指向子类对象，调用的是父类中定义的方法",
+              "父类引用指向子类对象，调用的是子类重写后的方法",
+              "子类引用可以指向父类对象",
+              "多态只适用于抽象类，不适用于普通类"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "多态中，父类引用指向子类对象时，调用的是子类重写后的方法，这是动态绑定的结果。A错误，因为实际调用的是子类重写的方法；C错误，子类引用不能直接指向父类对象，需强制类型转换；D错误，多态适用于普通类（通过继承和重写）和抽象类。"
+          },
+          {
+            "id": "java-c1-q75",
+            "type": "single",
+            "stem": "关于Java中的静态成员，以下说法正确的是（　）",
+            "options": [
+              "静态变量在对象创建时分配内存",
+              "静态变量在类加载时分配内存",
+              "静态方法中可以使用this关键字",
+              "静态成员不能被子类继承"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "静态变量在类加载时分配内存，属于类而非对象，因此B正确。A错误，静态变量在类加载时分配，而非对象创建时；C错误，静态方法中不能使用this关键字，因为this代表当前对象；D错误，静态成员可以被子类继承。"
+          },
+          {
+            "id": "java-c1-q76",
+            "type": "single",
+            "stem": "以下代码中，说法正确的是（　）\n```java\nclass A {}\nclass B extends A {}\nA a = new B();\n```",
+            "options": [
+              "编译错误，A类型变量不能指向B对象",
+              "运行时错误",
+              "合法，B的对象可以赋值给A类型的变量",
+              "合法，但调用方法时只能调用A类的方法"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "在Java中，子类对象可以赋值给父类类型的变量，这是向上转型，合法且自动完成。选项C正确。选项A错误，因为父类变量可以指向子类对象；选项B错误，代码编译和运行均无错误；选项D错误，虽然变量类型为A，但实际对象是B，调用方法时若B重写了A的方法，则调用B的方法，但若调用B独有的方法则需强制类型转换。"
+          },
+          {
+            "id": "java-c1-q77",
+            "type": "single",
+            "stem": "关于this关键字，以下说法正确的是（　）",
+            "options": [
+              "this可以用来调用父类的构造方法",
+              "this可以用来调用当前对象的方法",
+              "this可以在静态方法中使用",
+              "this代表的是父类对象"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "this关键字代表当前对象的引用，可以用来调用当前对象的方法或构造方法。选项A错误，调用父类构造方法应使用super；选项C错误，静态方法中不能使用this；选项D错误，this代表当前对象而非父类对象。"
+          },
+          {
+            "id": "java-c1-q78",
+            "type": "single",
+            "stem": "关于子类继承父类的说法，正确的是（　）",
+            "options": [
+              "子类可以继承父类的私有属性",
+              "子类不能继承父类的私有属性，但可以通过getter/setter方法访问",
+              "子类可以直接访问父类的私有属性",
+              "私有属性不能被子类以任何方式访问"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "子类不能继承父类的私有属性，但可以通过父类提供的公共getter/setter方法间接访问。A错误，私有属性不可继承；C错误，子类不能直接访问；D错误，可通过公共方法访问。"
+          },
+          {
+            "id": "java-c1-q79",
+            "type": "single",
+            "stem": "关于Java中的if语句，以下说法正确的是（　）",
+            "options": [
+              "if后面的条件可以是任意类型",
+              "if后面的条件必须是布尔类型的表达式",
+              "if语句中不能使用比较运算符",
+              "if语句必须与else一起使用"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "Java中if语句的条件必须是布尔类型表达式，不能是任意类型。比较运算符如==、<等可以用于生成布尔表达式，因此C错误。if语句可以单独使用，不必须与else配对，故D错误。"
+          },
+          {
+            "id": "java-c1-q80",
+            "type": "single",
+            "stem": "以下关于字符串连接的说法，正确的是（　）",
+            "options": [
+              "字符串可以使用+号进行连接",
+              "字符串只能使用concat()方法连接",
+              "字符串连接后会改变原字符串的内容",
+              "字符串连接只能连接字符串类型，不能连接其他类型"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "选项A正确，Java中字符串可以使用+号进行连接，这是最常用的方式。选项B错误，字符串还可以使用+号连接。选项C错误，字符串连接后原字符串不变，会生成新字符串。选项D错误，字符串连接可以连接其他类型，如int，会自动转换为字符串。"
+          },
+          {
+            "id": "java-c1-q81",
+            "type": "single",
+            "stem": "Java源文件的扩展名是（　）",
+            "options": [
+              ".class",
+              ".java",
+              ".jav",
+              ".jvm"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "Java源文件的扩展名必须是.java，这是Java编译器识别源文件的标准。.class是编译后的字节码文件扩展名，.jav和.jvm不是Java官方使用的扩展名。"
+          },
+          {
+            "id": "java-c1-q82",
+            "type": "single",
+            "stem": "关于Java中main方法的定义，正确的是（　）",
+            "options": [
+              "`public static void main(String args)`",
+              "`public static void main(String[] args)`",
+              "`public void main(String[] args)`",
+              "`static void main(String[] args)`"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "Java中main方法的正确签名是public static void main(String[] args)，其中public和static缺一不可，参数必须是String数组或可变参数String... args。选项A参数类型错误，选项C缺少static，选项D缺少public，只有B完全正确。"
+          },
+          {
+            "id": "java-c1-q83",
+            "type": "single",
+            "stem": "以下关于Java平台版本的说法，正确的是（　）",
+            "options": [
+              "Java SE是标准版，Java EE是企业版，Java ME是微型版",
+              "Java SE是企业版，Java EE是标准版",
+              "Java SE和Java EE功能完全相同",
+              "Java ME是Java的标准版本"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "Java SE（标准版）是核心基础，Java EE（企业版）基于SE并添加企业级功能，Java ME（微型版）用于嵌入式设备。选项A正确描述了各版本定位。B将SE和EE混淆；C错误，两者功能不同；D错误，Java ME不是标准版。"
+          },
+          {
+            "id": "java-c1-q84",
+            "type": "single",
+            "stem": "关于Java中包的作用，以下说法正确的是（　）",
+            "options": [
+              "包的主要作用是组织和管理类和接口",
+              "包的主要作用是提高程序运行速度",
+              "包的主要作用是减少内存占用",
+              "包的主要作用是实现多线程"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "包用于将相关的类和接口组织在一起，便于管理和维护，同时提供命名空间以避免命名冲突。选项B、C、D分别涉及运行速度、内存占用和多线程，这些并非包的主要功能。"
+          },
+          {
+            "id": "java-c1-q85",
+            "type": "single",
+            "stem": "关于Java中的数组，以下说法正确的是（　）",
+            "options": [
+              "数组创建后可以动态增加长度",
+              "数组的长度在创建后不能改变",
+              "数组可以存储不同类型的数据",
+              "数组没有length属性"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "数组在Java中创建后长度固定，不能动态增加，因此B正确。A错误，数组长度不可变；C错误，数组只能存储相同类型的数据；D错误，数组有length属性。"
+          },
+          {
+            "id": "java-c1-q86",
+            "type": "single",
+            "stem": "关于Java中的Vector类，以下说法正确的是（　）",
+            "options": [
+              "Vector是线程安全的",
+              "Vector不是线程安全的",
+              "Vector不能存储对象",
+              "Vector是Map接口的实现类"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "Vector是线程安全的，其方法使用synchronized修饰，适合多线程环境。B错误，Vector是线程安全的；C错误，Vector可以存储对象；D错误，Vector是List接口的实现类，不是Map。"
+          },
+          {
+            "id": "java-c1-q87",
+            "type": "single",
+            "stem": "关于Java中的泛型，以下说法正确的是（　）",
+            "options": [
+              "泛型信息在运行时会被保留",
+              "泛型信息在运行时会被擦除",
+              "泛型只能用于集合类",
+              "泛型类型参数可以直接使用基本数据类型"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "Java泛型通过类型擦除实现，运行时泛型类型参数会被擦除，因此B正确。A错误，运行时不会保留完整泛型类型参数。C错误，泛型可用于类、接口、方法等，不限于集合类。D错误，泛型类型参数不能直接使用int、double等基本数据类型，需要使用Integer、Double等包装类。"
+          },
+          {
+            "id": "java-c1-q88",
+            "type": "single",
+            "stem": "以下哪个类或接口可以用来获取当前日期（　）",
+            "options": [
+              "String",
+              "Math",
+              "Date",
+              "System"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "Date类用于表示日期和时间，可以通过new Date()获取当前日期。String是字符串类，Math是数学工具类，System提供系统相关方法，均不能直接获取当前日期。"
+          },
+          {
+            "id": "java-c1-q89",
+            "type": "single",
+            "stem": "对List集合进行排序，可以使用以下哪个方法（　）",
+            "options": [
+              "Collections.sort()",
+              "Arrays.sort()",
+              "List.sort()（Java 8及以上）",
+              "A和C都正确"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "Collections.sort() 和 List.sort() 都可以对 List 集合进行排序，前者是 Collections 工具类的静态方法，后者是 List 接口的默认方法（Java 8 引入）。Arrays.sort() 用于数组排序。因此 D 正确。"
+          },
+          {
+            "id": "java-c1-q90",
+            "type": "single",
+            "stem": "关于LinkedList类，以下说法正确的是（　）",
+            "options": [
+              "LinkedList实现了List接口",
+              "LinkedList实现了Map接口",
+              "LinkedList是线程安全的",
+              "LinkedList不能存储null值"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "LinkedList实现了List接口，也实现了Deque接口，因此A正确。B错误，LinkedList未实现Map接口。C错误，LinkedList不是线程安全的，多线程环境下需使用Collections.synchronizedList等方法。D错误，LinkedList允许存储null值。"
+          },
+          {
+            "id": "java-c1-q91",
+            "type": "single",
+            "stem": "使用Calendar类获取当前年份，正确的方法是（　）",
+            "options": [
+              "`calendar.get(Calendar.YEAR)`",
+              "`calendar.getYear()`",
+              "`calendar.year()`",
+              "`Calendar.getYear()`"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "Calendar类中获取年份的正确方法是get(Calendar.YEAR)，返回int类型。B选项getYear()是Date类的方法，已过时；C选项year()不存在；D选项静态调用错误，getYear()非静态方法。"
+          },
+          {
+            "id": "java-c1-q92",
+            "type": "single",
+            "stem": "对数组进行排序，可以使用以下哪个方法（　）",
+            "options": [
+              "Arrays.sort()",
+              "Collections.sort()",
+              "Array.sort()",
+              "List.sort()"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "Arrays.sort() 是 java.util.Arrays 类提供的静态方法，专门用于对数组进行排序，支持基本类型和对象数组。Collections.sort() 用于对 List 集合排序，不能直接用于数组。Array.sort() 和 List.sort() 方法不存在。"
+          },
+          {
+            "id": "java-c1-q93",
+            "type": "single",
+            "stem": "关于TreeSet类，以下说法正确的是（　）",
+            "options": [
+              "TreeSet中的元素是无序的",
+              "TreeSet中的元素是有序且不重复的",
+              "TreeSet允许存储重复元素",
+              "TreeSet是List接口的实现类"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "TreeSet基于TreeMap实现，元素按自然顺序或比较器排序，且不允许重复，因此B正确。A错误，TreeSet有序；C错误，不允许重复；D错误，TreeSet实现Set接口。"
+          },
+          {
+            "id": "java-c1-q94",
+            "type": "multiple",
+            "stem": "以下哪些方式可以正确初始化一个数组（　）",
+            "options": [
+              "int[] arr = {1, 2, 3};",
+              "int[] arr = new int[]{1, 2, 3};",
+              "int arr[] = {1, 2, 3};",
+              "int[] arr = new int[3]{1, 2, 3};"
+            ],
+            "answer": [
+              "A",
+              "B",
+              "C"
+            ],
+            "analysis": "A和C是静态初始化（C是C风格的数组声明写法，Java同样支持）；B是匿名数组初始化。三者都合法。D错误，`new int[3]{1,2,3}`同时指定长度和初始值，是语法错误。"
+          },
+          {
+            "id": "java-c1-q95",
+            "type": "single",
+            "stem": "使用Calendar类获取24小时制的小时数，应该使用以下哪个常量（　）",
+            "options": [
+              "Calendar.HOUR",
+              "Calendar.HOUR_OF_DAY",
+              "Calendar.MINUTE",
+              "Calendar.AM_PM"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "Calendar.HOUR_OF_DAY 返回24小时制的小时数（0-23），而 Calendar.HOUR 返回12小时制的小时数（0-11），Calendar.MINUTE 返回分钟，Calendar.AM_PM 返回上午或下午标识。因此正确答案是 B。"
+          },
+          {
+            "id": "java-c1-q96",
+            "type": "single",
+            "stem": "关于Java 8中的DateTimeFormatter类，以下说法正确的是（　）",
+            "options": [
+              "DateTimeFormatter是线程安全的",
+              "DateTimeFormatter不是线程安全的",
+              "DateTimeFormatter不能格式化日期",
+              "DateTimeFormatter只能解析日期，不能格式化日期"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "DateTimeFormatter是线程安全的，因为它是不可变的，设计用于并发环境。B错误；C和D错误，因为DateTimeFormatter既能格式化也能解析日期。"
+          },
+          {
+            "id": "java-c1-q97",
+            "type": "single",
+            "stem": "以下代码中，存在编译错误的是（　）\n```java\npublic class Main {\n    public static void main(String[] args) {\n        int num;\n        System.out.println(num);\n    }\n}\n```",
+            "options": [
+              "无错误",
+              "int num;这行代码",
+              "System.out.println(num);这行代码",
+              "整个代码都有错误"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "局部变量num在使用前未初始化，Java中局部变量必须显式初始化才能使用，否则编译报错。因此System.out.println(num);这行存在编译错误。选项A错误，因为存在错误；选项B错误，声明变量本身不报错；选项D错误，只有一行有错误。"
+          },
+          {
+            "id": "java-c1-q98",
+            "type": "single",
+            "stem": "已知boolean flag = true; 则 !flag 的值为（　）",
+            "options": [
+              "true",
+              "false",
+              "1",
+              "0"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "!flag 是对布尔变量 flag 取反，flag 为 true，取反后为 false。选项 B 正确。选项 A 是原值，选项 C 和 D 是整数，不是布尔值。"
+          },
+          {
+            "id": "java-c1-q99",
+            "type": "single",
+            "stem": "以下关于Java中类和对象的说法，正确的是（　）",
+            "options": [
+              "一个类只能创建一个对象",
+              "对象是类的实例，类是对象的模板",
+              "类和对象没有任何关系",
+              "类必须有构造方法，否则无法创建对象"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "选项B正确，因为类是对象的抽象模板，对象是类的具体实例。A错误，一个类可以创建多个对象；C错误，类和对象紧密相关；D错误，类没有显式构造方法时，编译器会提供默认无参构造方法，仍可创建对象。"
+          },
+          {
+            "id": "java-c1-q100",
+            "type": "single",
+            "stem": "已知 int[] arr = {1,2,3,4,5}; 则 arr[2] 的值为（　）",
+            "options": [
+              "1",
+              "2",
+              "3",
+              "4"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "数组索引从0开始，arr[2]对应第三个元素，值为3。"
+          },
+          {
+            "id": "java-c1-q101",
+            "type": "single",
+            "stem": "Java语言是由哪家公司开发的（　）",
+            "options": [
+              "Microsoft",
+              "Apple",
+              "Oracle（原Sun Microsystems）",
+              "Google"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "Java语言最初由Sun Microsystems公司开发，后被Oracle公司收购。因此正确答案是C选项。A选项Microsoft开发了C#等语言；B选项Apple开发了Swift等；D选项Google开发了Kotlin等，均与Java无关。"
+          },
+          {
+            "id": "java-c1-q102",
+            "type": "multiple",
+            "stem": "以下选项中关于Java集合的说法正确的有（　）",
+            "options": [
+              "List接口中存放的元素有序，可重复",
+              "List接口中存放的元素具有有序，不唯一的特点",
+              "Set接口中存放的元素具有无序，不唯一的特点",
+              "Map接口存放的是映射信息，每个元素都是一个键值对"
+            ],
+            "answer": [
+              "A",
+              "B",
+              "D"
+            ],
+            "analysis": "A和B都正确，List有序且元素可重复（「不唯一」即可重复）。C错误，Set的元素是不可重复的。D正确，Map以键值对形式存储映射信息。"
+          },
+          {
+            "id": "java-c1-q103",
+            "type": "single",
+            "stem": "阅读下面的程序片段：\n```java\nString str = \"abcde\";\nString[] arr = str.split(\"c\");\nSystem.out.println(arr.length);\n```\n程序执行后，打印的结果为（　）",
+            "options": [
+              "2",
+              "3",
+              "4",
+              "5"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "split(\"c\") 方法以 \"c\" 为分隔符将字符串 \"abcde\" 分割成两部分：\"ab\" 和 \"de\"，因此数组长度为 2。其他选项错误。"
+          },
+          {
+            "id": "java-c1-q104",
+            "type": "multiple",
+            "stem": "下面对this的作用描述正确的有（　）",
+            "options": [
+              "当成员变量和局部变量重名的时候，可以区分",
+              "this语句必须放在构造函数的第一行，根据this括号中的参数调用本类的其他构造函数",
+              "this可以调用本类的一般函数",
+              "this可以调用父类的一般函数"
+            ],
+            "answer": [
+              "A",
+              "B",
+              "C"
+            ],
+            "analysis": "A正确，this.name区分成员变量与同名局部变量。B正确，this(...)调用本类其他构造方法时必须位于第一行。C正确，可用this.method()调用本类方法。D错误，调用父类方法要用super。"
+          },
+          {
+            "id": "java-c1-q105",
+            "type": "single",
+            "stem": "下面关于 java.util.Random 类方法的说法，错误的是（ ）。",
+            "options": [
+              "nextDouble() 返回 [0.0, 1.0) 范围内的 double 值",
+              "nextFloat() 可以指定上界并返回 [0, n) 范围内的 float 值",
+              "nextInt(n) 返回 [0, n) 范围内的 int 值",
+              "nextLong() 返回 long 类型的随机值"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "正确答案：B。java.util.Random 的 nextFloat() 不接收上界参数，返回的是 [0.0, 1.0) 范围内的 float 值。nextDouble() 返回 [0.0, 1.0) 的 double 值，nextInt(n) 返回 [0, n) 的 int 值，nextLong() 返回 long 类型随机值。"
+          },
+          {
+            "id": "java-c1-q106",
+            "type": "single",
+            "stem": "下列选项中，正确使用了泛型的是（　）",
+            "options": [
+              "`ArrayList<String> list = new ArrayList<String>();`",
+              "`ArrayList list = new ArrayList();`",
+              "`ArrayList list = new ArrayList<String>();`",
+              "`ArrayList<String> list = new ArrayList();`"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "选项A正确，因为泛型声明和实例化类型一致。选项B未使用泛型，选项C和D中声明与实例化类型不匹配，导致编译警告或错误。"
+          },
+          {
+            "id": "java-c1-q107",
+            "type": "single",
+            "stem": "下面的代码运行结果是（　）\n```java\nclass TestA {\n    public void start() { System.out.println(\"TestA\"); }\n}\npublic class TestB extends TestA {\n    public void start() { System.out.println(\"TestB\"); }\n    public static void main(String[] args) {\n        ((TestA)new TestB()).start();\n    }\n}\n```",
+            "options": [
+              "TestA",
+              "TestB",
+              "编译失败",
+              "运行时抛出异常"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "代码中，TestB 继承 TestA 并重写 start 方法。main 方法中，将 TestB 对象向上转型为 TestA，但调用 start 方法时，由于 Java 的动态绑定机制，实际执行的是子类 TestB 的 start 方法，因此输出 \"TestB\"。选项 A 错误，因为不会调用父类方法；选项 C 和 D 错误，因为编译和运行均正常。"
+          },
+          {
+            "id": "java-c1-q108",
+            "type": "single",
+            "stem": "阅读下面代码：\n```java\npublic static void main(String[] args) {\n    List<String> list = new ArrayList<>();\n    list.add(\"aa\");\n    list.add(\"bb\");\n    Iterator<String> it = list.iterator();\n    while (it.hasNext()) {\n        String str = it.next();\n        if (str.equals(\"aa\")) {\n            list.remove(str);\n        }\n    }\n    System.out.println(list);\n}\n```\n下列选项中，哪一个是程序执行后的结果（　）",
+            "options": [
+              "[bb]",
+              "[aa,bb]",
+              "[]",
+              "以上都不对"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "程序在迭代过程中使用list.remove()修改列表，会触发ConcurrentModificationException异常，因此不会输出任何列表内容，选项A、B、C均错误，故选D。"
+          },
+          {
+            "id": "java-c1-q109",
+            "type": "single",
+            "stem": "下列OutputStream流方法哪个是刷新此输出流并强制写出所有缓冲的输出字节（　）",
+            "options": [
+              "write()",
+              "close()",
+              "flush()",
+              "void()"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "flush()方法用于刷新此输出流并强制写出所有缓冲的输出字节。write()用于写入字节，close()关闭流但不一定强制刷新，void()不是OutputStream的方法。"
+          },
+          {
+            "id": "java-c1-q110",
+            "type": "single",
+            "stem": "下列List接口的方法，不是从Collection接口中继承而来的是（　）",
+            "options": [
+              "size()",
+              "add()",
+              "get()",
+              "remove()"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "List接口继承自Collection接口，Collection接口定义了size()、add()和remove()方法，而get()方法是List接口特有的，用于按索引访问元素，不是从Collection继承的。因此正确答案是C。"
+          },
+          {
+            "id": "java-c1-q111",
+            "type": "single",
+            "stem": "下面对于构造方法的描述，错误的是（　）",
+            "options": [
+              "方法名必须和类名相同",
+              "构造方法不能有返回值",
+              "构造方法可以重载",
+              "构造方法的访问权限必须和类的访问权限一致"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "构造方法的访问权限可以与类的访问权限不同，例如类可以是public，而构造方法可以是private（单例模式）。A、B、C选项均正确。"
+          },
+          {
+            "id": "java-c1-q112",
+            "type": "single",
+            "stem": "下列选项中，对Math.random()方法描述正确的是（　）",
+            "options": [
+              "返回一个不确定的整数",
+              "返回0或是1",
+              "返回一个随机double类型，该数大于等于0.0小于1.0",
+              "返回一个随机int型数，该数大于等于0小于10"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "Math.random()方法返回一个伪随机double值，范围是[0.0, 1.0)，即大于等于0.0且小于1.0。选项A错误，因为返回的是double而非整数；选项B错误，返回的是0.0到1.0之间的数，不限于0或1；选项D错误，返回的是double而非int，且范围不固定。"
+          },
+          {
+            "id": "java-c1-q113",
+            "type": "single",
+            "stem": "下列关于Thread类的说法中，错误的是（　）",
+            "options": [
+              "Thread类实现了Runnable接口，可以防止出现多父类问题",
+              "Thread类属于java.lang包",
+              "继承Thread的方式定义线程后，写的run方法会在线程的start方法被调用后被JVM自动运行",
+              "继承Thread的方式定义线程后，你不能再继承其他的类了，导致程序的可扩展性大大降低"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "选项A错误，Thread类实现了Runnable接口，但实现接口是为了提供线程执行的目标，并非为了防止多父类问题。防止多父类问题是Java单继承机制的特点，与实现接口无关。其他选项正确：B属于java.lang包；C中start()调用后JVM自动运行run()；D指出单继承限制扩展性。"
+          },
+          {
+            "id": "java-c1-q114",
+            "type": "single",
+            "stem": "表达式\"hello\" instanceof String 返回的值是（　）",
+            "options": [
+              "true",
+              "false",
+              "1",
+              "0"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "instanceof 运算符用于判断对象是否为指定类型，\"hello\" 是 String 类型，因此返回 true。选项 B 错误，因为 \"hello\" 确实是 String 实例；选项 C 和 D 错误，因为 instanceof 返回布尔值，不是整数。"
+          },
+          {
+            "id": "java-c1-q115",
+            "type": "single",
+            "stem": "已知String对象s=\"abcdefg\"，则s.substring(2,5)的返回值为（　）",
+            "options": [
+              "bcde",
+              "cde",
+              "cdef",
+              "def"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "substring(2,5)方法返回从索引2开始到索引5结束的子串，不包括索引5。索引2对应字符'c'，索引5对应字符'f'，因此子串为\"cde\"。选项A错误，因为包含了索引1的'b'；选项C错误，因为包含了索引5的'f'；选项D错误，因为从索引3开始。"
+          },
+          {
+            "id": "java-c1-q116",
+            "type": "single",
+            "stem": "下列选项中，可以正确实现String初始化的是（　）",
+            "options": [
+              "String str = abc;",
+              "String str = \"abc\";",
+              "String str = 'abc';",
+              "String str = 123;"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "Java中字符串字面量必须使用双引号，因此String str = \"abc\";可以正确初始化String对象。A中的abc会被当作变量名；C使用单引号且包含多个字符，不是合法字符串；D把整数直接赋给String变量，类型不匹配。"
+          },
+          {
+            "id": "java-c1-q117",
+            "type": "single",
+            "stem": "下面的集合能直接获取java.util.Iterator迭代器的是（　）",
+            "options": [
+              "java.util.HashSet",
+              "java.util.ArrayList",
+              "java.util.TreeSet",
+              "以上都对"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "HashSet、ArrayList和TreeSet都实现了java.util.Collection接口，而Collection接口继承了Iterable接口，因此它们都能通过iterator()方法直接获取Iterator迭代器。所以选项D“以上都对”正确。"
+          },
+          {
+            "id": "java-c1-q118",
+            "type": "single",
+            "stem": "ActionEvent的对象会被传递给（　）事件处理程序。",
+            "options": [
+              "addChangeListener",
+              "addActionListener",
+              "stateChanged",
+              "actionPerformed"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "ActionEvent是Java AWT/Swing中的动作事件，当用户点击按钮等操作时触发。该事件需通过addActionListener方法注册监听器，并传递给actionPerformed方法处理。选项D正确，A用于ChangeEvent，B是注册监听器的方法，C是ChangeListener的方法。"
+          },
+          {
+            "id": "java-c1-q119",
+            "type": "single",
+            "stem": "以下集合中，不属于Collection接口的子接口的是（　）",
+            "options": [
+              "List",
+              "Set",
+              "Queue",
+              "Properties"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "Properties类继承自Hashtable，属于Map接口的实现，而非Collection接口的子接口。List、Set、Queue都是Collection接口的子接口。"
+          },
+          {
+            "id": "java-c1-q120",
+            "type": "single",
+            "stem": "线程生命周期中正确的状态是（　）",
+            "options": [
+              "新建状态、运行状态和终止状态",
+              "新建状态、运行状态、阻塞状态和终止状态",
+              "新建状态、可运行状态、运行状态、阻塞状态和终止状态",
+              "新建状态、可运行状态、运行状态、恢复状态和终止状态"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "Java线程生命周期包括新建、可运行、运行、阻塞和终止五个状态。选项C正确描述了这五个状态。A缺少可运行和阻塞状态；B缺少可运行状态；D中的“恢复状态”不是标准状态。"
+          },
+          {
+            "id": "java-c1-q121",
+            "type": "single",
+            "stem": "System.in的作用是（　）",
+            "options": [
+              "控制台输入数据的读取",
+              "控制台输出的数据读取",
+              "控制输出的顺序读写",
+              "对文件的随机访问"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "System.in是Java标准输入流，默认连接键盘，用于从控制台读取输入数据。选项A正确描述了其作用。选项B错误，因为控制台输出应使用System.out。选项C和D分别涉及输出顺序和文件随机访问，与System.in无关。"
+          },
+          {
+            "id": "java-c1-q122",
+            "type": "single",
+            "stem": "在Java中，如果父类中的某些方法不包含任何逻辑，并且需要由子类重写，应该使用（　）关键字来声明父类的这些方法。",
+            "options": [
+              "final",
+              "static",
+              "abstract",
+              "void"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "abstract关键字用于声明抽象方法，抽象方法没有方法体，必须由子类重写。final方法不能被重写，static方法属于类，void是返回类型，均不符合题意。"
+          },
+          {
+            "id": "java-c1-q123",
+            "type": "single",
+            "stem": "在程序读入二进制文件时，能够以该文件作为直接参数的类是（　）",
+            "options": [
+              "FileReader",
+              "BufferedReader",
+              "FileInputStream",
+              "ObjectInputStream"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "二进制文件应使用字节流读取。FileInputStream 是字节输入流，可直接以文件作为参数构造。FileReader 是字符流，用于文本文件；BufferedReader 需要包装其他 Reader；ObjectInputStream 需要包装其他 InputStream，不能直接以文件为参数。"
+          },
+          {
+            "id": "java-c1-q124",
+            "type": "single",
+            "stem": "假定一个方法会产生非RuntimeException异常，如果希望把异常交给调用该方法的方法处理，正确的声明方式是（　）",
+            "options": [
+              "throw Exception",
+              "throws Exception",
+              "new Exception",
+              "不需要指明什么"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "throws用于声明方法可能抛出的异常，将异常交给调用者处理。throw用于抛出异常对象，new Exception创建异常对象，都不符合题意。"
+          },
+          {
+            "id": "java-c1-q125",
+            "type": "multiple",
+            "stem": "下列关于多态的叙述正确的有（　）",
+            "options": [
+              "父类的引用指向子类的实例是一种多态",
+              "子类的引用指向父类的实例是一种多态",
+              "接口的引用指向实现该接口类的实例是一种多态",
+              "抽象类的引用指向子类的实例是一种多态"
+            ],
+            "answer": [
+              "A",
+              "C",
+              "D"
+            ],
+            "analysis": "A正确，父类引用指向子类对象是典型多态。C正确，接口引用指向实现类实例同理。D正确，抽象类引用指向子类实例同理。B错误，子类引用不能直接指向父类实例，需强制转型且运行期可能失败，不构成多态。"
+          },
+          {
+            "id": "java-c1-q126",
+            "type": "single",
+            "stem": "下列属于受检异常的是（　）",
+            "options": [
+              "RuntimeException",
+              "ClassCastException",
+              "IOException",
+              "ArrayIndexOutOfBoundsException"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "受检异常（checked exception）是必须被捕获或声明的异常，IOException属于受检异常。RuntimeException及其子类（如ClassCastException、ArrayIndexOutOfBoundsException）属于非受检异常，不需要强制处理。"
+          },
+          {
+            "id": "java-c1-q127",
+            "type": "single",
+            "stem": "下面方法中，可以实现获取字符在某个字符串中第一次出现的索引的是（　）",
+            "options": [
+              "charAt(int index)",
+              "int indexOf(int ch)",
+              "boolean endsWith(String suffix)",
+              "int lastIndexOf(int ch)"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "indexOf(int ch)方法返回指定字符在字符串中第一次出现的索引，符合题意。charAt(int index)返回指定索引处的字符，而非查找索引。endsWith(String suffix)判断字符串是否以指定后缀结尾。lastIndexOf(int ch)返回指定字符最后一次出现的索引。"
+          },
+          {
+            "id": "java-c1-q128",
+            "type": "single",
+            "stem": "请将下列四步进行排列，完成文件的复制操作。\n① 将字节流写入到目标文件；② 关闭流；③ 构建输入流和输出流；④ 循环读写。",
+            "options": [
+              "①②③④",
+              "②①③④",
+              "③④①②",
+              "②③①④"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "文件复制操作的正确顺序是：先构建输入流和输出流（③），然后循环读写（④），接着将字节流写入目标文件（①），最后关闭流（②）。对应选项C（③④①②）。其他选项顺序错误：A（①②③④）先写入再构建流，B（②①③④）先关闭再构建，D（②③①④）先关闭再构建。"
+          },
+          {
+            "id": "java-c1-q129",
+            "type": "single",
+            "stem": "String类中的getBytes()方法的作用是（　）",
+            "options": [
+              "将整数变成字节数组",
+              "将字符串变成字符数组",
+              "将字符串变成字节数组",
+              "获取字符串中字符的个数"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "getBytes()方法将字符串按平台默认字符集编码为字节序列，返回字节数组。选项C正确。A错误，getBytes()不处理整数；B错误，将字符串变字符数组用toCharArray()；D错误，获取字符个数用length()。"
+          },
+          {
+            "id": "java-c1-q130",
+            "type": "single",
+            "stem": "StringBuffer类append()方法的返回值类型是（　）",
+            "options": [
+              "String",
+              "void",
+              "StringBuffer",
+              "StringBuilder"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "StringBuffer类的append()方法返回的是StringBuffer对象本身，以便实现链式调用。因此返回值类型是StringBuffer。选项A错误，String是不可变类；选项B错误，append()返回对象而非void；选项D错误，StringBuilder是另一个类。"
+          },
+          {
+            "id": "java-c1-q131",
+            "type": "single",
+            "stem": "File类的public boolean isFile()的作用是（　）",
+            "options": [
+              "判断该对象对应的是否是文件",
+              "判断该对象对应的是否是目录",
+              "在当前目录下生成指定的目录",
+              "在当前目录下生成指定的文件"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "isFile()方法用于判断File对象是否对应一个存在的文件，返回true表示是文件，false表示不是文件或不存在。选项A正确。选项B是isDirectory()的功能；选项C和D涉及创建目录或文件，对应mkdir()或createNewFile()方法。"
+          },
+          {
+            "id": "java-c1-q132",
+            "type": "single",
+            "stem": "新建一个流对象，下面选项代码错误的是（　）",
+            "options": [
+              "new BufferedReader(new FileReader(\"a.txt\"));",
+              "new BufferedWriter(new FileOutputStream(\"a.txt\"));",
+              "new ObjectInputStream(new FileInputStream(\"a.txt\"));",
+              "new ObjectOutputStream(new FileOutputStream(\"a.txt\"));"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "选项B错误，因为BufferedWriter需要Writer类型的参数，而FileOutputStream是OutputStream类型，不匹配。正确用法是new BufferedWriter(new OutputStreamWriter(new FileOutputStream(\"a.txt\")))。其他选项参数类型正确。"
+          },
+          {
+            "id": "java-c1-q133",
+            "type": "single",
+            "stem": "```java\npublic class SimpleDateFormatTest{\n    public static void main(String[] args) throws ParseException {\n        String date = \"1998-01-01\";\n        SimpleDateFormat sdf = new SimpleDateFormat(______);\n        Date date = sdf.parse(date);\n        System.out.println(date);\n    }\n}\n```\n横线处应该填写（　）",
+            "options": [
+              "yyyy-MM-dd",
+              "yyyy/MM/dd",
+              "yyyy.MM.dd",
+              "yyyy-MM-dd HH:mm"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "选项A的格式\"yyyy-MM-dd\"与字符串\"1998-01-01\"完全匹配，因此能正确解析。选项B和C的分隔符不匹配，选项D包含时间部分但字符串中没有，会导致解析异常。"
+          },
+          {
+            "id": "java-c1-q134",
+            "type": "single",
+            "stem": "如要读取文件中的中间一段内容，最方便的采用下列（　）流来操作。",
+            "options": [
+              "FileInputStream",
+              "PipedInputStream",
+              "RandomAccessFile",
+              "FileReader"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "RandomAccessFile支持随机访问文件，可以定位到任意位置读取数据，最适合读取文件中间一段内容。FileInputStream和FileReader只能顺序读取，PipedInputStream用于线程间管道通信。"
+          },
+          {
+            "id": "java-c1-q135",
+            "type": "single",
+            "stem": "当方法遇到异常又不知如何处理时，下列做法正确的是（　）",
+            "options": [
+              "捕获异常",
+              "抛出异常",
+              "声明异常",
+              "嵌套异常"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "当方法遇到异常又不知如何处理时，应使用throws声明异常，将异常抛出给调用者处理。捕获异常（A）需要处理逻辑，抛出异常（B）是主动抛出，嵌套异常（D）不是标准做法。声明异常（C）是正确做法。"
+          },
+          {
+            "id": "java-c1-q136",
+            "type": "single",
+            "stem": "对于catch子句的排列，正确的是（　）",
+            "options": [
+              "父类在先，子类在后",
+              "子类在先，父类在后",
+              "有继承关系的异常不能在同一个try程序段内",
+              "先有子类，其他如何排列都无关"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "在Java中，catch子句应按照子类在先、父类在后的顺序排列，因为异常匹配按顺序进行，若父类在前会捕获所有子类异常，导致子类catch块不可达。选项A错误，选项C错误（可以有继承关系的异常），选项D不准确。"
+          },
+          {
+            "id": "java-c1-q137",
+            "type": "single",
+            "stem": "FileReader的父类是（　）",
+            "options": [
+              "BufferedReader",
+              "InputStreamReader",
+              "Reader",
+              "Writer"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "FileReader继承自InputStreamReader，而InputStreamReader继承自Reader。因此FileReader的直接父类是InputStreamReader，选项B正确。A BufferedReader是Reader的子类但不是FileReader的父类，C Reader是抽象基类（祖父类），D Writer是输出流类与FileReader无关。"
+          },
+          {
+            "id": "java-c1-q138",
+            "type": "single",
+            "stem": "无论是否发生异常，都需要执行的是（　）",
+            "options": [
+              "try语句块",
+              "catch语句块",
+              "finally语句块",
+              "return语句"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "finally语句块无论是否发生异常都会执行，用于释放资源等清理操作。try语句块是可能抛出异常的代码块；catch语句块仅在捕获到特定异常时执行；return语句用于返回值，不一定执行。"
+          },
+          {
+            "id": "java-c1-q139",
+            "type": "single",
+            "stem": "下列关于进程和线程的说法中，错误的是（　）",
+            "options": [
+              "操作系统中每个独立执行的程序都可称之为一个进程",
+              "操作系统中的每一个进程中都至少存在一个线程",
+              "线程和进程一样，是由CPU轮流执行的",
+              "线程和进程一样，是由CPU同时执行的"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "选项D错误，因为CPU在同一时刻只能执行一个线程或进程，通过快速切换实现并发，而非同时执行。选项A、B、C正确：进程是程序的一次执行，每个进程至少有一个线程，CPU轮流执行线程和进程。"
+          },
+          {
+            "id": "java-c1-q140",
+            "type": "single",
+            "stem": "使新创建的线程参与运行调度方法是（　）",
+            "options": [
+              "run()",
+              "start()",
+              "init()",
+              "resume()"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "start()方法会启动一个新线程，并使其进入就绪状态，等待CPU调度执行run()方法。run()只是普通方法调用，不会创建新线程。init()是初始化方法，resume()用于恢复挂起的线程，均不参与运行调度。"
+          },
+          {
+            "id": "java-c1-q141",
+            "type": "single",
+            "stem": "假若String类的indexOf()方法未能找到所指定的子字符串，则返回以下选项中（　）",
+            "options": [
+              "false",
+              "0",
+              "-1",
+              "以上答案都不对"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "String类的indexOf()方法在未找到指定子字符串时返回-1，这是Java API的明确规定。选项A的false是布尔值，而indexOf()返回int；选项B的0表示子串在起始位置找到，并非未找到。因此正确答案是C。"
+          },
+          {
+            "id": "java-c1-q142",
+            "type": "single",
+            "stem": "下列关于包（package）的说法，正确的是（　）",
+            "options": [
+              "package语句必须位于源文件的第一行（注释除外）",
+              "一个源文件中可以有多个package语句",
+              "import语句必须写在package语句之前",
+              "包名不能包含点号"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": ""
+          },
+          {
+            "id": "java-c1-q143",
+            "type": "single",
+            "stem": "下面说法中错误的是（　）",
+            "options": [
+              "静态代码块只在类加载后执行一次，以后再创建对象的时候不执行",
+              "局部代码块的作用是为了限制变量的生命周期",
+              "构造代码块在每创建一次对象就执行一次",
+              "以上都不对"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "选项A、B、C的说法都是正确的。静态代码块在类加载时执行一次；局部代码块限制变量作用域；构造代码块每次创建对象时执行。因此D选项“以上都不对”是错误的。"
+          },
+          {
+            "id": "java-c1-q144",
+            "type": "single",
+            "stem": "File类的public boolean delete()方法的作用是（　）",
+            "options": [
+              "从文件系统内删除该文件",
+              "程序顺利结束时从系统中删除文件",
+              "判断文件是否存在",
+              "当文件不存在时创建文件"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "File类的delete()方法用于直接删除文件或目录，成功返回true，失败返回false。选项A正确描述了该方法的功能。选项B错误，因为delete()是立即执行，不依赖程序结束。选项C是exists()方法的功能。选项D是createNewFile()方法的功能。"
+          },
+          {
+            "id": "java-c1-q145",
+            "type": "single",
+            "stem": "当编译并且运行下面程序时会出现（　）结果。\n```java\npublic class ThrowsDemo{\n    static void throwMethod() {\n        System.out.print(\"Inside throwMethod\");\n        throw new IOException(\"demo\");\n    }\n    public static void main(String [] args){\n        try{\n            throwMethod();\n        }catch(IOException e){\n            System.out.println(\"Caught\"+e);\n        }\n    }\n}\n```",
+            "options": [
+              "编译错误",
+              "运行错误",
+              "编译成功，但不会打印出任何结果",
+              "没有输出结果"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "程序编译错误，因为throwMethod方法声明抛出IOException，但未在方法签名中使用throws子句声明该异常，导致编译失败。"
+          },
+          {
+            "id": "java-c1-q146",
+            "type": "single",
+            "stem": "在oneMethod()方法运行正常的情况下将显示（　）。\n```java\npublic void test() {\n    try {\n        oneMethod();\n        System.out.println(\"condition 1\");\n    } catch (ArrayIndexOutOfBoundsException e) {\n        System.out.println(\"condition 2\");\n    } catch(Exception e) {\n        System.out.println(\"condition 3\");\n    } finally {\n        System.out.println(\"finally\");\n    }\n}\n```",
+            "options": [
+              "condition 1",
+              "condition 2",
+              "condition 3",
+              "condition 1 finally"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "由于oneMethod()运行正常，不会抛出异常，因此try块中的代码会正常执行，输出\"condition 1\"。无论是否发生异常，finally块都会执行，输出\"finally\"。所以最终输出为\"condition 1\"和\"finally\"，对应选项D。"
+          },
+          {
+            "id": "java-c1-q147",
+            "type": "single",
+            "stem": "Thread类定义于下列（　）包中。",
+            "options": [
+              "java.io",
+              "java.lang",
+              "java.util",
+              "java.awt"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "Thread类位于java.lang包中，该包是Java核心包，自动导入，包含基本类如Object、String等。其他选项：java.io处理输入输出，java.util提供工具类，java.awt用于图形界面，均不包含Thread类。"
+          },
+          {
+            "id": "java-c1-q148",
+            "type": "single",
+            "stem": "File类的public File[] listFiles()方法的作用是（　）",
+            "options": [
+              "返回文件和目录清单（File对象）",
+              "返回文件和目录清单（字符串对象）",
+              "在当前目录下生成指定的目录",
+              "判断该File对象所对应的是否是文件"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "listFiles()方法返回一个File数组，包含当前目录下的文件和子目录的File对象，因此A正确。B错误，因为返回的是File对象而非字符串；C是mkdir()或mkdirs()的功能；D是isFile()方法的功能。"
+          },
+          {
+            "id": "java-c1-q149",
+            "type": "single",
+            "stem": "在程序下画线处填入正确选项是（　）\n```java\npublic class Test implements Runnable{\n    public static void main(String args[]){\n        ________________________;\n        t.start();\n    }\n    public void run(){\n        System.out.println(\"Hello\");\n    }\n}\n```",
+            "options": [
+              "Thread t=new Test();",
+              "Thread t=new Thread();",
+              "Thread t=new Thread(new Test());",
+              "Test t=new Test();"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "要实现多线程，需创建Thread对象并传入Runnable实例。Test实现了Runnable，因此正确选项是C：创建Thread对象时传入new Test()作为Runnable参数。A错误，因为Test不是Thread的子类；B错误，因为没有传入Runnable，不会执行run方法；D错误，因为Test没有start方法。"
+          },
+          {
+            "id": "java-c1-q150",
+            "type": "single",
+            "stem": "下列对于Runtime的描述中，正确的是（　）",
+            "options": [
+              "每一个Java应用程序运行时都产生一个Runtime类实例",
+              "Runtime实例可以将应用程序和运行环境相结合",
+              "Runtime类没有构造函数",
+              "Runtime实例需要被创建后才可以通过getRuntime()方法获取"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "Runtime类采用单例模式，没有公有构造函数，通过静态方法getRuntime()获取唯一实例。选项A错误，因为每个Java应用只有一个Runtime实例；选项B错误，Runtime实例用于与运行环境交互，但描述不准确；选项D错误，getRuntime()方法返回单例，无需先创建实例。"
+          },
+          {
+            "id": "java-c1-q151",
+            "type": "single",
+            "stem": "求平方根方法public static double sqrt(double a)可以传递的参数类型不包括（　）",
+            "options": [
+              "byte",
+              "float",
+              "String",
+              "long"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "Math.sqrt方法接受double类型参数。byte、float、long可自动转换为double，而String不能直接转换为double，因此不能传递String类型参数。"
+          },
+          {
+            "id": "java-c1-q152",
+            "type": "single",
+            "stem": "下列代码中，（　）可以插入到第7行，将抛出java.lang.ClassCastException异常。\n```java\ninterface F{}\nclass A implements F{}\nclass B extends A{}\nclass C extends B{}\npublic static void main(String[] args){\n    B b=new C();\n    // insert code here\n}\n```",
+            "options": [
+              "A a=b;",
+              "C c=(C)new A();",
+              "F f=(A)b;",
+              "B b2=(B)(F)b;"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "选项B中，new A()创建的是A类对象，不是C类对象，强制向下转型为C时会在运行时抛出ClassCastException。选项A是安全的向上转型；选项C先把b视为A再赋给接口F引用，实际对象仍是C，转换安全；选项D中b实际指向C对象，C也是B的子类并实现F相关继承关系，转换后赋给B引用不会抛出异常。因此正确答案是B。"
+          },
+          {
+            "id": "java-c1-q153",
+            "type": "multiple",
+            "stem": "Random对象能够生成以下（　）类型的随机数。",
+            "options": [
+              "int",
+              "string",
+              "char",
+              "double"
+            ],
+            "answer": [
+              "A",
+              "D"
+            ],
+            "analysis": "Random类可以生成int、double、float、long、boolean等类型的随机数，但不能直接生成String或char类型。因此正确答案为int和double。"
+          },
+          {
+            "id": "java-c1-q154",
+            "type": "single",
+            "stem": "请阅读下面程序，上面程序的运行结果为（　）\n```java\npackage exercise;\npublic class Test {\n    System.out.println(\"构造方法一被调用了\");\n    public Test(){\n        this(true);\n        System.out.println(\"构造方法二被调用了\");\n    }\n    public Test(boolean b){\n        System.out.println(\"构造方法三被调用了\");\n    }\n    public static void main(String args[]){\n        Test test=new Test(true);\n    }\n}\n```",
+            "options": [
+              "构造方法一、构造方法二和构造方法三都被调用了",
+              "只有构造方法一和构造方法二被调用了",
+              "只有构造方法一和构造方法三被调用了",
+              "只有构造方法三被调用了"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "程序在main方法中通过new Test(true)调用带boolean参数的构造方法，因此只执行构造方法三，输出\"构造方法三被调用了\"。构造方法一不是构造方法，而是实例初始化块，但它在构造方法之前执行，然而由于没有调用无参构造器，初始化块不会执行。构造方法二通过this(true)调用构造方法三，但未被调用。因此只有构造方法三被调用。"
+          },
+          {
+            "id": "java-c1-q155",
+            "type": "single",
+            "stem": "下列选项中，不属于HashMap类的方法的是（　）",
+            "options": [
+              "get(Object key)",
+              "keySet()",
+              "contains()",
+              "entrySet()"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "HashMap类没有contains()方法，其相关方法为containsKey(Object key)和containsValue(Object value)。A、B、D选项均为HashMap类的方法。"
+          },
+          {
+            "id": "java-c1-q156",
+            "type": "single",
+            "stem": "FileReader类中有很多重载的读取字符的方法，其中read()方法如果读取已到达流的末尾，将返回的值是（　）",
+            "options": [
+              "0",
+              "-1",
+              "无返回值",
+              "null"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "FileReader的read()方法在读取到流末尾时返回-1，这是Java IO中表示流结束的约定。选项A的0表示读取到空字符，选项C和D错误，因为read()方法有返回值。"
+          },
+          {
+            "id": "java-c1-q157",
+            "type": "single",
+            "stem": "阅读下面代码，Test.java的编译运行结果是（　）\n```java\ninterface Face{\n    int counter=40;\n}\npublic class Test implements Face{\n    private static int counter;\n    public static void main(String args[]){\n        System.out.println(++counter);\n    }\n}\n```",
+            "options": [
+              "40",
+              "41",
+              "0",
+              "1"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "接口中的 counter 是 public static final 常量，而 Test 类中定义的 counter 是私有静态变量，两者不同。main 方法中 ++counter 操作的是 Test 类的 counter，初始值为 0，自增后输出 1。"
+          },
+          {
+            "id": "java-c1-q158",
+            "type": "single",
+            "stem": "try语句块可以（　）",
+            "options": [
+              "拥有惟一的一个catch语句块",
+              "对应多个finally语句块",
+              "对应一个或多个catch语句块",
+              "以上答案都不对"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "try语句块可以对应一个或多个catch语句块，用于捕获不同类型的异常。A错误，因为可以有多个catch；B错误，finally只能有一个；D错误，C正确。"
+          },
+          {
+            "id": "java-c1-q159",
+            "type": "single",
+            "stem": "使用（　）组件允许用户通过键盘输入数据。",
+            "options": [
+              "JButton",
+              "JTextField",
+              "JLabel",
+              "以上选项均不对"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "JTextField是Swing中的文本框组件，允许用户通过键盘输入单行文本。JButton是按钮，JLabel是标签，均不支持键盘输入。因此正确答案是B。"
+          },
+          {
+            "id": "java-c1-q160",
+            "type": "single",
+            "stem": "下列是除0异常的是（　）",
+            "options": [
+              "RuntimeException",
+              "ClassCastException",
+              "ArithmeticException",
+              "ArrayIndexOutOfBoundsException"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "除0异常属于算术异常，Java中由ArithmeticException表示。A是运行时异常父类，B是类型转换异常，D是数组越界异常，均不特指除0。"
+          },
+          {
+            "id": "java-c1-q161",
+            "type": "single",
+            "stem": "当鼠标键被按下并进行移动时会调用（　）事件处理程序。",
+            "options": [
+              "mouseDragged",
+              "mouseMoved",
+              "mouseChanged",
+              "mouseClicked"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "鼠标键被按下并进行移动时触发鼠标拖动事件，对应方法为mouseDragged。mouseMoved在鼠标移动但未按下键时触发；mouseClicked是单击事件；mouseChanged不是标准事件方法。"
+          },
+          {
+            "id": "java-c1-q162",
+            "type": "single",
+            "stem": "假设有自定义异常ServiceException，那么抛出该异常的语句正确的是（　）",
+            "options": [
+              "raise ServiceException",
+              "throw new ServiceException()",
+              "throws ServiceException",
+              "throw ServiceException"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "在Java中，抛出异常使用throw关键字，且必须抛出Throwable或其子类的实例。选项B正确，因为throw new ServiceException()创建并抛出了异常实例。选项A使用raise，这是Python语法；选项C的throws用于声明异常；选项D缺少new，不能抛出未实例化的类。"
+          },
+          {
+            "id": "java-c1-q163",
+            "type": "single",
+            "stem": "当用Swing编写GUI程序时，下列说法中正确的是（　）",
+            "options": [
+              "Swing类一定要实现Runnable接口",
+              "Swing类是Thread类",
+              "Swing类是Thread类并且要实现Runnable接口",
+              "Swing类是JComponent类的子类"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "Swing组件通常继承自JComponent类，JComponent是Swing组件的基础类。A、B、C选项错误，因为Swing类不要求实现Runnable接口或继承Thread类，这些与多线程相关，并非Swing组件的必要特性。"
+          },
+          {
+            "id": "java-c1-q164",
+            "type": "single",
+            "stem": "关于封装的描述，下面说法错误的是（　）",
+            "options": [
+              "封装将变化隔离",
+              "封装提高安全性",
+              "封装提高代码复用性",
+              "封装只针对成员变量"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "封装不仅针对成员变量，还包括方法等内部实现细节，通过访问控制符隐藏内部细节，提高安全性和复用性，隔离变化。选项D说法过于绝对，因此错误。"
+          },
+          {
+            "id": "java-c1-q165",
+            "type": "single",
+            "stem": "当编译并且运行下面程序时会出现（　）结果。\n```java\npublic class ThrowsDemo{\n    public static void throwMethod() throws IOException{\n        System.out.println(\"Inside throwMethod\");\n        throw new IOException(\"demo\");\n    }\n    public static void main(String args[]){\n        try{\n            throwMethod();\n        }catch(IOException e){\n            System.out.println(\"Caught\");\n        }\n    }\n}\n```",
+            "options": [
+              "编译错误",
+              "运行错误",
+              "编译成功，但是不会打印任何结果",
+              "编译成功，打印Caught"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "程序编译成功，因为throwMethod声明抛出IOException，main方法中捕获了该异常。运行时，throwMethod抛出IOException，被catch块捕获，打印\"Caught\"。选项A错误，因为代码无编译错误；选项B错误，因为异常被捕获；选项C错误，因为会打印结果。"
+          },
+          {
+            "id": "java-c1-q166",
+            "type": "single",
+            "stem": "下面的集合不能直接遍历Iterator迭代器代码的是（　）",
+            "options": [
+              "java.util.HashSet",
+              "java.util.ArrayList",
+              "java.util.Map",
+              "java.util.TreeSet"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "Map不直接继承Iterable接口，不能直接使用Iterator迭代器遍历。HashSet、ArrayList、TreeSet都实现了Iterable接口，可以直接使用Iterator遍历。"
+          },
+          {
+            "id": "java-c1-q167",
+            "type": "single",
+            "stem": "下列方法不是在编译时被绑定的是（　）",
+            "options": [
+              "静态方法",
+              "final方法",
+              "private方法",
+              "重写的方法"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "静态方法、final方法和private方法在编译时根据类型确定调用版本，属于静态绑定。而重写的方法在运行时根据实际对象类型确定调用版本，属于动态绑定，因此不是在编译时被绑定。"
+          },
+          {
+            "id": "java-c1-q168",
+            "type": "single",
+            "stem": "下列选项中属于单例设计模式的类是（　）",
+            "options": [
+              "Math",
+              "Runtime",
+              "System",
+              "Random"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "Runtime类采用单例模式，通过静态方法getRuntime()获取唯一实例。Math类所有方法都是静态的，没有实例化需求；System类构造器私有但提供静态方法，并非严格单例；Random类可创建多个实例。因此正确答案是B。"
+          },
+          {
+            "id": "java-c1-q169",
+            "type": "single",
+            "stem": "（　）对话框允许用户选择颜色。",
+            "options": [
+              "JColorChooser",
+              "JFileChooser",
+              "JChoiceColor",
+              "JDialog"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "JColorChooser是Swing中用于选择颜色的标准对话框组件，提供颜色选择界面。JFileChooser用于文件选择，JChoiceColor不存在，JDialog是通用对话框基类，不专门用于颜色选择。"
+          },
+          {
+            "id": "java-c1-q170",
+            "type": "single",
+            "stem": "File类中list()方法的返回类型是（　）",
+            "options": [
+              "File[]",
+              "String[]",
+              "String",
+              "int"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "File类的list()方法返回当前目录下所有文件和目录的名称字符串数组，因此返回类型是String[]。选项A的File[]是listFiles()方法的返回类型，选项C和D类型错误。"
+          },
+          {
+            "id": "java-c1-q171",
+            "type": "single",
+            "stem": "在程序下画线处填入正确选项是（　）\n```java\npublic class Test2 ____________{\n    public static void main(String args[]){\n        Thread t=new Test2();\n        t.start();\n    }\n    public void run(){\n        System.out.println(\"How are you\");\n    }\n}\n```",
+            "options": [
+              "implements Thread",
+              "extends Runnable",
+              "implements Runnable",
+              "extends Thread"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "正确选项是D。因为Test2类需要创建线程并调用start()方法，所以必须继承Thread类或实现Runnable接口。但选项A和B语法错误（implements后应为接口，extends后应为类），选项C实现Runnable接口后，还需将实例传给Thread构造器，而代码中直接new Test2()并调用start()，只有继承Thread类才能直接调用start()方法。"
+          },
+          {
+            "id": "java-c1-q172",
+            "type": "single",
+            "stem": "关于StringBuffer和StringBuilder说法正确的是（　）",
+            "options": [
+              "StringBuffer和StringBuilder的方法不同",
+              "StringBuffer和StringBuilder都是线程安全的",
+              "StringBuffer是线程安全的，StringBuilder不是线程安全的",
+              "StringBuffer不是线程安全的，StringBuilder是线程安全的"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "StringBuffer和StringBuilder的方法基本相同，区别在于StringBuffer是线程安全的（方法使用synchronized修饰），而StringBuilder不是线程安全的。因此选项C正确。A错误，方法相同；B错误，StringBuilder非线程安全；D错误，两者安全描述反了。"
+          },
+          {
+            "id": "java-c1-q173",
+            "type": "single",
+            "stem": "下面关于java.util.Random类中方法，说法错误的是（　）",
+            "options": [
+              "nextDouble()方法返回的是0.0和1.0之间double类型的值",
+              "nextFloat()方法返回的是0.0和1.0之间float类型的值",
+              "nextInt(int n)返回的是0(包括)和指定值n(不包括)之间的值",
+              "nextInt()返回的是0(包括)和2147483647之间的值"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "nextInt()方法返回的是int范围内的随机整数，包括负数，并非仅限于0到2147483647之间。A、B、C选项描述均正确。"
+          },
+          {
+            "id": "java-c1-q174",
+            "type": "single",
+            "stem": "阅读下面代码，下列选项中，哪一个是程序执行后的结果（　）\n```java\nimport java.util.ArrayList;\npublic class Test {\n    public static void main(String[] args) {\n        ArrayList list = new ArrayList();\n        list.add(\"aaa\");\n        list.add(\"bbb\");\n        list.add(\"ccc\");\n        for (Object obj : list) {\n            if (obj.equals(\"bbb\"))\n                list.remove(obj);\n        }\n        System.out.println(list);\n    }\n}\n```",
+            "options": [
+              "[aaa,ccc]",
+              "[aaa,bbb,ccc]",
+              "[]",
+              "以上都不对"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "程序使用增强for循环遍历ArrayList，当遇到\"bbb\"时执行remove操作，导致集合大小改变，循环内部出现并发修改异常（ConcurrentModificationException），因此程序不会正常输出列表，而是抛出异常。选项A、B、C均不正确，故选择D。"
+          },
+          {
+            "id": "java-c1-q175",
+            "type": "single",
+            "stem": "当执行某种特定的用户操作，如点击JButton时，所产生的一个事件对象将被传送至（　）",
+            "options": [
+              "事件驱动程序",
+              "操作方法",
+              "事件处理程序",
+              "操作驱动程序"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "在Java Swing中，当用户点击JButton时，会生成一个ActionEvent事件对象，该对象被传送至注册的事件处理程序（即实现了ActionListener接口的类中的actionPerformed方法）。事件处理程序负责响应事件。选项A、B、D均不是标准的事件处理机制术语。"
+          },
+          {
+            "id": "java-c1-q176",
+            "type": "single",
+            "stem": "Java中，如果类C是类B的子类，类B是类A的子类，那么下面描述正确的是（　）",
+            "options": [
+              "C可以继承B中的公有成员，同样也可以继承A中的公有成员",
+              "C只能继承B中的成员",
+              "C只能继承A中的成员",
+              "C不能继承A或B中的成员"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在Java中，继承具有传递性。类C继承自类B，类B继承自类A，因此类C可以继承类B和类A中的公有成员（包括public和protected成员）。选项A正确描述了这一特性。选项B和C错误，因为C不仅能继承B的成员，也能继承A的成员。选项D完全错误。"
+          },
+          {
+            "id": "java-c1-q177",
+            "type": "single",
+            "stem": "```java\nclass Parent {\n    public void count() {System.out.println(10%3);}\n}\npublic class Child extends Parent{\n    public void count() {System.out.println(10/3);}\n    public static void main(String[] args) {\n        Parent p = new Child();\n        p.count();\n    }\n}\n```\n以上代码运行结果是（　）",
+            "options": [
+              "1",
+              "1.0",
+              "3",
+              "3.3333333333333335"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "代码中，Parent类的count方法输出10%3的结果，即1；Child类重写count方法输出10/3的结果，即整数除法3。但main方法中，p的静态类型为Parent，动态类型为Child，调用count方法时执行子类重写的方法，输出10/3=3。因此输出3，对应选项C。注意：10/3是整数除法，结果为3，不是浮点数。"
+          },
+          {
+            "id": "java-c1-q178",
+            "type": "single",
+            "stem": "新建一个流对象，代码错误的是（　）",
+            "options": [
+              "new BufferedWriter(new FileWriter(\"a.txt\"));",
+              "new BufferedReader(new FileInputStream(\"a.dat\"));",
+              "new BufferedOutputStream(new FileOutputStream(\"a.zip\"));",
+              "new ObjectInputStream(new FileInputStream(\"a.dat\"));"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "选项B错误，因为BufferedReader的构造参数应为Reader类型，而FileInputStream是InputStream类型，类型不匹配。其他选项均正确：A中BufferedWriter包装FileWriter，C中BufferedOutputStream包装FileOutputStream，D中ObjectInputStream包装FileInputStream，均符合流嵌套规则。"
+          },
+          {
+            "id": "java-c1-q179",
+            "type": "single",
+            "stem": "下列选项中，FileReader文件创建语句正确的是（　）",
+            "options": [
+              "new FileReader(File file)",
+              "read()",
+              "new FileWriter(File file)",
+              "ready()"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "FileReader的构造方法可以接收File对象，即new FileReader(File file)是正确的。选项B和D是方法调用，不是构造语句。选项C是FileWriter的构造，与题目要求的FileReader不符。"
+          },
+          {
+            "id": "java-c1-q180",
+            "type": "single",
+            "stem": "下列关于线程的说法中正确的是（　）",
+            "options": [
+              "创建线程立即运行",
+              "start()使线程进入就绪队列，不一定立刻运行",
+              "yield()后线程一定排在就绪队列最前面",
+              "拿到锁直接进入运行状态"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "选项B正确，因为start()方法将线程放入就绪队列，等待CPU调度，不一定立即运行。A错误，创建线程后需调用start()才进入就绪状态。C错误，yield()仅让出CPU，线程仍留在就绪队列，优先级不变，不保证排在最前。D错误，拿到锁后进入就绪状态，而非直接运行。"
+          },
+          {
+            "id": "java-c1-q181",
+            "type": "single",
+            "stem": "File类构造方法格式错误的是（　）",
+            "options": [
+              "new File(String parent, File child)",
+              "new File(String parent, String child)",
+              "new File(String pathname)",
+              "以上都正确"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "File类构造方法包括：File(String pathname)、File(String parent, String child)、File(File parent, String child)。选项A中参数类型为(String parent, File child)是错误的，因为第二个参数应为String类型。"
+          },
+          {
+            "id": "java-c1-q182",
+            "type": "single",
+            "stem": "（　）的getPoint方法返回鼠标坐标Point对象。",
+            "options": [
+              "Point",
+              "JPanel",
+              "MouseEvent",
+              "Graphics"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "MouseEvent的getPoint方法返回鼠标事件发生时的坐标Point对象。其他选项：Point是坐标类，无getPoint方法；JPanel是容器，无此方法；Graphics是绘图上下文，也无此方法。"
+          },
+          {
+            "id": "java-c1-q183",
+            "type": "single",
+            "stem": "线程阻塞，哪种情况不会直接进入可运行状态（　）",
+            "options": [
+              "sleep时间到",
+              "获得对象锁",
+              "t.join()等待线程结束",
+              "wait()被唤醒"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "线程阻塞后，sleep时间到、获得对象锁、wait()被唤醒都会直接进入可运行状态。而t.join()等待线程结束后，线程会进入就绪状态，但不会直接进入可运行状态，因为需要等待CPU调度。"
+          },
+          {
+            "id": "java-c1-q184",
+            "type": "multiple",
+            "stem": "FlowLayout组件排列规则是（　）",
+            "options": [
+              "从上到下",
+              "从左到右",
+              "从下到上",
+              "从右到左"
+            ],
+            "answer": [
+              "A",
+              "B"
+            ],
+            "analysis": "FlowLayout默认在一行中按从左到右排列组件，当一行空间不足时换到下一行，因此整体上也体现为从上到下排列。正确答案是A、B。"
+          },
+          {
+            "id": "java-c1-q185",
+            "type": "single",
+            "stem": "关于异常说法正确的是（　）",
+            "options": [
+              "异常是一种对象",
+              "程序运行就会创建异常",
+              "尽量避免异常控制提升速度",
+              "以上都不对"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在Java中，异常是Throwable类的实例，因此异常是一种对象。选项B错误，因为异常只在特定条件下创建，并非程序运行就会创建。选项C错误，异常控制用于处理错误，不应为避免异常而牺牲程序健壮性。因此A正确。"
+          },
+          {
+            "id": "java-c1-q186",
+            "type": "single",
+            "stem": "Java集合类存放于哪个包（　）",
+            "options": [
+              "java.util",
+              "java.lang",
+              "java.array",
+              "java.collections"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "Java集合类（如List、Set、Map等）存放于java.util包中。java.lang包包含基础类，java.array不存在，java.collections是工具类Collections的包，但集合接口和类主要在java.util中。"
+          },
+          {
+            "id": "java-c1-q187",
+            "type": "single",
+            "stem": "RandomAccessFile中设置文件指针位置的方法是（　）",
+            "options": [
+              "readInt()",
+              "readLine()",
+              "seek()",
+              "close()"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "RandomAccessFile的seek()方法用于设置文件指针位置，实现随机读写。readInt()和readLine()用于读取数据，close()用于关闭文件，均不能设置指针位置。"
+          },
+          {
+            "id": "java-c1-q188",
+            "type": "single",
+            "stem": "以下属于Java引用数据类型的是（　）",
+            "options": [
+              "int",
+              "double",
+              "String",
+              "boolean"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "Java引用数据类型包括类、接口和数组。String是类，属于引用数据类型。int、double、boolean是基本数据类型。"
+          },
+          {
+            "id": "java-c1-q189",
+            "type": "single",
+            "stem": "在多线程并发程序设计中，能够给对象x加锁的语句是（　）",
+            "options": [
+              "x.wait()",
+              "synchronized(x)",
+              "x.notify()",
+              "x.notifyAll()"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "synchronized(x) 是 Java 中用于给对象 x 加锁的同步语句，确保同一时刻只有一个线程能执行该代码块。其他选项：wait()、notify()、notifyAll() 是线程间通信方法，必须在同步块内使用，本身不加锁。"
+          },
+          {
+            "id": "java-c1-q190",
+            "type": "single",
+            "stem": "可以使当前同级线程重新获得运行机会的方法是（　）",
+            "options": [
+              "sleep()",
+              "join()",
+              "yield()",
+              "interrupt()"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "yield()方法的作用是暂停当前正在执行的线程对象，并执行其他线程，它会让当前线程从运行状态回到就绪状态，从而让同优先级的其他线程有机会运行。sleep()是让线程休眠指定时间，不释放锁；join()是等待调用线程执行完毕；interrupt()是中断线程。因此，只有yield()能使当前同级线程重新获得运行机会。"
+          },
+          {
+            "id": "java-c1-q191",
+            "type": "single",
+            "stem": "BufferedReader类的（　）方法能够读取文件中的一行。",
+            "options": [
+              "readLine()",
+              "read()",
+              "line()",
+              "close()"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "BufferedReader类的readLine()方法用于读取一行文本，返回字符串，不包含换行符。read()读取单个字符，line()不存在，close()关闭流。"
+          },
+          {
+            "id": "java-c1-q192",
+            "type": "single",
+            "stem": "Writer的write(int ch)的作用是（　）",
+            "options": [
+              "将对应于整型参数ch的低字节字符写入",
+              "将字符串数组ch的内容写入",
+              "将字符串ch写入",
+              "这是一个抽象方法，从开始将方法中的length个字符写入"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "Writer的write(int ch)方法将整型参数ch的低16位作为字符写入输出流，即写入一个字符。选项A正确描述了该功能。选项B和C分别对应write(char[])和write(String)方法。选项D描述的是write(char[], int, int)方法。"
+          },
+          {
+            "id": "java-c1-q193",
+            "type": "single",
+            "stem": "File类的mkdir方法返回值的类型是（　）",
+            "options": [
+              "boolean",
+              "int",
+              "String",
+              "Integer"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "File类的mkdir()方法用于创建目录，成功返回true，失败返回false，因此返回值类型为boolean。其他选项int、String、Integer均不符合API定义。"
+          },
+          {
+            "id": "java-c1-q194",
+            "type": "single",
+            "stem": "在Java中，下列集合类型可以存储无序、不重复的数据的是（　）",
+            "options": [
+              "ArrayList",
+              "LinkedList",
+              "TreeSet",
+              "HashSet"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "HashSet基于哈希表实现，不保证顺序且元素唯一，符合无序、不重复的要求。ArrayList和LinkedList有序且允许重复。TreeSet虽不重复但按自然顺序或比较器排序，并非无序。"
+          },
+          {
+            "id": "java-c1-q195",
+            "type": "single",
+            "stem": "下列关于String和StringBuilder说法正确的是（　）",
+            "options": [
+              "String是线程不安全的，StringBuilder是线程安全的",
+              "String是线程不安全的，StringBuilder也是线程不安全的",
+              "String是不可变的，StringBuilder是可变的",
+              "String是不确定的，StringBuilder是线程安全的"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "String是不可变类，任何修改都会创建新对象；StringBuilder是可变的，修改在原对象上进行。A错误，String不可变所以线程安全，StringBuilder线程不安全；B错误，String线程安全；D错误，String不可变且线程安全。"
+          },
+          {
+            "id": "java-c1-q196",
+            "type": "single",
+            "stem": "阅读下列代码，写出运行结果。\n```java\nclass Person {\n    private String name;\n    private int age;\n    public void setName(String name) {\n        this.name = name;\n    }\n    public void setAge(int age) {\n        this.age = age;\n    }\n    public void print() {\n        System.out.println(\"执行构造方法\");\n    }\n}\npublic class Test {\n    public static void main(String[] args) {\n        Person p = new Person();\n        p.print();\n        System.out.println(p.name + \",\" + p.age);\n    }\n}\n```",
+            "options": [
+              "执行构造方法。null,0",
+              "执行构造方法。null,null",
+              "执行构造方法。编译报错",
+              "执行构造方法。0,0"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "代码中name和age是私有成员变量，在Test类中无法直接访问，因此p.name和p.age编译报错。选项C正确。A、B、D均假设可以访问私有变量，错误。"
+          },
+          {
+            "id": "java-c1-q197",
+            "type": "single",
+            "stem": "`TreeSet<String> tree = new TreeSet<>();` 向集合中存入对象时，该对象所属的类必须实现（　）接口。",
+            "options": [
+              "Comparable",
+              "Runnable",
+              "Serializable",
+              "以上都不对"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "TreeSet基于TreeMap实现，元素按自然顺序或比较器排序。存入对象时，若未指定比较器，则对象必须实现Comparable接口以定义排序规则。Runnable用于线程，Serializable用于序列化，均非必需。"
+          },
+          {
+            "id": "java-c1-q198",
+            "type": "single",
+            "stem": "阅读下面代码，程序运行后的结果是（　）\n```java\nList<String> list = new ArrayList<>();\nlist.add(\"aaa\");\nlist.add(\"bbb\");\nfor (String str : list) {\n    if (str.equals(\"bbb\")) {\n        list.remove(str);\n    }\n}\nSystem.out.println(list);\n```",
+            "options": [
+              "[aaa]",
+              "[aaa, bbb]",
+              "抛出异常",
+              "以上都不对"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "增强for循环是Iterator迭代器的语法糖，ArrayList迭代器在创建时记录expectedModCount。当在循环中调用list.remove()时，modCount自增，但expectedModCount不变。迭代器下一次hasNext()校验时发现modCount≠expectedModCount，抛出ConcurrentModificationException。因此程序不会正常执行到println语句，输出不是[aaa]而是抛出异常。正确删除方式：使用Iterator.remove()或倒序普通for循环。所以正确答案是C。"
+          },
+          {
+            "id": "java-c1-q199",
+            "type": "single",
+            "stem": "下列关于线程优先级的描述，错误的是（　）",
+            "options": [
+              "NORM_PRIORITY代表普通优先级，默认值是5",
+              "一般情况下，主线程具有普通优先级",
+              "优先级高的线程获得CPU执行权的几率越大",
+              "优先级高的线程就一定会先执行"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "线程优先级高只意味着获得CPU执行权的几率大，但并不保证一定会先执行，因为线程调度还依赖于操作系统和JVM的具体实现。选项D说法绝对，因此错误。其他选项均正确。"
+          },
+          {
+            "id": "java-c1-q200",
+            "type": "multiple",
+            "stem": "下列关于System类的描述中，正确的有（　）",
+            "options": [
+              "System类是final修饰的，所以它不能被继承",
+              "System类不能被实例化",
+              "System类中提供了很多静态的属性",
+              "System类中有获取当前系统属性的字段"
+            ],
+            "answer": [
+              "A",
+              "B",
+              "C"
+            ],
+            "analysis": "A正确，System被声明为final。B正确，其构造方法是private的。C正确，如in、out、err等静态属性。D错误，获取系统属性要通过getProperties()方法，没有对应的公开字段。"
+          },
+          {
+            "id": "java-c1-q201",
+            "type": "single",
+            "stem": "StringBuilder类的append()方法的返回值类型是（　）",
+            "options": [
+              "String",
+              "StringBuilder",
+              "StringBuffer",
+              "String[]"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "StringBuilder类的append()方法返回StringBuilder对象自身，以便支持链式调用。其他选项：A String是字符串常量类，C StringBuffer是线程安全版本，D String[]是字符串数组，均不符合。"
+          },
+          {
+            "id": "java-c1-q202",
+            "type": "multiple",
+            "stem": "下列关于Thread类的方法中，正确的有（　）",
+            "options": [
+              "sleep()方法可以阻止当前线程的执行",
+              "wait()方法调用后，其他线程可以运行",
+              "join()方法调用完毕后，该线程会自动结束",
+              "多个线程同时访问同一个变量时，可以使用join()来解决"
+            ],
+            "answer": [
+              "A",
+              "B"
+            ],
+            "analysis": "A正确，sleep()使当前线程暂停指定时间。B正确，wait()会释放锁并等待，其他线程得以运行。C错误，join()是等待调用它的线程执行完毕，不是让线程结束。D错误，解决多线程访问同一变量的同步问题应当用synchronized、Lock或volatile，join()无法解决变量访问冲突。"
+          },
+          {
+            "id": "java-c1-q203",
+            "type": "single",
+            "stem": "先阅读下面的程序片段：\n```java\nString str = \"ab,cde,fgh\";\nString[] arr = str.split(\",\");\nSystem.out.println(arr.length);\n```\n程序执行后打印出的结果是（　）",
+            "options": [
+              "2",
+              "3",
+              "4",
+              "5"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "字符串\"ab,cde,fgh\"以逗号分隔，得到三个子串：\"ab\"、\"cde\"、\"fgh\"，因此数组长度为3。"
+          },
+          {
+            "id": "java-c1-q204",
+            "type": "judge",
+            "stem": "Java 是一种编译型与解释型相结合的语言，源代码先编译成字节码，再由 JVM 解释执行。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "Java 源文件先由 javac 编译成 .class 字节码，再由 JVM 加载并解释（或即时编译）执行，因此是编译与解释相结合。"
+          },
+          {
+            "id": "java-c1-q205",
+            "type": "judge",
+            "stem": "在 Java 中，一个源文件里可以定义多个类，但最多只能有一个 public 类，且文件名必须与 public 类名相同。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "Java 允许一个 .java 文件包含多个类，但 public 类只能有一个，且文件名必须与它一致，否则编译报错。"
+          },
+          {
+            "id": "java-c1-q206",
+            "type": "judge",
+            "stem": "Java 中的 String 是基本数据类型。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "String 是引用类型（java.lang.String 类）。Java 的基本数据类型只有 8 种：byte、short、int、long、float、double、char、boolean。"
+          },
+          {
+            "id": "java-c1-q207",
+            "type": "judge",
+            "stem": "子类可以继承父类的构造方法。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "构造方法不能被继承。子类只能通过 super(...) 显式调用父类的构造方法。"
+          },
+          {
+            "id": "java-c1-q208",
+            "type": "judge",
+            "stem": "抽象类中可以不包含任何抽象方法。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "抽象类可以有零个或多个抽象方法。只要类被声明为 abstract，即使没有抽象方法也不能被实例化。"
+          },
+          {
+            "id": "java-c1-q209",
+            "type": "judge",
+            "stem": "Java 中的接口可以多继承，一个接口可以同时继承多个接口。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "类只能单继承，但接口支持多继承，例如 interface C extends A, B {} 是合法的。"
+          },
+          {
+            "id": "java-c1-q210",
+            "type": "judge",
+            "stem": "String 对象一旦创建，其内容就不能被修改。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "String 是不可变类（immutable），任何「修改」操作实际上都是创建了一个新对象。"
+          },
+          {
+            "id": "java-c1-q211",
+            "type": "judge",
+            "stem": "ArrayList 和 LinkedList 都实现了 List 接口，两者的随机访问效率相同。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "两者都实现 List，但底层结构不同：ArrayList 基于数组，随机访问 O(1)；LinkedList 基于链表，随机访问 O(n)。"
+          },
+          {
+            "id": "java-c1-q212",
+            "type": "judge",
+            "stem": "HashMap 中的键（key）是允许重复的。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "HashMap 的键不可重复，重复放入同一个键会覆盖旧值；值（value）可以重复。"
+          },
+          {
+            "id": "java-c1-q213",
+            "type": "judge",
+            "stem": "Java 中的异常分为受检异常（Checked Exception）和非受检异常（Unchecked Exception）两大类。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "受检异常必须显式处理或声明抛出（如 IOException）；非受检异常继承自 RuntimeException，编译器不强制处理。"
+          },
+          {
+            "id": "java-c1-q214",
+            "type": "judge",
+            "stem": "try-catch-finally 中，finally 块只在发生异常时才会执行。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "finally 块无论是否发生异常都会执行（除非 JVM 退出），常用于释放资源。"
+          },
+          {
+            "id": "java-c1-q215",
+            "type": "judge",
+            "stem": "使用 FileReader 读取文件时，读取到流末尾会返回 -1。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "FileReader.read() 到达流末尾时返回 -1，这是 Java IO 中表示流结束的统一约定。"
+          },
+          {
+            "id": "java-c1-q216",
+            "type": "judge",
+            "stem": "创建线程只有一种方式，就是继承 Thread 类。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "创建线程主要有两种方式：继承 Thread 类，或实现 Runnable 接口（后者更推荐，因为不占用继承名额）。"
+          },
+          {
+            "id": "java-c1-q217",
+            "type": "judge",
+            "stem": "线程调用 start() 方法后不会立即执行，而是进入就绪状态等待 CPU 调度。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "start() 只是让线程进入就绪（Runnable）状态，具体何时运行由线程调度器决定；直接调用 run() 则是在当前线程中普通执行。"
+          },
+          {
+            "id": "java-c1-q218",
+            "type": "judge",
+            "stem": "Swing 中的容器分为顶层容器和中间容器，JFrame 属于顶层容器。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "JFrame、JDialog、JApplet 是顶层容器，可以独立存在；JPanel、JScrollPane 等中间容器必须放在其他容器里。"
+          },
+          {
+            "id": "java-c1-q219",
+            "type": "single",
+            "stem": "某高校软件学院要开发一套学生成绩管理系统，用来替代目前用 Excel 手工维护的方式。项目组已经完成需求调研，下面是整理出来的材料。请完整阅读后再作答。\n\n【一、业务背景】\n\n学院下设软件工程、网络工程、人工智能、数据科学四个专业。每个专业在每个学期开设若干门课程。一门课程有课程号、课程名、学分、学时四个属性，其中学分是 0.5 的整数倍（例如 1.0、2.5、4.0）。每个学生属于且仅属于一个专业，入学时确定，但允许在第二学年结束之前申请转专业一次。学生每学期选修若干门课程，学期结束后由任课教师录入百分制成绩，成绩是 0 到 100 之间的整数，也允许记为空（表示缺考或尚未录入）。\n\n每学期结束后，教务员会把这学期的成绩归档。归档之后该学期的成绩不允许再修改，但成绩单查询要能一直查到归档之前的数据。系统至少要保留最近八个学年的成绩记录，更早的数据可以下线，但不能在归档当期就被清掉。\n\n系统里有三种角色，各自能做的事情不同：\n\n- 任课教师：只能录入和修改自己所授课程的成绩，看不到其他课程的数据。\n- 教务员：可以查询任意学生在任意学期的成绩单，也可以查询任意一门课程的成绩统计。\n- 学院管理员：维护专业、课程、学生这三类基础数据。\n\n【二、已经与各角色逐一确认过的约束】\n\n1. 基础数据要能被单独维护。专业、课程、学生、选课记录、成绩这五类信息各自独立，修改其中一类不能影响其他类。\n\n2. 学生转专业之后，转专业之前产生的历史成绩必须完整保留；并且在按专业统计时，这些成绩要仍然归属到**当时**就读的那个专业，不能因为学生现在的专业变了就跟着一起变。\n\n3. 同一门课程可以被多个专业同时开设。例如「程序设计基础」这门课，软件工程专业记 4 学分，网络工程专业记 3 学分，两个专业的成绩统计互不干扰，学分也各算各的。\n\n4. 教师录入成绩之后允许修改，但修改不能覆盖原来的值，而要追加一条修改记录，记录里包含修改人、修改时间、修改前后的值。查询成绩时以最后一次修改的结果为准，同时还要能查到一个学生某门课的完整修改历史。\n\n5. 一个学生在同一学期内不能重复选修同一门课程。\n\n6. 查询响应速度要求：当选课记录增长到十万条量级时，学生成绩单查询和课程成绩统计都要在 1 秒之内返回结果。\n\n7. 缺考和「尚未录入」是两种不同的状态，不能混为一谈。缺考表示学生没有参加考试，成绩单上要显示「缺考」；尚未录入表示教师还没有提交，成绩单上要显示「待录入」。这两种情况都不参与平均分的计算，也不能当成 0 分拉低统计结果。\n\n8. 每学期结束后由教务员归档该学期成绩，归档之后这一学期的成绩不允许再修改，但归档数据要始终可查。系统至少保留最近八个学年的成绩记录。\n\n【三、目前实现出来的核心代码】\n\n```java\npublic class ScoreService {\n\n    // 所有成绩塞进一个 Map，键是\"学号_课程号\"\n    private Map<String, Integer> scores = new HashMap<>();\n\n    public void add(String studentId, String courseId, int score) {\n        scores.put(studentId + \"_\" + courseId, score);\n    }\n\n    public int get(String studentId, String courseId) {\n        return scores.get(studentId + \"_\" + courseId);\n    }\n\n    public double average(String courseId) {\n        int sum = 0;\n        int count = 0;\n        for (Map.Entry<String, Integer> entry : scores.entrySet()) {\n            if (entry.getKey().endsWith(\"_\" + courseId)) {\n                sum += entry.getValue();\n                count++;\n            }\n        }\n        return sum / count;\n    }\n\n    public void update(String studentId, String courseId, int score) {\n        scores.put(studentId + \"_\" + courseId, score);\n    }\n}\n```\n\n【四、问题】\n\n对照上面第二节列出的八条约束，这段实现在设计上最主要的问题是（　）",
+            "options": [
+              "get() 方法在查不到对应记录时会抛出 NullPointerException，因为把一个 null 的 Integer 自动拆箱成了 int",
+              "用「学号_课程号」这个字符串当键，既表达不了学期、专业归属和修改历史，又让 average() 只能全表扫描做后缀匹配，第二节的约束 1、2、3、4、6、8 一条都满足不了",
+              "HashMap 不是线程安全的，多位教师同时录入成绩时会导致数据丢失",
+              "应该把 int 换成 Integer，否则无法区分缺考和尚未录入"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "题目问的是「对照需求最主要的问题」，所以必须从需求出发判断，而不是看到这段代码有什么毛病就选什么。A 确实存在——`get()` 查不到记录时返回 null，直接赋值给 int 会拆箱抛 NPE；C 也确实是 HashMap 的真实缺陷；D 指出的方向也对，缺考和待录入确实要区分，也确实不能再用 int。但这三条都不是「对照需求」的主问题：需求里没有要求多线程并发写入，NPE 属于编码细节，而缺考状态改个类型只是局部改动。真正的问题在数据模型本身——`studentId + \"_\" + courseId` 这个字符串键只能表达「某学生对某门课有一个分数」，而约束要求区分学期（约束 1、5）、区分专业归属并保留转专业前的历史（2、3）、保留完整修改历史（4）、在十万级数据下快速查询（6）、支持归档后只读且长期保留（8），这套键值设计一条都表达不了；average() 只能遍历全部记录做字符串后缀匹配，既拿不到专业维度的数据，也达不到第 6 条的响应要求；约束 7 要求区分缺考与待录入，这个 Map 只存 Integer，两种状态都只剩一个 null，同样区分不了。因此 B 才是从需求出发的主问题。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "web",
+    "name": "Web前端题库",
+    "desc": "6 个章节 · 单选题 65 + 多选题 13 + 判断题 42",
+    "icon": "🌐",
+    "source": "data/raw/Web题库.md",
+    "chapters": [
+      {
+        "id": "web-c1",
+        "name": "一、HTML基础",
+        "questions": [
+          {
+            "id": "web-c1-q1",
+            "type": "single",
+            "stem": "下面选项中，用于为页面添加视频的标签是（）。",
+            "options": [
+              "audio",
+              "video",
+              "text",
+              "image"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "在 HTML5 中，`<video>` 标签用于在页面中嵌入视频内容，而 `<audio>` 用于音频。"
+          },
+          {
+            "id": "web-c1-q2",
+            "type": "single",
+            "stem": "下列选项中，用来设置一行内容的垂直对齐方式的是（）。",
+            "options": [
+              "height",
+              "align",
+              "valign",
+              "background"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "在HTML中，valign属性用于设置表格单元格中内容的垂直对齐方式，可选值有top、middle、bottom等。height设置高度，align设置水平对齐，background设置背景，因此正确答案是C。"
+          },
+          {
+            "id": "web-c1-q3",
+            "type": "single",
+            "stem": "Web标准的制定者是?()",
+            "options": [
+              "以上都不是",
+              "微软(Microsoft)",
+              "网景公司(Netscape)",
+              "万维网联盟(W3C)"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "Web标准由万维网联盟（W3C）制定，W3C致力于开发Web技术规范。微软和网景公司是浏览器厂商，曾主导浏览器市场，但并非标准制定者。因此正确答案是D。"
+          },
+          {
+            "id": "web-c1-q4",
+            "type": "single",
+            "stem": "下面选项中，有哪些浏览器是基于Trident内核的()。",
+            "options": [
+              "谷歌浏览器",
+              "火狐浏览器",
+              "欧朋浏览器",
+              "IE浏览器"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "Trident内核由微软开发，主要用于IE浏览器。谷歌浏览器使用Blink内核，火狐浏览器使用Gecko内核，欧朋浏览器早期使用Presto内核，现也使用Blink内核。因此只有IE浏览器基于Trident内核。"
+          },
+          {
+            "id": "web-c1-q5",
+            "type": "single",
+            "stem": "在下列的HTML中，哪个可以产生超链接?()",
+            "options": [
+              "`<a url=\"http://www.w3school.com.cn\">W3School.com.cn</a>`",
+              "`<a href=\"http://www.w3school.com.cn\">W3School</a>`",
+              "`<a>http://www.w3school.com.cn</a>`",
+              "`<a name=\"http://www.w3school.com.cn\">W3School.com.cn</a>`"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "超链接使用`<a>`标签的href属性指定链接目标。选项B正确使用了href属性。选项A使用了错误的url属性；选项C缺少href属性；选项D的name属性用于定义锚点，不产生超链接。"
+          },
+          {
+            "id": "web-c1-q6",
+            "type": "single",
+            "stem": "以下哪个是HTML中的内联(行内)元素？",
+            "options": [
+              "`<span>`",
+              "`<div>`",
+              "`<p>`",
+              "`<h1>`"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "内联元素不会独占一行，常见的有 `<span>`、`<a>`、`<img>` 等；`<div>`、`<p>`、`<h1>` 是块级元素。"
+          },
+          {
+            "id": "web-c1-q7",
+            "type": "single",
+            "stem": "在下列的HTML中，哪个可以插入换行?()",
+            "options": [
+              "`<br/>`",
+              "`<break>`",
+              "`<lb/>`",
+              "以上都不是"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在HTML中，`<br>`或`<br/>`用于插入换行，是标准标签。`<break>`和`<lb/>`不是有效HTML标签，因此正确答案是A。"
+          },
+          {
+            "id": "web-c1-q8",
+            "type": "single",
+            "stem": "在下列的HTML中，哪个是字号最大的标题?()",
+            "options": [
+              "`<heading>`",
+              "`<head>`",
+              "`<h1>`",
+              "`<h6>`"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "在HTML中，标题标签从`<h1>`到`<h6>`，字号依次减小，`<h1>`是最大的标题。`<heading>`和`<head>`不是标题标签，`<head>`用于定义文档头部信息。"
+          },
+          {
+            "id": "web-c1-q9",
+            "type": "single",
+            "stem": "下列标签中，用于定义HTML5文档所要显示内容的是()。",
+            "options": [
+              "`<body></body>`",
+              "`<html></html>`",
+              "`<head></head>`",
+              "`<title></title>`"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在HTML5文档中，`<body>`标签用于定义文档的主体内容，即浏览器中显示的所有可见内容。`<html>`是根标签，`<head>`包含元数据，`<title>`定义标题，均不直接显示内容。因此正确答案是A。"
+          },
+          {
+            "id": "web-c1-q10",
+            "type": "single",
+            "stem": "下列选项中属于单标签语法格式的是()。",
+            "options": [
+              "`<标签名>内容`",
+              "`<标签名/>`",
+              "`</标签名>`",
+              "`<标签名>`"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "单标签（自闭合标签）语法格式为`<标签名/>`，如`<br/>`。选项A是双标签的起始标签，选项C是结束标签，选项D缺少闭合斜杠，不符合XHTML规范。"
+          },
+          {
+            "id": "web-c1-q11",
+            "type": "single",
+            "stem": "下列属性中，用来设置单元格跨行合并的是（）。",
+            "options": [
+              "colspan",
+              "width",
+              "rowspan",
+              "bgcolor"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "colspan用于跨列合并，rowspan用于跨行合并。width设置宽度，bgcolor设置背景色。因此正确答案是C。"
+          },
+          {
+            "id": "web-c1-q12",
+            "type": "multiple",
+            "stem": "下列选项中的术语名词，属于网页术语的是( )",
+            "options": [
+              "WEB",
+              "IOS",
+              "HTTP",
+              "DNS"
+            ],
+            "answer": [
+              "A",
+              "C",
+              "D"
+            ],
+            "analysis": "WEB、HTTP、DNS都是与网页相关的术语。WEB指万维网，HTTP是超文本传输协议，DNS是域名系统，用于解析域名。IOS是苹果移动操作系统，与网页无关。"
+          },
+          {
+            "id": "web-c1-q13",
+            "type": "multiple",
+            "stem": "下列选项中，属于`<tr>`标签相关属性的是( )。",
+            "options": [
+              "background",
+              "right",
+              "align",
+              "height"
+            ],
+            "answer": [
+              "A",
+              "C",
+              "D"
+            ],
+            "analysis": "`<tr>`标签的HTML属性包括align（水平对齐）、background（背景图像）、height（高度）等，而right不是标准属性。因此A、C、D正确。"
+          },
+          {
+            "id": "web-c1-q14",
+            "type": "multiple",
+            "stem": "关于`<title>`标签的相关描述，下列说法正确的是( )。",
+            "options": [
+              "一个HTML文档只能包含一对`<title>`标签",
+              "`<title>`标签必须包含在`<head>`之内",
+              "`<title></title>`之间的内容将显示在浏览器窗口的标题栏中",
+              "`<title>`标签和`<head>`标签是并列关系"
+            ],
+            "answer": [
+              "A",
+              "B",
+              "C"
+            ],
+            "analysis": "一个HTML文档只能有一对`<title>`标签，且必须位于`<head>`标签内，其内容显示在浏览器标题栏。选项D错误，因为`<title>`是`<head>`的子元素，不是并列关系。"
+          },
+          {
+            "id": "web-c1-q15",
+            "type": "judge",
+            "stem": "在HTML中，form标签可以实现用户信息的收集和传递。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "form标签用于创建表单，包含输入控件，用户填写后通过提交按钮将数据发送到服务器，实现信息收集和传递。这是HTML表单的基本功能，表述正确。"
+          },
+          {
+            "id": "web-c1-q16",
+            "type": "judge",
+            "stem": "在表格中，有几对`<tr></tr>`，就表示该表格有几行。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在HTML表格中，`<tr>`标签用于定义表格的行，每对`<tr></tr>`代表一行。因此，有几对`<tr></tr>`就表示表格有几行。这是表格结构的基本规则，没有歧义。"
+          },
+          {
+            "id": "web-c1-q17",
+            "type": "judge",
+            "stem": "在网页制作中，图片只能用GIF格式。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "网页制作中常用的图片格式包括GIF、JPEG、PNG、WebP等，GIF仅支持256色且不支持半透明，适用于简单动画或图标，但并非唯一格式。因此该说法错误。"
+          },
+          {
+            "id": "web-c1-q18",
+            "type": "judge",
+            "stem": "在超链接中，如果暂时没有确定链接目标，通常将`<a>`标签的href属性值定义为\"#\"。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在HTML中，当超链接的href属性设置为\"#\"时，表示链接到当前页面的顶部，常用于占位符。这是一种常见做法，表示链接目标尚未确定，避免页面刷新或跳转。"
+          },
+          {
+            "id": "web-c1-q19",
+            "type": "judge",
+            "stem": "设置标签属性时，标签名与属性、属性与属性之间均以逗号分开。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "在HTML中，设置标签属性时，标签名与属性、属性与属性之间应以空格分隔，而非逗号。例如：`<img src=\"a.jpg\" alt=\"b\">`。使用逗号是错误的写法，这是初学者容易混淆的地方。"
+          },
+          {
+            "id": "web-c1-q20",
+            "type": "judge",
+            "stem": "创建锚点链接包括创建链接文本和设置跳转目标位置两个步骤。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "创建锚点链接确实需要两个步骤：首先在目标位置设置锚点（如使用id属性），然后创建链接文本指向该锚点（如使用href=\"#id\"）。这是HTML中实现页面内跳转的标准方法。"
+          },
+          {
+            "id": "web-c1-q21",
+            "type": "judge",
+            "stem": "在标签嵌套结构中，双标签可以作为父级标签。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "双标签如`<div>`、`<p>`等可以包含其他标签，作为父级标签是HTML嵌套结构的基础。例如`<div><p>`文本`</p></div>`中`<div>`是父级。注意单标签如`<br>`不能作为父级。"
+          },
+          {
+            "id": "web-c1-q22",
+            "type": "judge",
+            "stem": "标签就是放在\"< >\"标签符中表示某个功能的编码命令。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在HTML中，标签通常由尖括号包围，如`<div>`，用于定义网页元素的功能或结构。题干描述符合标签的基本定义，因此正确。注意标签通常成对出现，但自闭合标签如`<br>`也符合此描述。"
+          },
+          {
+            "id": "web-c1-q23",
+            "type": "judge",
+            "stem": "在不同的浏览器中调用video标签时，视频的显示效果完全相同。（ ）",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "不同浏览器对视频格式的支持不同，且默认样式和控件可能有所差异，因此显示效果不一定相同。易错点：误以为所有浏览器统一标准。"
+          },
+          {
+            "id": "web-c1-q24",
+            "type": "judge",
+            "stem": "在表格中，cellpadding属性用于设置单元格内容与单元格边框之间的空白间距。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "cellpadding属性确实用于设置单元格内容与单元格边框之间的空白间距，这是HTML表格的基本属性。易错点：注意区分cellpadding（内边距）和cellspacing（单元格间距）。"
+          },
+          {
+            "id": "web-c1-q25",
+            "type": "judge",
+            "stem": "在`<audio>`和`</audio>`之间不能插入文字。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "在`<audio>`和`</audio>`之间可以插入文字，这些文字会在浏览器不支持audio元素时显示，作为后备内容。因此，题干说法错误。"
+          }
+        ]
+      },
+      {
+        "id": "web-c2",
+        "name": "二、HTML进阶",
+        "questions": [
+          {
+            "id": "web-c2-q26",
+            "type": "single",
+            "stem": "当图像不能显示时，可以用下列哪个属性设置其替换文本()。",
+            "options": [
+              "font",
+              "head",
+              "face",
+              "alt"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "在HTML中，`<img>`标签的alt属性用于指定图像的替换文本，当图像无法显示时，浏览器会显示该文本。其他选项如font、head、face均不是用于此目的。"
+          },
+          {
+            "id": "web-c2-q27",
+            "type": "single",
+            "stem": "关于定义有序列表的基本语法格式，下列书写正确的是()。",
+            "options": [
+              "`<ul> 列表项1 列表项2</ul>`",
+              "`<ul> <li>列表项1</li> <li>列表项2</li>……</ul>`",
+              "`<ol> <li>列表项1</li> <li>列表项2</li>……</ol>`",
+              "`<ol>列表项1</ol><ol>列表项2</ol>`"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "有序列表使用`<ol>`标签，列表项使用`<li>`标签。选项C正确。A和B使用`<ul>`是无序列表，D中每个列表项单独用`<ol>`错误。"
+          },
+          {
+            "id": "web-c2-q28",
+            "type": "single",
+            "stem": "在下列的HTML中，哪个可以插入图像?()",
+            "options": [
+              "`<img src=\"image.gif\"/>`",
+              "image.gif",
+              "`<img href=\"image.gif\"/>`",
+              "`<img>image.gif</img>`"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在HTML中，插入图像使用`<img>`标签，其src属性指定图像文件的路径。选项A正确使用了src属性。选项B不是HTML标签。选项C错误使用了href属性（用于链接）。选项D的写法不符合`<img>`标签的语法，`<img>`是自闭合标签，不应包含内容。"
+          },
+          {
+            "id": "web-c2-q29",
+            "type": "single",
+            "stem": "下列属性中，用来设置单元格横跨列数的是()。",
+            "options": [
+              "colspan",
+              "bgcolor",
+              "width",
+              "rowspan"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "colspan属性用于设置单元格横跨的列数，即合并多列。rowspan用于合并行，bgcolor设置背景色，width设置宽度。因此正确答案是A。"
+          },
+          {
+            "id": "web-c2-q30",
+            "type": "single",
+            "stem": "要在HTML页面中直接引入外部CSS样式表，应使用的标签是（）",
+            "options": [
+              "`<script>`",
+              "`<link>`",
+              "`<style>`",
+              "`<import>`"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "在HTML中，引入外部CSS样式表应使用`<link>`标签，通过href属性指定CSS文件路径。选项A的`<script>`用于引入JavaScript，选项C的`<style>`用于定义内部样式，选项D的`<import>`不是标准HTML标签。"
+          },
+          {
+            "id": "web-c2-q32",
+            "type": "single",
+            "stem": "在定义列表中，用于对名词进行解释和描述的标签是 ()。",
+            "options": [
+              "`<dd></dd>`",
+              "`<li></li>`",
+              "`<dt></dt>`",
+              "`<dl></dl>`"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在HTML定义列表（`<dl>`）中，`<dt>`用于定义术语/名词，`<dd>`用于描述/解释该术语。题目问的是“对名词进行解释和描述的标签”，因此正确答案是`<dd>`，对应选项A。易错点：混淆`<dt>`（名词）和`<dd>`（描述）。"
+          },
+          {
+            "id": "web-c2-q33",
+            "type": "single",
+            "stem": "下列选项中，可以设置文字字体的属性是()。",
+            "options": [
+              "color",
+              "font",
+              "size",
+              "face"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "在CSS中，设置文字字体的属性是font-family，而font是复合属性，可以同时设置字体、大小、粗细等。color设置颜色，size不是CSS属性，face是HTML的font标签属性，已废弃。因此正确选项是B。"
+          },
+          {
+            "id": "web-c2-q34",
+            "type": "single",
+            "stem": "下面选项中，用于为页面添加音频的标签是()。",
+            "options": [
+              "image",
+              "video",
+              "audio",
+              "以上都不是"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "HTML5中，`<audio>`标签专门用于在页面中嵌入音频内容，支持MP3、WAV等格式。选项A的`<image>`是图片标签，选项B的`<video>`用于视频，因此正确答案是C。"
+          },
+          {
+            "id": "web-c2-q35",
+            "type": "multiple",
+            "stem": "下列选项中，属于表单标签`<form>`的属性是()。",
+            "options": [
+              "name",
+              "action",
+              "method",
+              "size"
+            ],
+            "answer": [
+              "A",
+              "B",
+              "C"
+            ],
+            "analysis": "表单标签`<form>`的常用属性包括name（表单名称）、action（提交地址）和method（提交方式，如get/post）。size属性通常用于`<input>`或`<select>`等元素，不属于`<form>`的属性。因此正确答案为A、B、C。"
+          },
+          {
+            "id": "web-c2-q36",
+            "type": "judge",
+            "stem": "一个HTML5文档可以包含多对`<head>`标签。()",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "一个HTML5文档只能包含一对`<head>`标签，用于定义文档的头部信息，如标题、样式、脚本等。包含多对`<head>`标签会导致文档结构错误，不符合HTML规范。"
+          },
+          {
+            "id": "web-c2-q37",
+            "type": "judge",
+            "stem": "有序列表是指有排列顺序的列表，其各个列表项按照一定的顺序排列。()",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "有序列表（`<ol>`）中的列表项（`<li>`）默认按数字顺序排列，且可通过type属性改变编号类型，因此题干描述正确。"
+          },
+          {
+            "id": "web-c2-q38",
+            "type": "judge",
+            "stem": "无序列表的各个列表项之间，虽然没有顺序级别，但是存在主次关系。()",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "无序列表（`<ul>`）中的列表项（`<li>`）之间没有顺序级别，也不存在主次关系，它们处于并列的层级。题目中“存在主次关系”的说法错误，易混淆于有序列表或嵌套列表。"
+          },
+          {
+            "id": "web-c2-q39",
+            "type": "judge",
+            "stem": "在定义单选按钮时，必须为同一组中的选项指定相同的name值，这样\"单选\"才会生效。()",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在HTML中，单选按钮通过相同的name属性值来分组，同一组中只能选择一个选项。如果name值不同，则每个按钮独立，无法实现单选效果。这是HTML表单的基本规则。"
+          },
+          {
+            "id": "web-c2-q40",
+            "type": "judge",
+            "stem": "src属性可以让音频具有循环播放功能。()",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "src属性用于指定音频文件的URL，而循环播放功能由loop属性控制。因此，仅设置src属性无法实现循环播放，需添加loop属性。"
+          }
+        ]
+      },
+      {
+        "id": "web-c3",
+        "name": "三、HTML表单与表格",
+        "questions": [
+          {
+            "id": "web-c3-q41",
+            "type": "single",
+            "stem": "关于创建锚点链接的代码,下列书写正确的是()。",
+            "options": [
+              "`<a href=\"#\">链接文本</a>……<h3 id=\"one\">锚点链接 </h3>`",
+              "`<a href=\"#one\">链接文本</a>……<h3 id=\"#one\">锚点链接 </h3>`",
+              "`<a href=\"#one\">链接文本</a>……<h3 id=\"one\">锚点链接 </h3>`",
+              "`<a href=\"#id\">链接文本</a>……<h3 id=\"one\">锚点链接 </h3>`"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "锚点链接的正确写法是：链接的href属性值为#加上目标元素的id值，目标元素的id值不加#。选项C符合规范。选项A的href=\"#\"表示空链接，不是锚点；选项B的目标id错误地加了#；选项D的href=\"#id\"与目标id不匹配。"
+          },
+          {
+            "id": "web-c3-q42",
+            "type": "single",
+            "stem": "下面的代码中,可以设置单元格宽度的是()。",
+            "options": [
+              "td{line-height:50px;}",
+              "td{font-size:50px;}",
+              "td{height:50px;}",
+              "td{width:50px;}"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "单元格宽度通过CSS的width属性设置。选项D正确，因为width直接控制单元格宽度。其他选项：A设置行高，B设置字体大小，C设置高度，均不影响宽度。易错点：混淆height和width。"
+          },
+          {
+            "id": "web-c3-q43",
+            "type": "single",
+            "stem": "关于HTML标签设置属性的基本语法格式，下列选项正确的是()。",
+            "options": [
+              "`<标签名 属性1=\"属性值1\"属性2=\"属性值2\"…>内容 </标签名>;`",
+              "`<标签名 属性1=\";属性值1\" 属性2=\";属性值2\"…> 内容 </标签名>;`",
+              "`<标签名 属性1=\"属性值1\" 属性2=\"属性值2\"…> 内容 </标签名>;`",
+              "`<title>属性</title>;`"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "HTML标签属性语法要求属性名和属性值之间用等号连接，属性值用双引号括起来，多个属性之间用空格分隔。选项C符合规范。选项A缺少属性间空格，选项B属性值前有多余分号，选项D是标签内容而非属性设置。"
+          },
+          {
+            "id": "web-c3-q44",
+            "type": "single",
+            "stem": "下列选项中，用来定义多行文本输入框的是 ()。",
+            "options": [
+              "`<input/>`",
+              "`<form>`",
+              "`<select></select>`",
+              "`<textarea></textarea>`"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "多行文本输入框使用`<textarea>`标签，其可以输入多行文本。而`<input>`通常用于单行输入，`<form>`用于表单容器，`<select>`用于下拉列表。因此正确答案是D。"
+          },
+          {
+            "id": "web-c3-q45",
+            "type": "single",
+            "stem": "以下选项中,哪个全部都是表格标签?()",
+            "options": [
+              "`<thead><body><tr>`",
+              "`<table><tr><tl>`",
+              "`<table><tr><td>`",
+              "`<table><head><tfoot>`"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "表格标签包括`<table>`、`<tr>`（行）、`<td>`（单元格）等。选项C全部是表格标签。A中`<body>`不是表格标签；B中`<tl>`不存在；D中`<head>`不是表格标签。"
+          },
+          {
+            "id": "web-c3-q46",
+            "type": "multiple",
+            "stem": "下列选项中，属于表单控件的是 ()。",
+            "options": [
+              "密码输入框",
+              "单行文本输入框",
+              "提交按钮",
+              "复选框"
+            ],
+            "answer": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ],
+            "analysis": "表单控件包括输入框、按钮、复选框等，用于用户交互和数据提交。密码输入框、单行文本输入框、提交按钮和复选框都是常见的表单控件，因此全部正确。"
+          },
+          {
+            "id": "web-c3-q47",
+            "type": "multiple",
+            "stem": "下列选项中，属于`<textarea>`标签的必须属性的是 ()",
+            "options": [
+              "value",
+              "rows",
+              "size",
+              "cols"
+            ],
+            "answer": [
+              "B",
+              "D"
+            ],
+            "analysis": "`<textarea>`标签的必须属性是rows和cols，它们定义了文本区域的可见行数和列数。value不是属性，而是标签内容；size不是textarea的属性。易错点：混淆input和textarea的属性。"
+          },
+          {
+            "id": "web-c3-q48",
+            "type": "judge",
+            "stem": "在定义下拉列表时，`<optgroup>`标签有一个必需属性label，用于定义具体的组名。()",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在HTML中，`<optgroup>`标签用于对`<select>`下拉列表中的选项进行分组，其label属性是必需的，用于定义组名，以便用户识别。如果没有label属性，分组将无意义。因此，该说法正确。"
+          },
+          {
+            "id": "web-c3-q49",
+            "type": "judge",
+            "stem": "HTML5中的form属性，可以把表单内的子元素写在页面中的任一位置。()",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "HTML5的form属性允许表单控件通过指定form属性值关联到页面中任意位置的表单，无需将控件放在form元素内部。这提高了布局灵活性，但需注意form属性值必须与对应表单的id匹配。"
+          },
+          {
+            "id": "web-c3-q50",
+            "type": "judge",
+            "stem": "method属性用于设置表单数据的提交方式。()",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "method属性是HTML表单元素的重要属性，用于指定表单数据提交的HTTP方法，常见取值为GET或POST。题干表述正确，符合HTML规范。"
+          },
+          {
+            "id": "web-c3-q51",
+            "type": "judge",
+            "stem": "一个标签只能设置一个属性。()",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "HTML标签可以设置多个属性，例如`<a href=\"...\" target=\"_blank\">`同时设置了href和target属性。题目说法错误，易混淆为某些属性只能出现一次。"
+          }
+        ]
+      },
+      {
+        "id": "web-c4",
+        "name": "四、CSS",
+        "questions": [
+          {
+            "id": "web-c4-q52",
+            "type": "single",
+            "stem": "CSS3中，()选择器用于为父元素中的第一个子元素设置样式。",
+            "options": [
+              "first-child",
+              "nth-child",
+              "only-child",
+              "last-child"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "first-child选择器用于匹配父元素中的第一个子元素，并为其设置样式。选项A正确。nth-child(n)选择第n个子元素，only-child选择唯一的子元素，last-child选择最后一个子元素，均不符合题意。"
+          },
+          {
+            "id": "web-c4-q53",
+            "type": "single",
+            "stem": "()属性用于调整重叠定位元素的堆叠顺序。",
+            "options": [
+              "order",
+              "z-index",
+              "index",
+              "list"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "z-index属性用于控制定位元素（如position: relative/absolute/fixed/sticky）的堆叠顺序，值越大越靠上。order用于flex布局，index和list无此功能。"
+          },
+          {
+            "id": "web-c4-q54",
+            "type": "single",
+            "stem": "()属性是CSS3的新增属性，用于定义服务器字体。通过此属性，开发者可以在用户计算机未安装字体时，使用任何喜欢的字体。",
+            "options": [
+              "@font-face",
+              "@font",
+              "face",
+              "font-family"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "@font-face 是 CSS3 新增的规则，允许开发者定义服务器字体，当用户计算机未安装该字体时，浏览器会从服务器下载并使用。选项 A 正确。@font 和 face 不是有效 CSS 属性，font-family 用于指定字体族名称，但不能定义服务器字体。"
+          },
+          {
+            "id": "web-c4-q55",
+            "type": "multiple",
+            "stem": "下列选项中，用于更改元素内边距的是（ ）。",
+            "options": [
+              "padding-left",
+              "padding-right",
+              "text-indent",
+              "margin-left"
+            ],
+            "answer": [
+              "A",
+              "B"
+            ],
+            "analysis": "padding-left 用于设置元素左内边距，padding-right 用于设置元素右内边距，二者都属于 padding 内边距属性。text-indent 是文本缩进，margin-left 是外边距。因此本题应为多选题，答案为 A、B。"
+          },
+          {
+            "id": "web-c4-q56",
+            "type": "single",
+            "stem": "()属性用于设置文本的下划线，上划线，删除线等装饰效果。",
+            "options": [
+              "text-transform",
+              "text-indent",
+              "text-decoration",
+              "text-align"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "text-decoration属性用于设置文本的装饰效果，如下划线、上划线、删除线等。text-transform控制大小写，text-indent控制缩进，text-align控制对齐，均不符合题意。"
+          },
+          {
+            "id": "web-c4-q57",
+            "type": "single",
+            "stem": "层次选择器中表示相邻兄弟选择器的是 ()。",
+            "options": [
+              "E ~ F",
+              "E + F",
+              "E > F",
+              "E F"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "相邻兄弟选择器使用加号（+）连接两个元素，表示选择紧接在E元素后的第一个F元素。选项A是通用兄弟选择器，C是子选择器，D是后代选择器。"
+          },
+          {
+            "id": "web-c4-q58",
+            "type": "single",
+            "stem": "下列属性中不属于float的属性为 ()。",
+            "options": [
+              "none",
+              "both",
+              "right",
+              "left"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "float属性在CSS中用于设置元素的浮动方向，其可选值包括none（不浮动）、left（左浮动）、right（右浮动）和inherit（继承父元素）。选项B的both不是float的有效值，它是clear属性的值，用于清除浮动。因此，不属于float属性的选项是B。"
+          },
+          {
+            "id": "web-c4-q59",
+            "type": "single",
+            "stem": "下列选项中，用于设置首行文本缩进的属性是 ()。",
+            "options": [
+              "text-shadow",
+              "text-overflow",
+              "white-space",
+              "text-indent"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "text-indent属性用于设置文本块中首行文本的缩进，是CSS中专门控制首行缩进的属性。其他选项：text-shadow设置文本阴影，text-overflow处理文本溢出，white-space控制空白符处理，均与首行缩进无关。"
+          },
+          {
+            "id": "web-c4-q60",
+            "type": "single",
+            "stem": "下列选项中，用于设置边框样式的属性是 ()。",
+            "options": [
+              "border-height",
+              "border-color",
+              "border-style",
+              "border-width"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "border-style属性用于设置边框的样式，如solid、dashed等。border-color设置颜色，border-width设置宽度，没有border-height属性。"
+          },
+          {
+            "id": "web-c4-q61",
+            "type": "single",
+            "stem": "下列选项中，用来表示通配符选择器的符号是 ()。",
+            "options": [
+              "*",
+              ".",
+              "?",
+              "#"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "通配符选择器用星号（*）表示，可以匹配页面中的所有元素。选项B是类选择器，选项D是ID选择器，选项C不是有效的CSS选择器符号。"
+          },
+          {
+            "id": "web-c4-q62",
+            "type": "single",
+            "stem": "()是将所有的样式放在一个或多个以.css为扩展名的外部样式表文件中，实现了结构和样式完全分离。",
+            "options": [
+              "!important",
+              "内嵌式",
+              "外链式",
+              "行内式"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "外链式（外部样式表）将CSS代码单独存放在.css文件中，通过`<link>`标签引入HTML文档，实现了结构与样式的完全分离。内嵌式和行内式则未完全分离，!important是CSS优先级规则。"
+          },
+          {
+            "id": "web-c4-q63",
+            "type": "single",
+            "stem": "下列选项中，关于选择器权重的优先级的说法正确的是 ()。",
+            "options": [
+              "ID选择器 > 类选择器 > 标签选择器",
+              "标签选择器 > 类选择器 > ID选择器",
+              "类选择器 < ID选择器 < 标签选择器",
+              "标签选择器 > ID选择器 > 类选择器"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "CSS选择器优先级中，ID选择器权重最高（0,1,0,0），类选择器次之（0,0,1,0），标签选择器最低（0,0,0,1）。因此正确顺序为ID选择器 > 类选择器 > 标签选择器，对应选项A。"
+          },
+          {
+            "id": "web-c4-q64",
+            "type": "single",
+            "stem": "id选择器使用 () 进行标识，后面紧跟id名。",
+            "options": [
+              "#",
+              "^",
+              "$",
+              "."
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在CSS中，id选择器使用井号（#）进行标识，后面紧跟id名。例如，#myId表示选择id为myId的元素。其他选项中，^和$是正则表达式中的符号，.是类选择器的标识符。因此正确答案是A。"
+          },
+          {
+            "id": "web-c4-q65",
+            "type": "single",
+            "stem": "CSS样式规则由选择器和声明构成。写法正确的是（ ）。",
+            "options": [
+              "选择器{属性1:属性值1; 属性2:属性值2; 属性3:属性值3;}",
+              "选择器(属性1:属性值1; 属性2:属性值2; 属性3:属性值3;)",
+              "选择器{属性1=属性值1; 属性2=属性值2; 属性3=属性值3;}",
+              "{选择器:属性1:属性值1; 属性2:属性值2; 属性3:属性值3;}"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "CSS 规则由选择器和声明块组成，声明块写在花括号中；每条声明由“属性: 属性值”构成，多条声明之间用分号分隔。A 符合语法；B 使用圆括号，C 使用等号，D 把选择器写进声明块，均不正确。"
+          },
+          {
+            "id": "web-c4-q66",
+            "type": "single",
+            "stem": "在设置页面布局时，可以使用 () 的布局方法。",
+            "options": [
+              "绝对定位法",
+              "相对定位法",
+              "浮动法",
+              "以上方法均可以"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "在设置页面布局时，绝对定位、相对定位和浮动都是常用的CSS布局方法。绝对定位使元素脱离文档流，相对定位保留原位置，浮动用于实现文字环绕或横向排列。三种方法均可用于页面布局，因此D选项正确。"
+          },
+          {
+            "id": "web-c4-q67",
+            "type": "single",
+            "stem": "下列样式代码中，可以实现相对定位的是 ()。",
+            "options": [
+              "position: fixed;",
+              "position: absolute;",
+              "position: static;",
+              "position: relative;"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "相对定位使用position: relative;，元素相对于其正常位置进行偏移，同时保留原占位空间。选项A是固定定位，B是绝对定位，C是静态定位（默认），均不符合相对定位的定义。"
+          },
+          {
+            "id": "web-c4-q68",
+            "type": "judge",
+            "stem": "在驼峰式命名中，所有单词都要大写。()",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "驼峰式命名分为小驼峰和大驼峰。小驼峰首单词小写，后续单词首字母大写，如'firstName'；大驼峰所有单词首字母大写，如'FirstName'。题干说所有单词都要大写，这是错误的，因为小驼峰首单词小写。"
+          },
+          {
+            "id": "web-c4-q69",
+            "type": "judge",
+            "stem": "CSS3中，nth-last-of-type(n)选择器属于结构化伪类选择器。()",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "nth-last-of-type(n)是CSS3中新增的结构化伪类选择器，它根据元素在其父元素中同类型子元素的位置（从后往前计数）进行选择，属于结构化伪类。"
+          },
+          {
+            "id": "web-c4-q70",
+            "type": "judge",
+            "stem": "当对元素应用overflow:hidden;样式时，元素的溢出内容会被修剪。()",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "overflow:hidden; 会隐藏超出元素内容区域的溢出部分，因此正确。注意：该属性不会触发滚动条，溢出内容完全不可见。"
+          },
+          {
+            "id": "web-c4-q71",
+            "type": "judge",
+            "stem": "当表格的border-collapse属性设置为collapse时，HTML中设置的cellspacing属性无效。()",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "当border-collapse: collapse时，表格边框合并，单元格间距由CSS控制，HTML的cellspacing属性失效。"
+          },
+          {
+            "id": "web-c4-q72",
+            "type": "judge",
+            "stem": "设置了浮动属性值为left的元素不会脱离标准文档流的控制。()",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "设置了浮动属性值为left的元素会脱离标准文档流，不再占据原位置，后续元素会填补其空间。这是CSS浮动的基本特性，易错点在于混淆浮动与定位的脱离文档流概念。"
+          },
+          {
+            "id": "web-c4-q73",
+            "type": "judge",
+            "stem": "在设置边框颜色时，无需同时设置边框样式就能显示边框。()",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "边框颜色必须与边框样式同时设置才能显示，因为默认边框样式为none，此时边框不可见。即使设置了颜色，若样式为none，边框仍不会显示。"
+          },
+          {
+            "id": "web-c4-q74",
+            "type": "judge",
+            "stem": "E[attr*=value]属性选择器中，E可以省略。()",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "E[attr*=value]选择器中，E表示元素类型，可以省略。省略时表示匹配所有包含该属性的元素，这是CSS属性选择器的通用规则。"
+          },
+          {
+            "id": "web-c4-q75",
+            "type": "judge",
+            "stem": "父子标签的外边距发生合并。若子元素是父元素的第一个子元素，且父标签没有上内边距及边框，则父标签的上外边距会与子标签的上外边距发生合并。()",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "这是CSS外边距合并的典型情况。当父元素没有上内边距或边框时，其第一个子元素的上外边距会与父元素的上外边距合并，取两者中的较大值。"
+          },
+          {
+            "id": "web-c4-q76",
+            "type": "judge",
+            "stem": "`<div>`默认是块元素。()",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在HTML中，`<div>`标签默认是块级元素，会独占一行，宽度默认填满父容器。这是CSS的基础知识，正确。"
+          }
+        ]
+      },
+      {
+        "id": "web-c5",
+        "name": "五、JavaScript基础",
+        "questions": [
+          {
+            "id": "web-c5-q77",
+            "type": "single",
+            "stem": "如何求得2和4中最大的数( )。",
+            "options": [
+              "Math.max(2,4)",
+              "top(2,4)",
+              "Math.min(2,4)",
+              "Math.ceil(2,4)"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "Math.max(2,4)返回两个数中的最大值，结果为4。其他选项：top不是JavaScript函数；Math.min返回最小值；Math.ceil用于向上取整，不能比较大小。"
+          },
+          {
+            "id": "web-c5-q78",
+            "type": "single",
+            "stem": "下列选项中，可以实现警告框的是( )。",
+            "options": [
+              "console.log()",
+              "alert()",
+              "prompt()",
+              "document.write()"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "alert() 方法用于显示带有一条指定消息和一个确认按钮的警告框，符合题目要求。console.log() 在控制台输出信息，prompt() 显示可输入对话框，document.write() 向文档写入内容，均不产生警告框。"
+          },
+          {
+            "id": "web-c5-q79",
+            "type": "single",
+            "stem": "在JavaScript中可以使用Date对象的( )方法返回该对象的某一天具体的日期。",
+            "options": [
+              "getMonth()",
+              "getYear()",
+              "getDate()",
+              "getTime()"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "getDate()方法返回一个月中的某一天（1-31），符合题目要求。getMonth()返回月份（0-11），getYear()返回年份（通常为当前年份减1900），getTime()返回时间戳。易错点：getDate()与getDay()（返回星期几）易混淆。"
+          },
+          {
+            "id": "web-c5-q80",
+            "type": "single",
+            "stem": "在 JavaScript 中，用于向数组**开头**添加元素的正确方法是（　）",
+            "options": [
+              "push()",
+              "unshift()",
+              "pop()",
+              "shift()"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "unshift() 在数组开头添加元素，push() 在末尾添加，pop() 从末尾删除，shift() 从开头删除。"
+          },
+          {
+            "id": "web-c5-q81",
+            "type": "single",
+            "stem": "在使用构造函数创建对象时，构造函数内部的this表示( )。",
+            "options": [
+              "新创建的对象",
+              "window对象",
+              "构造函数本身",
+              "原型对象"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在JavaScript中，使用new关键字调用构造函数时，构造函数内部的this指向新创建的对象实例。这是构造函数的核心特性，用于初始化新对象的属性。易错点：若忘记使用new，则this指向全局对象（如window），但题目明确指定“使用构造函数创建对象”，故应选A。"
+          },
+          {
+            "id": "web-c5-q82",
+            "type": "single",
+            "stem": "下列关于Javascript特征说法错误的是( )。",
+            "options": [
+              "Javascript支持面向对象",
+              "Javascript是一种非脚本语言",
+              "Javascript是事件驱动的",
+              "Javascript是独立于平台的"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "JavaScript是一种脚本语言，而非非脚本语言，因此选项B说法错误。JavaScript支持面向对象编程、事件驱动，并且独立于平台运行，故A、C、D正确。"
+          },
+          {
+            "id": "web-c5-q83",
+            "type": "single",
+            "stem": "下列选项中，可以获取到父节点的是()。",
+            "options": [
+              "childrenNode",
+              "parent",
+              "parentNode",
+              "Node"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "在DOM中，parentNode属性用于获取当前节点的父节点，而parent不是标准属性，childrenNode和Node也不正确。因此正确答案是C。"
+          },
+          {
+            "id": "web-c5-q84",
+            "type": "single",
+            "stem": "下列选项中,( )可以修改指定元素的指定属性值。",
+            "options": [
+              "removeAttribute()",
+              "setAttribute()",
+              "attributes",
+              "getAttribute()"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "setAttribute()方法用于设置或修改指定元素的指定属性值。removeAttribute()用于删除属性，attributes是属性集合，getAttribute()用于获取属性值。因此正确答案是B。"
+          },
+          {
+            "id": "web-c5-q85",
+            "type": "single",
+            "stem": "在JavaScript中，有var p=document.getElementById(\"data\"),则使用DOM将data对应内容设置为黄色的语句中正确的是( )。",
+            "options": [
+              "p.style.backgroundColor=\"yellow\"",
+              "p.style.color=\"yellow\"",
+              "p.color=\"yellow\"",
+              "p.backgroundColor=\"yellow\""
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在JavaScript中，通过DOM获取元素后，设置CSS样式需通过style属性访问具体的CSS属性。背景色对应的CSS属性是backgroundColor，因此正确写法是p.style.backgroundColor=\"yellow\"。选项B设置的是文字颜色，选项C和D直接给元素对象添加属性，无法生效。"
+          },
+          {
+            "id": "web-c5-q86",
+            "type": "single",
+            "stem": "若字符串的indexOf方法查找失败，则返回( )。",
+            "options": [
+              "-1",
+              "null",
+              "false",
+              "0"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "JavaScript中，String.prototype.indexOf()方法在查找失败时返回-1，而不是null、false或0。这是该方法的固定行为，用于表示未找到子字符串。"
+          },
+          {
+            "id": "web-c5-q87",
+            "type": "single",
+            "stem": "下面关于事件的描述错误的是( )。",
+            "options": [
+              "事件处理程序指的是事件触发后要执行的代码",
+              "事件源是指触发事件的元素",
+              "事件指的是可以被JavaScript侦测到的行为",
+              "以上说法都不正确"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "选项A、B、C分别正确描述了事件处理程序、事件源和事件的定义。因此D选项“以上说法都不正确”是错误的，故本题选D。"
+          },
+          {
+            "id": "web-c5-q88",
+            "type": "single",
+            "stem": "下列选项中，可以实现创建元素的是( )。",
+            "options": [
+              "document.createElement(\"p\")",
+              "element.innerValue=\"你好\"",
+              "element.pop(\"你好\")",
+              "element.push(\"你好\")"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "document.createElement() 是 DOM 方法，用于创建指定标签名的元素节点。其他选项：innerValue 不存在，pop 和 push 是数组方法，不能创建元素。"
+          },
+          {
+            "id": "web-c5-q89",
+            "type": "single",
+            "stem": "程序片段：var str1=\"12year\"; var i=str1.indexOf(\"2\"); alert(i);运行后，警告框消息为( )。",
+            "options": [
+              "1",
+              "2",
+              "12",
+              "p"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "indexOf方法返回指定字符在字符串中首次出现的位置索引，从0开始。字符串\"12year\"中字符\"2\"首次出现在索引1，因此alert(i)输出1。易错点：索引从0开始计数。"
+          },
+          {
+            "id": "web-c5-q90",
+            "type": "single",
+            "stem": "当调整window窗口大小的时候，就会触发的事件是( )。",
+            "options": [
+              "window.onload",
+              "document.DOMContentLoaded",
+              "window.innerWidth",
+              "window.onresize"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "window.onresize事件在窗口大小改变时触发。A选项window.onload在页面完全加载后触发，B选项DOMContentLoaded在DOM解析完成后触发，C选项window.innerWidth是属性而非事件。"
+          },
+          {
+            "id": "web-c5-q91",
+            "type": "multiple",
+            "stem": "下列选项中,( )属于内置对象。",
+            "options": [
+              "Math",
+              "String",
+              "Date",
+              "Array"
+            ],
+            "answer": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ],
+            "analysis": "在JavaScript中，Math、String、Date和Array都是内置对象，它们由语言本身提供，无需额外引入即可使用。因此所有选项均正确。"
+          },
+          {
+            "id": "web-c5-q92",
+            "type": "multiple",
+            "stem": "下列选项中属于文本节点的是( )。",
+            "options": [
+              "注释",
+              "元素",
+              "空格",
+              "换行"
+            ],
+            "answer": [
+              "C",
+              "D"
+            ],
+            "analysis": "在DOM中，文本节点包括纯文本内容，如空格和换行符。注释是注释节点，元素是元素节点，因此只有空格和换行属于文本节点。"
+          },
+          {
+            "id": "web-c5-q93",
+            "type": "multiple",
+            "stem": "下列选项中，属于JavaScript注释的是( )。",
+            "options": [
+              "`<!-- -->`",
+              "`/* */`",
+              "`#`",
+              "`//`"
+            ],
+            "answer": [
+              "B",
+              "D"
+            ],
+            "analysis": "JavaScript支持两种注释：单行注释使用//，多行注释使用/* */。选项A是HTML注释，选项C是Python等语言的注释，不属于JavaScript。因此正确答案是B和D。"
+          },
+          {
+            "id": "web-c5-q94",
+            "type": "multiple",
+            "stem": "下面属于符号\"+\"的功能是( )。",
+            "options": [
+              "正数",
+              "字符串连接",
+              "自增",
+              "相加"
+            ],
+            "answer": [
+              "A",
+              "B",
+              "D"
+            ],
+            "analysis": "在JavaScript中，'+'运算符具有多重功能：作为一元运算符表示正数（如+5），作为二元运算符用于字符串连接（如'a'+'b'）和数值相加（如1+2）。自增功能由'++'运算符实现，而非单独的'+'。因此正确选项为A、B、D。"
+          },
+          {
+            "id": "web-c5-q95",
+            "type": "judge",
+            "stem": "事件是指可以被JavaScript侦测到的行为，是一种\"触发-响应\"的机制。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "事件是JavaScript中用户操作或浏览器行为（如点击、加载）的触发点，通过监听事件并执行相应函数实现交互，符合“触发-响应”机制。"
+          },
+          {
+            "id": "web-c5-q96",
+            "type": "judge",
+            "stem": "JavaScript不声明变量的数据类型，变量可直接使用。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "JavaScript是弱类型语言，变量无需声明类型即可使用，且可随时改变数据类型。但严格模式下未声明变量会报错，本题基于常规情况判定正确。"
+          },
+          {
+            "id": "web-c5-q97",
+            "type": "judge",
+            "stem": "调用日期对象的getMonth()方法获取的月份，范围为1~12(1表示一月，2表示二月，依次类推)。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "getMonth()方法返回的月份是从0开始的整数，范围是0~11，其中0表示一月，1表示二月，依此类推。题目中描述为1~12是错误的，因此答案为false。"
+          },
+          {
+            "id": "web-c5-q98",
+            "type": "judge",
+            "stem": "JavaScript语言中，调用Math.random()可以获取0到1(包括0和1)之间的随机数。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "Math.random() 返回 [0, 1) 之间的随机浮点数，包括0但不包括1。题目说包括0和1，这是错误的，因为1不会被包含。"
+          },
+          {
+            "id": "web-c5-q99",
+            "type": "judge",
+            "stem": "JavaScript中的变量必须在声明的同时赋值。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "JavaScript中变量可以先声明后赋值，例如：let a; a = 1;。声明时赋值不是必须的，未赋值的变量默认值为undefined。"
+          },
+          {
+            "id": "web-c5-q100",
+            "type": "judge",
+            "stem": "调用document.getElementById(id)方法返回的是拥有指定id的元素。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "document.getElementById(id) 方法根据传入的 id 返回匹配的第一个元素对象，若不存在则返回 null。题干描述正确，注意该方法返回的是元素对象而非集合。"
+          },
+          {
+            "id": "web-c5-q101",
+            "type": "judge",
+            "stem": "JavaScript可以使用数组名[索引]的方式来访问数组元素。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "JavaScript中数组索引从0开始，通过方括号加索引即可访问对应元素，如arr[0]访问第一个元素。这是数组的基本操作，正确。"
+          },
+          {
+            "id": "web-c5-q102",
+            "type": "judge",
+            "stem": "使用var声明变量y后，alert(typeof y)将显示字符型。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "var声明的变量y未赋值时，typeof y返回'undefined'，而非字符型。字符型指字符串，typeof操作符对未初始化变量返回'undefined'字符串，但这是undefined类型，不是字符型。易错点：混淆typeof返回值与变量实际类型。"
+          }
+        ]
+      },
+      {
+        "id": "web-c6",
+        "name": "六、JavaScript进阶",
+        "questions": [
+          {
+            "id": "web-c6-q103",
+            "type": "single",
+            "stem": "下面选项中，表示浏览器对象模型的是( )。",
+            "options": [
+              "BOM",
+              "window",
+              "DOM",
+              "document"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "浏览器对象模型（Browser Object Model）的缩写是BOM，它提供了与浏览器窗口交互的对象和方法。window是BOM的核心对象，但题目问的是表示浏览器对象模型的术语，因此选A。DOM是文档对象模型，document是DOM的一部分。"
+          },
+          {
+            "id": "web-c6-q104",
+            "type": "single",
+            "stem": "可获取当前元素对象ele所在层级的最后一个节点的是()。",
+            "options": [
+              "ele.parentNode",
+              "以上答案都不正确",
+              "ele.lastChild",
+              "ele.parentNode.lastChild"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "ele.parentNode 获取父节点；ele.lastChild 获取 ele 自身的最后一个子节点；ele.parentNode.lastChild 获取 ele 父节点的最后一个子节点，也就是 ele 所在同一层级中的最后一个节点。因此正确答案是 D。"
+          },
+          {
+            "id": "web-c6-q105",
+            "type": "single",
+            "stem": "Javascript中，需要声明一个整数变量num，以下语句正确的是( )。",
+            "options": [
+              "number num;",
+              "var num;",
+              "Integer num;",
+              "int num;"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "JavaScript是弱类型语言，声明变量使用var、let或const，不需要指定类型。选项B正确。其他选项如int、Integer、number是其他语言的语法，在JavaScript中无效。"
+          },
+          {
+            "id": "web-c6-q106",
+            "type": "single",
+            "stem": "'8'+8的结果是( )。",
+            "options": [
+              "undefined",
+              "88",
+              "NaN",
+              "16"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "在JavaScript中，当字符串与数字进行加法运算时，数字会被转换为字符串，然后进行字符串拼接。因此'8'+8的结果是字符串'88'，而不是数字16。易错点：误以为加法会进行数值计算。"
+          },
+          {
+            "id": "web-c6-q107",
+            "type": "single",
+            "stem": "下面关于字符串的描述错误的是( )。",
+            "options": [
+              "单引号中使用单引号不需要转义",
+              "双引号中使用单引号不需要转义",
+              "单引号或双引号包裹的数据称为字符串",
+              "双引号内使用换行需要转义"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "在JavaScript中，单引号内不能直接包含单引号，必须转义（如\\'），否则会语法错误。选项A说不需要转义是错误的。其他选项正确：双引号内可包含单引号无需转义；单引号或双引号包裹的是字符串；双引号内换行需转义（\\n）。"
+          },
+          {
+            "id": "web-c6-q108",
+            "type": "single",
+            "stem": "下列选项中，可以实现循环遍历页面中标签的是()。",
+            "options": [
+              "if(){}else{}",
+              "for(){}",
+              "if(){}",
+              "switch(){}"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "循环遍历需要使用循环结构，for(){}是循环语句，可以重复执行代码块来遍历元素。if、switch是条件语句，不能实现循环。"
+          },
+          {
+            "id": "web-c6-q109",
+            "type": "single",
+            "stem": "在网页中单击鼠标左键时会触发( )事件。",
+            "options": [
+              "clicks",
+              "dblclick",
+              "onclick",
+              "onfocus"
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "单击鼠标左键触发的是click事件，在HTML中通常使用onclick属性或addEventListener('click', handler)来绑定。选项A的'clicks'不是标准事件名；B的'dblclick'是双击事件；D的'onfocus'是获得焦点事件。因此正确答案是C。"
+          },
+          {
+            "id": "web-c6-q110",
+            "type": "single",
+            "stem": "执行程序代码var a;console.log(a);后控制台的输出结果为( )。",
+            "options": [
+              "null",
+              "0",
+              "\"\"",
+              "undefined"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "在JavaScript中，使用var声明变量但未初始化时，变量的默认值为undefined。因此执行var a;后，a的值为undefined，console.log(a)输出undefined。易错点：null是主动赋值的空值，与undefined不同。"
+          },
+          {
+            "id": "web-c6-q111",
+            "type": "single",
+            "stem": "为了实现3秒后自动关闭广告的效果，可以使用( )来实现。",
+            "options": [
+              "setInterval()",
+              "clearInterval()",
+              "clearTimeout()",
+              "setTimeout()"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "setTimeout()用于在指定延迟后执行一次函数，适合实现3秒后自动关闭广告。setInterval()会重复执行，不符合需求。clearTimeout()和clearInterval()用于取消定时器，不能直接实现延迟执行。"
+          },
+          {
+            "id": "web-c6-q112",
+            "type": "single",
+            "stem": "HTML DOM中的根节点是( )。",
+            "options": [
+              "head",
+              "div",
+              "window",
+              "document"
+            ],
+            "answer": [
+              "D"
+            ],
+            "analysis": "在HTML DOM中，根节点是document对象，它代表整个HTML文档，是所有其他节点的父节点。head和div是元素节点，window是BOM对象，不是DOM根节点。"
+          },
+          {
+            "id": "web-c6-q113",
+            "type": "multiple",
+            "stem": "下面选项中，( )属于清除定时器方法。",
+            "options": [
+              "clearInterval()",
+              "setInterval()",
+              "setTimeout()",
+              "clearTimeout()"
+            ],
+            "answer": [
+              "A",
+              "D"
+            ],
+            "analysis": "清除定时器的方法包括clearInterval()用于清除setInterval()创建的定时器，以及clearTimeout()用于清除setTimeout()创建的定时器。setInterval()和setTimeout()是创建定时器的方法，不是清除方法。"
+          },
+          {
+            "id": "web-c6-q114",
+            "type": "multiple",
+            "stem": "下列选项中，可以获取当前元素节点的兄弟节点的是( )。",
+            "options": [
+              "childNodes",
+              "nextSibling",
+              "parentNode",
+              "previousSibling"
+            ],
+            "answer": [
+              "B",
+              "D"
+            ],
+            "analysis": "nextSibling 获取下一个兄弟节点，previousSibling 获取上一个兄弟节点，两者均可获取兄弟节点。childNodes 获取子节点，parentNode 获取父节点，均不符合题意。"
+          },
+          {
+            "id": "web-c6-q115",
+            "type": "judge",
+            "stem": "JavaScript不可以跨平台。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "JavaScript可以在多种平台上运行，包括浏览器、服务器（Node.js）、移动端等，因此具有跨平台特性。题干说法错误。"
+          },
+          {
+            "id": "web-c6-q116",
+            "type": "judge",
+            "stem": "在JavaScript中，使用childNodes属性和children属性获得的对象是一样的。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "childNodes 返回包含文本节点和注释节点的 NodeList，而 children 只返回元素节点。因此两者返回的对象不同，尤其在存在空白文本节点时差异明显。"
+          },
+          {
+            "id": "web-c6-q117",
+            "type": "judge",
+            "stem": "JavaScript中的循环跳转语句break和continue作用完全相同。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "break用于立即终止整个循环，而continue仅跳过当前迭代，继续下一次循环。两者作用不同，因此该说法错误。易错点在于混淆两者功能。"
+          },
+          {
+            "id": "web-c6-q118",
+            "type": "judge",
+            "stem": "使用var声明变量y后，alert(typeof y)将显示字符型。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "var声明的变量y未赋值时，typeof y返回'undefined'，而非字符型。typeof运算符的结果是字符串，但这里指变量类型为undefined，不是字符型。易错点：混淆typeof返回值的类型与变量实际类型。"
+          },
+          {
+            "id": "web-c6-q119",
+            "type": "judge",
+            "stem": "JavaScript提供的常用内置对象包括字符串对象、数学对象、日期对象、数组对象。( )",
+            "options": [
+              "正确",
+              "错误"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "JavaScript确实提供了这些常用内置对象：String、Math、Date、Array，它们都是全局对象，可直接使用。题目表述正确，注意内置对象无需实例化即可调用其静态方法，但String和Array通常以实例形式使用。"
+          },
+          {
+            "id": "web-c6-q120",
+            "type": "single",
+            "stem": "阅读下面的代码，执行后控制台两行依次输出的是（　）\n\n```javascript\nvar funcs = [];\nfor (var i = 0; i < 3; i++) {\n  funcs.push(function () { return i; });\n}\nconsole.log(funcs[0](), funcs[1](), funcs[2]());\n\nvar lets = [];\nfor (let j = 0; j < 3; j++) {\n  lets.push(function () { return j; });\n}\nconsole.log(lets[0](), lets[1](), lets[2]());\n```",
+            "options": [
+              "第一行 `3 3 3`，第二行 `0 1 2`",
+              "第一行 `0 1 2`，第二行 `0 1 2`",
+              "第一行 `3 3 3`，第二行 `3 3 3`",
+              "第一行 `0 1 2`，第二行 `3 3 3`",
+              "代码直接抛错，因为 let 不能用在 for 循环里"
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "第一段用 var 声明的 i 属于函数作用域，整个循环从头到尾共用同一个变量。循环结束时 i 已经加到 3，三个闭包读到的都是这同一个 i，所以输出 `3 3 3`。第二段用 let 声明的 j 属于块级作用域，for 循环的每一次迭代都会创建一个新的绑定，并把当次的值捕获进那个闭包，因此三个函数分别返回 0、1、2。E 是明显的错误说法，let 完全可以用在 for 循环里，这正是它相对 var 的改进之一。故选 A。"
+          }
+        ]
+      }
+    ]
+  }
+]

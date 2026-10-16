@@ -33,9 +33,19 @@ function esc(s) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
-/* 题干里的 `行内代码` 渲染成 <code>，先转义再替换，避免 XSS */
+/* 轻量 Markdown 渲染：代码块 + 行内代码 + 加粗
+   题库题干/选项里会出现 ```java 代码块、`code` 和 **强调**，统一在这里处理 */
 function fmt(s) {
-  return esc(s).replace(/`([^`]+)`/g, '<code>$1</code>');
+  const blocks = [];
+  let out = String(s == null ? '' : s).replace(/```[^\n]*\n?([\s\S]*?)```/g, (m, code) => {
+    blocks.push('<pre class="code"><code>' + esc(code.replace(/\n$/, '')) + '</code></pre>');
+    return '\u0000' + (blocks.length - 1) + '\u0000';
+  });
+  out = esc(out);
+  out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
+  out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  out = out.replace(/[ \t]*\n[ \t]*/g, '<br>');
+  return out.replace(/(?:<br>)*\u0000(\d+)\u0000(?:<br>)*/g, (m, i) => blocks[+i]);
 }
 let toastTimer = null;
 function toast(msg) {
