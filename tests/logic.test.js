@@ -52,17 +52,19 @@ H.pickBank('web');
 ok('选择题库后进入组卷页', H.S.view === 'setup');
 ok('默认选中全部章节', H.S.chapters.length === H.bankById('web').chapters.length);
 
-section('2. 脏数据（答案缺失）处理');
+section('2. 题库数据完整性（解析产物）');
 const web = H.bankById('web');
-const legacy = web.chapters.flatMap(c => c.questions).filter(q => !q.answer.length);
-ok('样本中存在答案缺失的题', legacy.length === 1 && legacy[0].id === 'web-js-5');
+const allQ = web.chapters.flatMap(c => c.questions);
+ok('Web 题库保留 119 题（已剔除 1 道无选项脏题）', allQ.length === 119);
+ok('每道题都有答案', allQ.every(q => q.answer.length > 0));
+ok('答案字母都在选项范围内', allQ.every(q => q.answer.every(a => a >= 'A' && a < String.fromCharCode(65 + q.options.length))));
+ok('每道题至少 2 个选项', allQ.every(q => q.options.length >= 2));
 const gradable = H.bankQuestionIds(web);
-ok('可判分题目里不含脏数据题', gradable.indexOf('web-js-5') === -1);
+ok('可判分题数 = 全部题数', gradable.length === allQ.length);
 
 section('3. 开始答题');
 H.startSession();
 ok('练习已开始', H.S.view === 'quiz' && H.S.session.order.length === gradable.length);
-ok('练习中不含脏数据题', H.S.session.order.indexOf('web-js-5') === -1);
 
 section('4. 单选：重复提交不改变成绩（底线要求）');
 const qid0 = H.S.session.order[0];
@@ -94,15 +96,14 @@ const mIdx = H.S.session.order.findIndex(id => id !== qid0 && H.QMAP[id].type ==
 H.jump(mIdx);
 const qm = H.QMAP[H.S.session.order[mIdx]];
 ok('多选只勾一个不判对', !H.isCorrect(qm, [qm.answer[0]]));
-H.pickKey(qm.answer[0]); H.pickKey(qm.answer[1]);
+qm.answer.slice().reverse().forEach(k => H.pickKey(k));
 ok('乱序勾满全部选项判对', H.isCorrect(qm, H.S.session.answers[qm.id]));
 
-section('8. 填空题：忽略大小写与首尾空格');
-const fIdx = H.S.session.order.findIndex(id => H.QMAP[id].type === 'fill');
-H.jump(fIdx);
-const qf = H.QMAP[H.S.session.order[fIdx]];
-ok('答案 "  ' + qf.answer[0].toUpperCase() + ' " 判对', H.isCorrect(qf, '  ' + qf.answer[0].toUpperCase() + ' '));
-ok('错误答案判错', !H.isCorrect(qf, 'definitely-wrong'));
+section('8. 填空题判分（题型保留，当前题库暂无填空题）');
+const qf = { type: 'fill', answer: ['final'], options: [] };
+ok('忽略大小写与首尾空格', H.isCorrect(qf, '  Final '));
+ok('错误答案判错', !H.isCorrect(qf, 'static'));
+ok('空白答案判错', !H.isCorrect(qf, '   '));
 
 section('9. 未作答不算答错');
 const st = H.stats(H.S.session);
