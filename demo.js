@@ -1,5 +1,5 @@
 /* =========================================================
-   刷题吧 · 演示页逻辑
+   popipa · 演示页逻辑
    ---------------------------------------------------------
    模块划分（同一事实只写一处）：
      1. 工具函数        util
@@ -353,8 +353,8 @@ function renderLogin() {
   const last = lastName();          /* 只用来回填昵称，不再列出"本机记录" */
   app.innerHTML =
     '<div class="hero">' +
-      '<div class="logo-big">刷</div>' +
-      '<h1>刷题吧</h1>' +
+      '<div class="logo-big">pi</div>' +
+      '<h1>popipa</h1>' +
       '<p>挑一套题库，答完立刻知道对错，随时看得见自己的进度。</p>' +
     '</div>' +
     '<div class="card login-box">' +
