@@ -17,12 +17,16 @@ const mkEl = id => ({
   id, hidden: false, textContent: '', innerHTML: '', value: '', disabled: false,
   dataset: {}, style: {},
   classList: { add() {}, remove() {}, contains: () => false },
-  addEventListener() {}, focus() {}, matches: () => false, closest: () => null, setAttribute() {}
+  addEventListener() {}, focus() {}, select() {}, matches: () => false, closest: () => null,
+  setAttribute() {}
 });
 const storage = {};
 const sandbox = {
   console, Math, JSON, Date, Number, String, Array, Object, Boolean, RegExp, Error, isNaN,
-  document: { getElementById: id => (els[id] || (els[id] = mkEl(id))), addEventListener() {}, activeElement: null },
+  document: {
+    getElementById: id => (els[id] || (els[id] = mkEl(id))),
+    addEventListener() {}, activeElement: null, documentElement: { dataset: {} }
+  },
   localStorage: {
     getItem: k => (k in storage ? storage[k] : null),
     setItem: (k, v) => { storage[k] = String(v); },
@@ -35,7 +39,9 @@ vm.createContext(sandbox);
 vm.runInContext(dataSrc + '\n' + logicSrc + `
 globalThis.__hook = { S, stats, isCorrect, hasAnswer, startSession, pickKey, submitCurrent, redoCurrent,
   jump, go, step, finish, pickBank, doLogin, retryWrong, closeDialog, askUnsubmitted,
-  tickAuto, QMAP, bankById, bankQuestionIds, LETTERS, loadRecords,
+  tickAuto, QMAP, bankById, bankQuestionIds, LETTERS, render,
+  store, KEY, userOf, users, wrongIds, sanitizeSession, historyOf, loadProgress, lastName,
+  applyTheme, theme, toggleTheme, navTargetScroll,
   getAuto: () => autoJump, maskHidden: () => maskEl.hidden, dialogHtml: () => dialogEl.innerHTML };`, sandbox);
 const H = sandbox.__hook;
 
@@ -113,8 +119,8 @@ ok('答对 + 答错 = 已作答', st.correct + st.wrong === st.answered);
 section('10. 交卷与成绩记录');
 H.finish();
 ok('进入结果页', H.S.view === 'result' && H.S.session.finished === true);
-const recs = H.loadRecords();
-ok('成绩已写入历史记录', recs.length >= 1 && recs[0].total === H.S.session.order.length);
+const recs = H.historyOf('小明');
+ok('成绩已写进这个用户的历史', recs.length >= 1 && recs[0].total === H.S.session.order.length);
 ok('记录里的正确率与统计一致', recs[0].correct === H.stats(H.S.session).correct);
 
 section('11. 未提交就点「下一题」');
@@ -187,6 +193,73 @@ H.jump(ord2.length - 1);
 H.pickKey(H.QMAP[ord2[ord2.length - 1]].answer[0]);
 H.submitCurrent();
 ok('最后一题不自动跳转（避免误触交卷）', H.getAuto() === null && H.S.view === 'quiz');
+
+section('13. 用户表：登录 / 进度 / 主题');
+ok('登录后写进了用户表', H.userOf('小明').lastLogin > 0);
+ok('记住了最近一次登录的是谁', H.lastName() === '小明');
+ok('答题中会把进度存到这个用户名下', !!H.userOf('小明').books['web']);
+H.applyTheme('dark');
+ok('主题也按用户存', H.userOf('小明').theme === 'dark');
+H.toggleTheme();
+ok('切换主题只改这一个用户', H.userOf('小明').theme === 'light' && H.theme() === 'light');
+ok('主题写到了 html 上', sandbox.document.documentElement.dataset.theme === 'light');
+
+section('14. 错题本：答错记下 / 答对移出');
+H.S.user = '小明'; H.S.view = 'setup'; H.S.bankId = 'web';
+H.S.chapters = H.bankById('web').chapters.map(c => c.id);
+H.S.mode = 'order'; H.S.wrongOnly = false;
+H.startSession();
+const ord3 = H.S.session.order;
+const wrongOf = q => H.LETTERS.split('').slice(0, q.options.length).find(k => q.answer.indexOf(k) < 0);
+const wI = ord3.findIndex(id => wrongOf(H.QMAP[id]));
+H.jump(wI);
+H.pickKey(wrongOf(H.QMAP[ord3[wI]]));
+H.submitCurrent();
+const cI = ord3.findIndex((id, i) => i !== wI);
+H.jump(cI);
+H.QMAP[ord3[cI]].answer.forEach(k => H.pickKey(k));
+H.submitCurrent();
+H.finish();
+const wBook = H.wrongIds('小明', 'web');
+ok('答错的题进了错题本', wBook.indexOf(ord3[wI]) >= 0);
+ok('答对的题不在错题本里', wBook.indexOf(ord3[cI]) === -1);
+H.S.view = 'setup'; H.S.wrongOnly = true;
+H.startSession();
+ok('只练错题：出的题全部来自错题本', H.S.session.order.length > 0 &&
+   H.S.session.order.every(id => wBook.indexOf(id) >= 0));
+H.S.session.order.forEach((id, i) => {
+  H.jump(i);
+  H.QMAP[id].answer.forEach(k => H.pickKey(k));
+  H.submitCurrent();
+});
+H.finish();
+ok('全部答对后错题本被清空', H.wrongIds('小明', 'web').length === 0);
+
+section('15. 旧题库残留的题号不会再让页面崩（用户名 11 那个 bug）');
+const all11 = H.users();
+all11['11'] = { name: '11', books: { web: { order: ['web-html-1', 'web-js-5'], idx: 1,
+  answers: { 'web-html-1': ['A'] }, submitted: { 'web-html-1': true }, fav: {} } } };
+H.store.set(H.KEY.users, all11);
+ok('读到已不存在的题号时，这条进度直接作废', H.loadProgress('11', 'web') === null);
+H.S.user = '11'; H.S.view = 'banks';
+let threw = null;
+try { H.render(); } catch (e) { threw = e; }
+ok('带着脏进度进选题页不再抛异常', threw === null);
+ok('选题页仍然渲染出来了', els['app'].innerHTML.indexOf('选择题库') >= 0);
+H.S.user = '小明';
+
+section('16. 答题卡自动定位');
+ok('当前题停在导航条偏左 35% 处', H.navTargetScroll(1000, 900, 5000) === 685);
+ok('刚开头时不硬顶（夹到 0）', H.navTargetScroll(10, 900, 5000) === 0);
+ok('快到头时不硬顶（夹到最后）', H.navTargetScroll(4900, 900, 5000) === 4100);
+ok('整条塞得下就不滚', H.navTargetScroll(100, 900, 800) === 0);
+
+section('17. 登录页');
+H.S.user = null; H.S.view = 'login';
+H.render();
+ok('不再有「本机记录」', els['app'].innerHTML.indexOf('本机') === -1);
+ok('回填了上次登录的昵称', els['app'].innerHTML.indexOf('value="小明"') >= 0);
+ok('主题按钮不在登陆页消失', els['themeBtn'].textContent !== '');
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);
