@@ -78,6 +78,8 @@
   --scrim:rgba(0,0,0,.14);  /* 提示框里的虚线分隔 */
   --toast-bg:#141a29;
   --toast-fg:#fff;
+  --code-bg:#141a29;        /* 题干/选项里的代码块 */
+  --code-fg:#dfe4ec;
 
   /* ---------- 圆角与阴影 ---------- */
   --r:16px;
@@ -101,8 +103,8 @@ body{
 }
 code{background:var(--fill);border:1px solid var(--bd-2);border-radius:5px;padding:1px 5px;
      font-size:.9em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-pre.code{margin:10px 0;padding:12px 14px;background:#0f172a;color:#e2e8f0;border-radius:10px;
-         overflow-x:auto;font-size:12.5px;line-height:1.65;
+pre.code{margin:10px 0;padding:12px 14px;background:var(--code-bg);color:var(--code-fg);
+         border-radius:10px;overflow-x:auto;font-size:12.5px;line-height:1.65;
          font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 pre.code code{background:none;border:0;padding:0;color:inherit;font-size:inherit}
 .stem strong,.opt .t strong,.rev-b strong,.ana strong{font-weight:700}
