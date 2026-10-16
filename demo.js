@@ -418,7 +418,7 @@ function renderQuiz() {
   app.innerHTML =
     '<div class="qbar">' +
       '<span class="stat">第 <b>' + (s.idx + 1) + '</b> / ' + s.order.length + ' 题</span>' +
-      '<span class="stat"><i class="dot" style="background:#cbd5e1"></i>已答 <b>' + st.answered + '</b></span>' +
+      '<span class="stat"><i class="dot" style="background:var(--dot-idle)"></i>已答 <b>' + st.answered + '</b></span>' +
       '<span class="stat"><i class="dot" style="background:var(--ok)"></i>答对 <b>' + st.correct + '</b></span>' +
       '<span class="stat"><i class="dot" style="background:var(--bad)"></i>答错 <b>' + st.wrong + '</b></span>' +
       '<span class="stat">正确率 <b>' + st.rate + '%</b></span>' +
@@ -640,7 +640,7 @@ function renderResult() {
   app.innerHTML =
     '<h1>答题结果<span class="sub">' + esc(s.bankName) + ' · ' + esc(s.mode === 'random' ? '随机顺序' : '顺序作答') + '</span></h1>' +
     '<div class="card score-hero">' +
-      '<div class="ring" style="background:conic-gradient(' + color + ' ' + deg + 'deg,#e8ecf3 ' + deg + 'deg)">' +
+      '<div class="ring" style="background:conic-gradient(' + color + ' ' + deg + 'deg,var(--track) ' + deg + 'deg)">' +
         '<div class="in"><div><div class="v" style="color:' + color + '">' + st.rate + '%</div>' +
         '<div class="u">正确率</div></div></div>' +
       '</div>' +
