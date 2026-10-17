@@ -729,10 +729,11 @@ ok('有入场动画关键帧', /@keyframes rise/.test(cssSrc) && /@keyframes pop
 ok('题库卡、组卷页、结果页有入场动画',
    /\.bank-card\{animation:rise/.test(cssSrc) &&
    /\.setup-grid,.score-hero,.grid,.rounds\{animation:rise/.test(cssSrc));
-ok('按钮/选项/答题卡有按压反馈', /\.btn:active\{transform:scale/.test(cssSrc) &&
-   /\.opt:active\{transform:scale/.test(cssSrc) &&
-   /\.qmap b:active\{transform:scale/.test(cssSrc));
-ok('当前题换位有轻弹动画', /\.qmap b\.cur\{animation:qcur/.test(cssSrc));
+ok('按钮/选项保留按压反馈', /\.btn:active\{transform:scale/.test(cssSrc) &&
+   /\.opt:active\{transform:scale/.test(cssSrc));
+ok('答题阶段不闪：题目卡与当前题都没有动画',
+   !/\.qcard\{animation/.test(cssSrc) && !/\.qmap b\.cur\{animation/.test(cssSrc) &&
+   !/@keyframes qcur/.test(cssSrc));
 ok('尊重“减少动态效果”偏好',
    /@media \(prefers-reduced-motion: reduce\)\{[\s\S]*animation:none !important/.test(cssSrc));
 

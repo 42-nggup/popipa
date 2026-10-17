@@ -1044,7 +1044,18 @@ function pickKey(k) {
     s.answers[qid] = [k];                     /* 单选 / 判断：互斥 */
   }
   saveProgress();
-  render();
+  /* 只切选项的选中态，不重绘整页（避免答题时闪烁） */
+  const opts = (typeof document.querySelectorAll === 'function')
+    ? document.querySelectorAll('.opt[data-act="pick"]') : null;
+  if (opts && opts.length) {
+    Array.prototype.forEach.call(opts, el => {
+      const key = el.dataset.key;
+      const sel = Array.isArray(s.answers[qid]) && s.answers[qid].indexOf(key) >= 0;
+      el.classList.toggle('sel', sel);
+    });
+  } else {
+    render();
+  }
 }
 /* 提交本题。arm 为 false 时不启动 3s/10s 自动跳转（用于「提交并继续」这类马上就要切题的场景） */
 function submitCurrent(arm) {
