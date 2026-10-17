@@ -557,7 +557,9 @@ H.render();
 const bh = els['app'].innerHTML;
 ok('题目卡改成响应式网格', bh.indexOf('bank-grid') >= 0 &&
    (bh.match(/bank-card/g) || []).length >= H.BANKS.length);
-ok('每张卡都能进入题库', (bh.match(/data-act="pick-bank"/g) || []).length === H.BANKS.length);
+ok('每张卡都能进入题库',
+   (bh.match(/class="card bank-card"/g) || []).length === H.BANKS.length &&
+   (bh.match(/data-act="pick-bank"/g) || []).length >= H.BANKS.length);
 ok('卡片上有题数/章节/开始练习', bh.indexOf('开始练习') >= 0 && bh.indexOf(' 章') >= 0);
 ok('有历史轮次时卡片显示上次成绩', /上次 \d+%/.test(bh));
 
@@ -745,6 +747,52 @@ ok('Toast 的过渡包含透明度与位移',
 ok('通用颜色过渡没有覆盖 Toast 动画',
    !/body,\.navbar,\.popipa-toast\{transition/.test(cssSrc));
 ok('Toast 有 .show 状态', /\.popipa-toast\.show\{opacity:1/.test(cssSrc));
+
+
+section('44. 题库卡上的收藏集 / 错题集入口');
+const wIds44 = H.bankQuestionIds(H.bankById('web'));
+H.toggleFavId('小明', wIds44[0]);
+H.toggleFavId('小明', wIds44[1]);
+H.S.user = '小明'; H.S.view = 'banks';
+H.render();
+const bh44 = els['app'].innerHTML;
+ok('题库卡有错题集和收藏入口',
+   bh44.indexOf('data-scope="wrong"') >= 0 && bh44.indexOf('data-scope="fav"') >= 0);
+ok('入口带题库 id（按题库分类）',
+   /data-act="pick-bank" data-id="web" data-scope="fav"/.test(bh44));
+
+/* 点收藏入口：先走「开始练习」同样的路径（进组卷页），并自动勾选收藏集 */
+fire('pick-bank', { id: 'web', scope: 'fav' });
+ok('收藏入口进入组卷页', H.S.view === 'setup');
+ok('组卷页自动勾选收藏集', H.S.favOnly === true && H.S.wrongOnly === false);
+H.startSession();
+const favIds44 = H.favIds('小明', 'web');
+ok('开练的题全部来自收藏', H.S.session.order.length === favIds44.length &&
+   H.S.session.order.every(id => favIds44.indexOf(id) >= 0));
+
+/* 造一道错题，再验证错题集入口 */
+H.S.view = 'setup'; H.S.bankId = 'web';
+H.S.chapters = H.bankById('web').chapters.map(c => c.id);
+H.S.types = ['single', 'multiple', 'judge', 'fill'];
+H.S.wrongOnly = false; H.S.favOnly = false;
+H.startSession();
+const wrongQ44 = H.S.session.order[0];
+H.jump(0);
+H.pickKey(H.LETTERS.split('').slice(0, H.QMAP[wrongQ44].options.length)
+  .find(k => H.QMAP[wrongQ44].answer.indexOf(k) < 0));
+H.submitCurrent(false);
+H.finish();
+fire('pick-bank', { id: 'web', scope: 'wrong' });
+ok('错题入口进入组卷页并自动勾选错题集',
+   H.S.view === 'setup' && H.S.wrongOnly === true && H.S.favOnly === false);
+H.startSession();
+ok('开练的题全部来自错题集',
+   H.S.session.order.length > 0 &&
+   H.S.session.order.every(id => H.wrongIds('小明', 'web').indexOf(id) >= 0));
+
+/* 空收藏集：不硬勾选，退回按章节练 */
+H.pickBank('java', 'fav');
+ok('空收藏集时退回按章节练', H.S.favOnly === false && H.S.wrongOnly === false);
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

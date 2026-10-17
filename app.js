@@ -435,7 +435,8 @@ const S = {
   chapters: [],       // 组卷时选中的章节
   types: QTYPE_LIST.slice(),   // 组卷时选中的题型
   mode: 'order',      // order | random
-  wrongOnly: false,   // 只练错题本
+  wrongOnly: false,   // 只练错题集
+  favOnly: false,     // 只练收藏集
   theme: 'light',
   session: null,
   reviewTab: 'all',
@@ -563,10 +564,14 @@ function renderBanks() {
             '<div class="progress-bar" style="width:' + pct + '%"></div></div>' +
         '</div>' : '') +
         '<div class="d-flex flex-wrap align-items-center gap-1 mt-3">' +
-          (wrong ? '<span class="badge rounded-pill text-bg-danger-subtle border border-danger-subtle">' +
-            '<i class="bi bi-journal-bookmark me-1"></i>错题 ' + wrong + '</span>' : '') +
-          (fav ? '<span class="badge rounded-pill text-bg-warning-subtle border border-warning-subtle">' +
-            '<i class="bi bi-star-fill me-1"></i>收藏 ' + fav + '</span>' : '') +
+          '<button class="btn btn-sm btn-outline-danger" data-act="pick-bank" data-id="' + bank.id +
+            '" data-scope="wrong"' + (wrong ? '' : ' disabled') +
+            ' title="' + (wrong ? '只练这本题库的错题集' : '错题集是空的') + '">' +
+            '<i class="bi bi-journal-bookmark me-1"></i>错题集 ' + wrong + '</button>' +
+          '<button class="btn btn-sm btn-outline-warning" data-act="pick-bank" data-id="' + bank.id +
+            '" data-scope="fav"' + (fav ? '' : ' disabled') +
+            ' title="' + (fav ? '只练这本题库的收藏' : '收藏是空的') + '">' +
+            '<i class="bi bi-star me-1"></i>收藏 ' + fav + '</button>' +
           (legacy ? '<span class="badge rounded-pill text-bg-secondary">' +
             '<i class="bi bi-exclamation-triangle me-1"></i>' + legacy + ' 题缺答案</span>' : '') +
           '<span class="btn btn-sm btn-primary ms-auto">开始练习<i class="bi bi-arrow-right ms-1"></i></span>' +
@@ -651,12 +656,18 @@ function renderRounds() {
     '</div>' + cards + '</section>';
 }
 
-function pickBank(id) {
+function pickBank(id, scope) {
+  const bank = bankById(id);
+  if (!bank) return;
+  const want = (scope === 'wrong' || scope === 'fav') ? scope : 'chapters';
   S.bankId = id;
-  S.chapters = bankById(id).chapters.map(c => c.id);
+  S.chapters = bank.chapters.map(c => c.id);
   S.types = QTYPE_LIST.slice();
   S.mode = 'order';
-  S.wrongOnly = false;
+  S.wrongOnly = want === 'wrong' && wrongIds(S.user, id).length > 0;
+  S.favOnly = want === 'fav' && favIds(S.user, id).length > 0;
+  if (want === 'wrong' && !S.wrongOnly) toast('错题集是空的，先按章节练一练');
+  if (want === 'fav' && !S.favOnly) toast('收藏集是空的，先刷几道题吧');
   S.view = 'setup';
   render();
 }
@@ -664,11 +675,12 @@ function pickBank(id) {
 /* ---- 6.3 组卷面板 ---- */
 /* ---- 6.3 组卷面板 ---- */
 function setupPicked(bank) {
+  if (S.wrongOnly) return wrongIds(S.user, bank.id).length;
+  if (S.favOnly) return favIds(S.user, bank.id).length;
   const types = selectedTypes();
-  return S.wrongOnly ? wrongIds(S.user, bank.id).length
-    : bank.chapters.filter(ch => S.chapters.indexOf(ch.id) >= 0)
-        .reduce((n, ch) => n + ch.questions.filter(q =>
-          q.answer.length && types.indexOf(q.type) >= 0).length, 0);
+  return bank.chapters.filter(ch => S.chapters.indexOf(ch.id) >= 0)
+    .reduce((n, ch) => n + ch.questions.filter(q =>
+      q.answer.length && types.indexOf(q.type) >= 0).length, 0);
 }
 /* 组卷页的开关都是定向刷新：只改相关类名/数字，不重绘整页 */
 function refreshSetup() {
@@ -685,8 +697,9 @@ function refreshSetup() {
 
   const range = byId('rangeChips');
   if (range && range.children) {
+    const scope = S.wrongOnly ? 'wrong' : S.favOnly ? 'fav' : 'chapters';
     Array.prototype.forEach.call(range.children, b => {
-      const on = b.dataset.on === (S.wrongOnly ? '1' : '0');
+      const on = b.dataset.scope === scope;
       b.classList.toggle('on', on);
       b.setAttribute('aria-checked', on ? 'true' : 'false');
     });
@@ -697,7 +710,7 @@ function refreshSetup() {
       const on = S.chapters.indexOf(b.dataset.id) >= 0;
       b.classList.toggle('on', on);
       b.setAttribute('aria-checked', on ? 'true' : 'false');
-      b.disabled = S.wrongOnly;
+      b.disabled = S.wrongOnly || S.favOnly;
     });
   }
   const typeBox = byId('typeChips');
@@ -707,7 +720,7 @@ function refreshSetup() {
       const on = types.indexOf(b.dataset.type) >= 0;
       b.classList.toggle('on', on);
       b.setAttribute('aria-checked', on ? 'true' : 'false');
-      b.disabled = S.wrongOnly;
+      b.disabled = S.wrongOnly || S.favOnly;
     });
   }
   const seg = byId('modeSeg');
@@ -717,13 +730,16 @@ function refreshSetup() {
     });
   }
   const hint = byId('chapterHint');
-  if (hint) hint.textContent = S.wrongOnly ? '正在只练错题，章节不生效' : '只选中的章节会进入本次练习';
+  if (hint) hint.textContent = S.wrongOnly ? '正在只练错题集，章节不生效'
+    : S.favOnly ? '正在只练收藏集，章节不生效'
+    : '只选中的章节会进入本次练习';
 }
 function renderSetup() {
   const bank = bankById(S.bankId);
   if (!bank) { S.view = 'banks'; return render(); }
   const wCount = wrongIds(S.user, bank.id).length;
   const favCount = favIds(S.user, bank.id).length;
+  const collection = S.wrongOnly || S.favOnly;
   const prog = loadProgress(S.user, bank.id);
   const prev = prog ? stats(prog).answered : 0;
   const typeChips = QTYPE_LIST.map(t => {
@@ -732,14 +748,14 @@ function renderSetup() {
       sum + ch.questions.filter(q => q.type === t && q.answer.length).length, 0);
     return '<button class="chip' + (on ? ' on' : '') + '" data-act="toggle-type" data-type="' + t + '"' +
       ' role="switch" aria-checked="' + (on ? 'true' : 'false') + '"' +
-      (S.wrongOnly ? ' disabled' : '') + '>' + TYPE_LABEL[t].text +
+      (S.wrongOnly || S.favOnly ? ' disabled' : '') + '>' + TYPE_LABEL[t].text +
       '<span class="n">' + n + '</span></button>';
   }).join('');
   const chips = bank.chapters.map(ch => {
     const on = S.chapters.indexOf(ch.id) >= 0;
     return '<button class="chip' + (on ? ' on' : '') + '" data-act="toggle-chapter" data-id="' + ch.id + '"' +
       ' role="switch" aria-checked="' + (on ? 'true' : 'false') + '"' +
-      (S.wrongOnly ? ' disabled' : '') + '>' +
+      (S.wrongOnly || S.favOnly ? ' disabled' : '') + '>' +
       esc(ch.name) + '<span class="n">' + ch.questions.length + '</span></button>';
   }).join('');
   app.innerHTML =
@@ -755,13 +771,16 @@ function renderSetup() {
       '<div class="card setup-main shadow-sm"><div class="card-body p-4">' +
         '<section>' +
           '<h2 class="h6 fw-bold"><i class="bi bi-funnel me-1"></i>练习范围</h2>' +
-          '<p class="hint">错题本会一直攒着答错的题，答对后自动移出；只练错题时不看章节。</p>' +
+          '<p class="hint">错题集会攒着答错的题、答对后自动移出；只练错题/收藏时不看章节与题型。</p>' +
           '<div class="chips" id="rangeChips">' +
-            '<button class="chip' + (!S.wrongOnly ? ' on' : '') + '" data-act="wrong-only" data-on="0"' +
-              ' role="switch" aria-checked="' + (!S.wrongOnly ? 'true' : 'false') + '">按章节练</button>' +
-            '<button class="chip' + (S.wrongOnly ? ' on' : '') + '" data-act="wrong-only" data-on="1"' +
+            '<button class="chip' + (!collection ? ' on' : '') + '" data-act="wrong-only" data-scope="chapters"' +
+              ' role="switch" aria-checked="' + (!collection ? 'true' : 'false') + '">按章节练</button>' +
+            '<button class="chip' + (S.wrongOnly ? ' on' : '') + '" data-act="wrong-only" data-scope="wrong"' +
               ' role="switch" aria-checked="' + (S.wrongOnly ? 'true' : 'false') + '"' +
-              (wCount ? '' : ' disabled') + '>只练错题（' + wCount + ' 道）</button>' +
+              (wCount ? '' : ' disabled') + '>只练错题集（' + wCount + ' 道）</button>' +
+            '<button class="chip' + (S.favOnly ? ' on' : '') + '" data-act="wrong-only" data-scope="fav"' +
+              ' role="switch" aria-checked="' + (S.favOnly ? 'true' : 'false') + '"' +
+              (favCount ? '' : ' disabled') + '>只练收藏集（' + favCount + ' 道）</button>' +
           '</div>' +
         '</section>' +
         '<hr class="my-4">' +
@@ -771,7 +790,9 @@ function renderSetup() {
               '<div class="d-flex align-items-baseline gap-2 flex-wrap">' +
                 '<h2 class="h6 fw-bold mb-0"><i class="bi bi-list-check me-1"></i>章节</h2>' +
                 '<span class="small text-body-secondary" id="chapterHint">' +
-                  (S.wrongOnly ? '正在只练错题，章节不生效' : '只选中的章节会进入本次练习') + '</span>' +
+                  (S.wrongOnly ? '正在只练错题集，章节不生效'
+                    : S.favOnly ? '正在只练收藏集，章节不生效'
+                    : '只选中的章节会进入本次练习') + '</span>' +
               '</div>' +
               '<div class="chips mt-2" id="chapterChips">' + chips + '</div>' +
             '</section>' +
@@ -817,6 +838,7 @@ function renderSetup() {
           '<i class="bi bi-arrow-left me-1"></i>返回题库</button>' +
       '</div></aside>' +
     '</div>';
+  refreshSetup();
 }
 
 /* ---- 6.4 组卷 / 开始练习 ---- */
@@ -826,7 +848,10 @@ function startSession() {
   let ids = [];
   if (S.wrongOnly) {
     ids = wrongIds(S.user, bank.id);
-    if (!ids.length) { toast('错题本是空的，先按章节练一练'); return; }
+    if (!ids.length) { toast('错题集是空的，先按章节练一练'); return; }
+  } else if (S.favOnly) {
+    ids = favIds(S.user, bank.id);
+    if (!ids.length) { toast('收藏集是空的，先刷几道题吧'); return; }
   } else {
     const types = selectedTypes();
     bank.chapters.forEach(ch => {
@@ -842,7 +867,8 @@ function startSession() {
   S.qmapScroll = 0;                      /* 新一局答题卡默认收起 */
   S.session = {
     id: 's' + Date.now(),
-    bankId: bank.id, bankName: bank.name + (S.wrongOnly ? ' · 错题本' : ''),
+    bankId: bank.id,
+    bankName: bank.name + (S.wrongOnly ? ' · 错题集' : S.favOnly ? ' · 收藏集' : ''),
     chapters: S.chapters.slice(), types: selectedTypes().slice(), mode: S.mode,
     order: ids, idx: 0,
     answers: {}, submitted: {}, fav: {},
@@ -1428,7 +1454,7 @@ document.addEventListener('click', function (e) {
       S.user = null; S.session = null; store.del(KEY.user);
       applyTheme(theme());     /* 回到本机默认主题 */
       goPage('index.html', 'login'); break;
-    case 'pick-bank': pickBank(el.dataset.id); break;
+    case 'pick-bank': pickBank(el.dataset.id, el.dataset.scope); break;
     case 'toggle-chapter': {
       const id = el.dataset.id, i = S.chapters.indexOf(id);
       if (i >= 0) S.chapters.splice(i, 1); else S.chapters.push(id);
@@ -1443,7 +1469,12 @@ document.addEventListener('click', function (e) {
       refreshSetup(); break;
     }
     case 'mode': S.mode = el.dataset.mode; refreshSetup(); break;
-    case 'wrong-only': S.wrongOnly = el.dataset.on === '1'; refreshSetup(); break;
+    case 'wrong-only': {
+      const scope = el.dataset.scope || (el.dataset.on === '1' ? 'wrong' : 'chapters');
+      S.wrongOnly = scope === 'wrong';
+      S.favOnly = scope === 'fav';
+      refreshSetup(); break;
+    }
     case 'theme': toggleTheme(); break;
     case 'back-banks':
       if (S.view === 'quiz' && !confirm('返回会保存当前进度，确定离开吗？')) return;
