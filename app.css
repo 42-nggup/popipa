@@ -354,6 +354,28 @@ h1 .sub{display:block;font-size:14px;font-weight:400;color:var(--bs-secondary-co
   --bs-btn-disabled-bg:#b99a78;--bs-btn-disabled-border-color:#b99a78;
   --bs-btn-focus-shadow-rgb:138,90,43;
 }
+/* 暗色也不再是蓝灰，改成暖褐 */
+:root[data-bs-theme="dark"]{
+  --bs-body-bg:#211a14;
+  --bs-body-color:#eadfce;
+  --bs-secondary-bg:#2c231b;
+  --bs-tertiary-bg:#33291f;
+  --bs-border-color:#4a3b2c;
+  --bs-emphasis-color:#f3e8d8;
+  --bs-primary:#c08a55;
+  --bs-primary-rgb:192,138,85;
+  --bs-link-color:#d3a06a;
+  --bs-link-hover-color:#e5b784;
+  --bs-primary-bg-subtle:#3a2b1d;
+  --bs-primary-border-subtle:#6b4c2d;
+  --bs-primary-text-emphasis:#f0c9a0;
+}
+[data-bs-theme="dark"] .btn-primary{
+  --bs-btn-bg:#a97142;--bs-btn-border-color:#a97142;
+  --bs-btn-hover-bg:#bd8352;--bs-btn-hover-border-color:#bd8352;
+  --bs-btn-active-bg:#8a5a2b;--bs-btn-active-border-color:#8a5a2b;
+  --bs-btn-focus-shadow-rgb:192,138,85;
+}
 .btn-warm{--bs-btn-color:#fff;--bs-btn-bg:#a97142;--bs-btn-border-color:#a97142;
   --bs-btn-hover-color:#fff;--bs-btn-hover-bg:#8a5a2b;--bs-btn-hover-border-color:#8a5a2b;
   --bs-btn-active-color:#fff;--bs-btn-active-bg:#7a4d24;--bs-btn-active-border-color:#7a4d24}
@@ -455,3 +477,15 @@ button.stat-card{cursor:pointer}
 .chart-legend .dot.line{background:var(--bs-primary)}
 .empty-chart{padding:30px 0;text-align:center}
 .sort-btn.active{border-color:var(--bs-primary);color:var(--bs-primary-text-emphasis);font-weight:600}
+
+/* 成就卡片 */
+.ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.ach{position:relative;border:1px solid var(--bs-border-color);border-radius:var(--bs-border-radius);
+  padding:12px;background:var(--bs-secondary-bg);opacity:.6}
+.ach.on{opacity:1;background:var(--bs-body-bg);border-color:var(--bs-primary-border-subtle)}
+.ach-ico{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
+  background:var(--bs-tertiary-bg);color:var(--bs-secondary-color);margin-bottom:8px}
+.ach.on .ach-ico{background:var(--bs-primary-bg-subtle);color:var(--bs-primary-text-emphasis)}
+.ach-name{font-weight:700;font-size:13px}
+.ach-desc{font-size:11px;color:var(--bs-secondary-color);line-height:1.35}
+.ach-date{position:absolute;top:8px;right:9px;font-size:10px;color:var(--bs-secondary-color)}

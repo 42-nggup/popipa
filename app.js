@@ -167,7 +167,7 @@ const KEY = {
 };
 /* 每用户表里放的业务数据：成绩、逐题记录、进度、用时、收藏 */
 const USER_FIELDS = ['theme', 'books', 'wrong', 'fav', 'history', 'rounds',
-  'consent', 'consentAt', 'goal', 'lifetime', 'days'];
+  'consent', 'consentAt', 'goal', 'lifetime', 'days', 'ach'];
 const ROUNDS_MAX = 20;
 const store = {
   get(k, d) {
@@ -205,7 +205,8 @@ function blankUser(name) {
     consentAt: 0,
     goal: 20,           /* 每日写题目标 */
     lifetime: { answered: 0, correct: 0, seconds: 0 },
-    days: {}            /* 'YYYY-M-D' -> { answered, correct } */
+    days: {},           /* 'YYYY-M-D' -> { answered, correct } */
+    ach: {}             /* 已解锁成就：id -> 时间戳 */
   };
 }
 function users() {
@@ -235,7 +236,8 @@ function userOf(name) {
       ? { answered: +t.lifetime.answered || 0, correct: +t.lifetime.correct || 0,
           seconds: +t.lifetime.seconds || 0 }
       : { answered: 0, correct: 0, seconds: 0 },
-    days: t.days && typeof t.days === 'object' ? t.days : {}
+    days: t.days && typeof t.days === 'object' ? t.days : {},
+    ach: t.ach && typeof t.ach === 'object' ? t.ach : {}
   });
 }
 function saveUser(name, u) {
@@ -1567,7 +1569,11 @@ document.addEventListener('click', function (e) {
       }
       break;
     }
-    case 'home': S.session = null; goPage('home.html', 'home'); break;
+    case 'home':
+      if (!S.user) { S.view = 'login'; render(); break; }
+      if (S.view === 'quiz' && !confirm('返回会保存当前进度，确定离开吗？')) return;
+      S.session = null;
+      goPage('home.html', 'home'); break;
     case 'go-banks': goPage('banks.html', 'banks'); break;
     case 'goal': setGoal((userOf(S.user).goal || 20) + Number(el.dataset.delta || 0)); break;
     case 'warmup': startWarmup(); break;
@@ -1840,6 +1846,84 @@ function startWarmup() {
   S.qmapOpen = false; S.qmapScroll = 0;
   saveProgress();
   goPage('quiz.html?bank=' + WARMUP_ID, 'quiz');
+}
+const ACHIEVEMENTS = [
+  { id: 'first-answer', name: '初次落笔', desc: '完成第一道题', icon: 'bi-pencil',
+    check: s => s.answered >= 1 },
+  { id: 'first-submit', name: '第一份答卷', desc: '第一次交卷', icon: 'bi-send-check',
+    check: s => s.rounds >= 1 },
+  { id: 'top10', name: '十强', desc: '排行榜进入前 10', icon: 'bi-award',
+    check: s => s.rank >= 1 && s.rank <= 10 },
+  { id: 'top5', name: '五杰', desc: '排行榜进入前 5', icon: 'bi-trophy',
+    check: s => s.rank >= 1 && s.rank <= 5 },
+  { id: 'top1', name: '榜首', desc: '排行榜第 1 名', icon: 'bi-crown',
+    check: s => s.rank === 1 },
+  { id: 'warmup5', name: '热身达人', desc: '完成 5 次每日热身', icon: 'bi-cup-hot',
+    check: s => s.warmups >= 5 },
+  { id: 'goal5', name: '日日精进', desc: '累计 5 天完成每日目标', icon: 'bi-calendar-check',
+    check: s => s.goalDays >= 5 },
+  { id: 'rounds10', name: '十轮不辍', desc: '累计交卷 10 次', icon: 'bi-stack',
+    check: s => s.rounds >= 10 },
+  { id: 'q100', name: '百题斩', desc: '累计答满 100 题', icon: 'bi-lightning-charge',
+    check: s => s.answered >= 100 },
+  { id: 'q500', name: '五百题', desc: '累计答满 500 题', icon: 'bi-fire',
+    check: s => s.answered >= 500 },
+  { id: 'perfect', name: '全对', desc: '某一轮正确率 100%', icon: 'bi-bullseye',
+    check: s => s.perfect },
+  { id: 'fav10', name: '收藏家', desc: '收藏 10 道题', icon: 'bi-star-fill',
+    check: s => s.fav >= 10 },
+  { id: 'streak7', name: '七日不断', desc: '连续 7 天有答题', icon: 'bi-calendar-heart',
+    check: s => s.streak >= 7 }
+];
+function longestStreak(days) {
+  const keys = Object.keys(days || {}).filter(k => (days[k].answered || 0) > 0).sort();
+  let best = 0, cur = 0, prev = null;
+  keys.forEach(k => {
+    if (prev) {
+      const d = new Date(prev.replace(/-/g, '/'));
+      d.setDate(d.getDate() + 1);
+      cur = dayKey(d) === k ? cur + 1 : 1;
+    } else cur = 1;
+    if (cur > best) best = cur;
+    prev = k;
+  });
+  return best;
+}
+function userRank(user) {
+  if (!totalsOf(user).answered) return 0;
+  const rows = leaderboard().sort((a, b) =>
+    b.answered - a.answered || b.rate - a.rate);
+  const i = rows.findIndex(r => r.name === user);
+  return i < 0 ? 0 : i + 1;
+}
+function achievementStats(user) {
+  const u = userOf(user), t = totalsOf(user);
+  const rounds = u.rounds || [];
+  const goal = u.goal || 20;
+  return {
+    answered: t.answered, rounds: rounds.length, fav: t.fav,
+    warmups: rounds.filter(r => r.bankId === WARMUP_ID).length,
+    goalDays: Object.keys(u.days || {})
+      .filter(k => (u.days[k].answered || 0) >= goal).length,
+    perfect: rounds.some(r => (r.total || 0) > 0 && r.rate === 100),
+    streak: longestStreak(u.days),
+    rank: userRank(user)
+  };
+}
+/* 检查并落库：新解锁的成就记时间戳，之后一直保留 */
+function syncAchievements(user) {
+  const u = userOf(user);
+  const st = achievementStats(user);
+  const got = u.ach && typeof u.ach === 'object' ? u.ach : {};
+  let changed = false;
+  ACHIEVEMENTS.forEach(a => {
+    if (!got[a.id] && a.check(st)) { got[a.id] = Date.now(); changed = true; }
+  });
+  if (changed) { u.ach = got; saveUser(user, u); }
+  return ACHIEVEMENTS.map(a => ({
+    id: a.id, name: a.name, desc: a.desc, icon: a.icon,
+    unlockedAt: got[a.id] || 0
+  }));
 }
 function leaderboard() {
   const all = users(), out = [];
@@ -2127,6 +2211,7 @@ function renderStats() {
   const u = userOf(S.user);
   const consented = u.consent === true;
   const rounds = (u.rounds || []).slice(0, 12).reverse();
+  const ach = syncAchievements(S.user);
   const tip = consented ? '' :
     '<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2">' +
       '<span class="flex-grow-1">你还没有同意数据收集，当前不会出现在排行榜里。</span>' +
@@ -2161,6 +2246,22 @@ function renderStats() {
       '<div class="table-responsive"><table class="table table-sm align-middle mb-0">' +
         '<thead><tr><th>#</th><th>用户</th><th>总答题数</th><th>正确率</th></tr></thead>' +
         '<tbody id="boardBody"></tbody></table></div>' +
+    '</div></section>' +
+    '<section class="card home-card mt-4"><div class="card-body">' +
+      '<div class="d-flex justify-content-between align-items-end mb-3">' +
+        '<div><div class="eyebrow">ACHIEVEMENTS</div><h2 class="h5 mb-0">成就</h2></div>' +
+        '<span class="small text-body-secondary">' +
+          ach.filter(a => a.unlockedAt).length + ' / ' + ach.length + '</span>' +
+      '</div>' +
+      '<div class="ach-grid">' + ach.map(a =>
+        '<div class="ach' + (a.unlockedAt ? ' on' : '') + '">' +
+          '<div class="ach-ico"><i class="bi ' +
+            (a.unlockedAt ? a.icon : 'bi-lock') + '"></i></div>' +
+          '<div class="ach-name">' + a.name + '</div>' +
+          '<div class="ach-desc">' + a.desc + '</div>' +
+          (a.unlockedAt ? '<div class="ach-date">' + dateStamp(a.unlockedAt) + '</div>' : '') +
+        '</div>').join('') +
+      '</div>' +
     '</div></section>';
   pageShell('stats', main);
   refreshStatsBoard();

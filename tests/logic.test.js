@@ -70,6 +70,7 @@ globalThis.__hook = { S, stats, isCorrect, hasAnswer, startSession, pickKey, sub
   QINDEX, chipCounts, refreshSetup, scopeBaseIds,
   totalsOf, todayAnswered, last7, latestProgress, setGoal, setConsent,
   leaderboard, startWarmup, boardRows,
+  ACHIEVEMENTS, syncAchievements, achievementStats, userRank, longestStreak,
   getAuto: () => autoJump,
   exportPng, shareCardHtml, shareRecord, dateStamp,
   getToast: () => toastEl.textContent,
@@ -544,11 +545,17 @@ section('31. Toast 跟随主题 / 品牌可点回选题页');
 ok('Toast 背景与文字跟随主题（不再反色）',
    /\.popipa-toast\{[^}]*background:var\(--bs-body-bg\)[^}]*color:var\(--bs-body-color\)/.test(cssSrc));
 const htmlSrc = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-ok('品牌名绑定了返回选题页的动作',
-   /navbar-brand[^>]*data-act="back-banks"/.test(htmlSrc));
+ok('品牌名绑定了回新主页的动作',
+   /navbar-brand[^>]*data-act="home"/.test(htmlSrc));
+H.S.view = 'banks';
+fire('home');
+ok('点品牌回到新主页', H.S.view === 'home');
+H.startSession();
+fire('home');
+ok('答题中点品牌也回新主页', H.S.view === 'home');
 H.S.view = 'banks';
 fire('back-banks');
-ok('已在选题页时点品牌无副作用', H.S.view === 'banks');
+ok('组卷页的「题库」仍回题库列表', H.S.view === 'banks');
 H.startSession();
 fire('back-banks');
 ok('答题中点品牌会回到选题页', H.S.view === 'banks');
@@ -1001,6 +1008,90 @@ for (const f of ['index.html', 'home.html', 'stats.html']) {
   ok(f + ' 不再有 deco 类',
      !/\bdeco\b/.test(fs.readFileSync(path.join(root, f), 'utf8')));
 }
+
+
+section('54. 成就系统');
+const u54 = '成就用户';
+H.S.user = u54;
+H.setConsent(true);
+let ach54 = H.syncAchievements(u54);
+ok('新用户成就全部未解锁', ach54.every(a => !a.unlockedAt));
+H.S.view = 'banks'; H.S.bankId = 'web';
+H.S.chapters = H.bankById('web').chapters.map(c => c.id);
+H.S.types = ['single', 'multiple', 'judge', 'fill'];
+H.S.wrongOnly = false; H.S.favOnly = false;
+H.startSession(); H.jump(0);
+const q54 = H.S.session.order[0];
+H.pickKey(H.QMAP[q54].answer[0]);
+H.submitCurrent(false);
+H.finish();
+ach54 = H.syncAchievements(u54);
+let got54 = ach54.filter(a => a.unlockedAt).map(a => a.id);
+ok('第一次答题/交卷解锁', got54.indexOf('first-answer') >= 0 &&
+   got54.indexOf('first-submit') >= 0);
+
+/* 造 5 天达标 + 5 次热身 + 100 题 + 全对 + 10 收藏 */
+const ut54 = H.userOf(u54);
+ut54.goal = 5;
+ut54.days = {};
+for (let i = 1; i <= 5; i++) ut54.days['2026-1-' + i] = { answered: 5, correct: 4 };
+ut54.rounds = ut54.rounds.concat([0, 1, 2, 3, 4].map(i => ({
+  id: 'w' + i, bankId: 'warmup', bankName: '每日热身', order: [], answers: {},
+  submitted: {}, seconds: 30, total: 5, correct: 4, unanswered: 1, rate: 80
+})));
+ut54.rounds.push({ id: 'perfect', bankId: 'web', order: [], answers: {}, submitted: {},
+  seconds: 20, total: 5, correct: 5, unanswered: 0, rate: 100 });
+ut54.lifetime = { answered: 100, correct: 88, seconds: 500 };
+ut54.fav = {};
+Object.keys(H.QMAP).slice(0, 10).forEach(id => { ut54.fav[id] = 1; });
+H.store.set(H.KEY.utable + u54, ut54);
+ach54 = H.syncAchievements(u54);
+got54 = ach54.filter(a => a.unlockedAt).map(a => a.id);
+ok('5 天达成每日目标解锁', got54.indexOf('goal5') >= 0);
+ok('5 次每日热身解锁', got54.indexOf('warmup5') >= 0);
+ok('百题 / 全对 / 10 收藏解锁',
+   got54.indexOf('q100') >= 0 && got54.indexOf('perfect') >= 0 &&
+   got54.indexOf('fav10') >= 0);
+
+/* 排行榜名次：再放两个更高分的同意用户 */
+const all54 = H.users();
+all54['成就对手A'] = { name: '成就对手A', lastLogin: 1 };
+all54['成就对手B'] = { name: '成就对手B', lastLogin: 1 };
+H.store.set(H.KEY.users, all54);
+H.store.set(H.KEY.utable + '成就对手A',
+  { consent: true, lifetime: { answered: 300, correct: 280, seconds: 100 } });
+H.store.set(H.KEY.utable + '成就对手B',
+  { consent: true, lifetime: { answered: 200, correct: 180, seconds: 100 } });
+ok('排行榜名次计算正确', H.userRank(u54) === 3);
+ach54 = H.syncAchievements(u54);
+got54 = ach54.filter(a => a.unlockedAt).map(a => a.id);
+ok('进入前 10 / 前 5 解锁', got54.indexOf('top10') >= 0 && got54.indexOf('top5') >= 0);
+const ru54 = '名次用户';
+const all54b = H.users();
+all54b[ru54] = { name: ru54, lastLogin: 1 };
+H.store.set(H.KEY.users, all54b);
+H.store.set(H.KEY.utable + ru54,
+  { consent: true, lifetime: { answered: 120, correct: 100, seconds: 10 },
+    rounds: [], days: {}, fav: {}, wrong: {}, books: {} });
+const rankAch = H.syncAchievements(ru54)
+  .filter(a => a.unlockedAt).map(a => a.id);
+ok('新用户进前 10 / 前 5 解锁、第 1 未解锁',
+   rankAch.indexOf('top10') >= 0 && rankAch.indexOf('top5') >= 0 &&
+   rankAch.indexOf('top1') < 0);
+ok('成就已写入用户表', Object.keys(H.userOf(u54).ach || {}).length >= 5);
+
+H.S.view = 'stats'; H.render();
+const st54 = els['app'].innerHTML;
+ok('成就显示在统计页最下方',
+   st54.indexOf('成就') >= 0 && st54.indexOf('ach-grid') >= 0 &&
+   st54.indexOf('ach-grid') > st54.indexOf('排行榜'));
+
+section('55. 暗色主题也暖色化');
+ok('暗色变量改成棕褐',
+   /:root\[data-bs-theme="dark"\]\{[^}]*--bs-body-bg:#211a14/.test(cssSrc) &&
+   /:root\[data-bs-theme="dark"\]\{[^}]*--bs-primary:#c08a55/.test(cssSrc));
+ok('暗色主按钮也是暖色',
+   /\[data-bs-theme="dark"\] \.btn-primary\{[^}]*--bs-btn-bg:#a97142/.test(cssSrc));
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

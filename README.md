@@ -72,7 +72,8 @@ vendor/             Bootstrap、Bootstrap Icons、html2canvas
   - `goal` 每日写题目标（5–200）
   - `consent` 是否同意答题数据用于统计（`null` = 还没问）
   - `lifetime{answered,correct,seconds}` 终身累计（不随轮次截断丢失）
-  - `days{'YYYY-M-D':{answered,correct}}` 按天累计，用于主页近日统计（跨场次保留）
+  - `days{'YYYY-M-D':{answered,correct}}` 按天累计，用于主页近日统计
+  - `ach{}` 已解锁成就：id → 时间戳（跨场次保留）
   - `history[]` 成绩摘要
   - `rounds[]` 逐轮记录：逐题作答（`order/answers/submitted`）、
     起止时间与用时（`startedAt/finishedAt/seconds`）、汇总
@@ -92,6 +93,10 @@ vendor/             Bootstrap、Bootstrap Icons、html2canvas
 - **每日热身**：侧边栏底部，从全部题库随机抽 5 道题，跨题库成局。
 - **数据收集**：首次进新主页会弹窗询问；只有 `consent === true` 的用户
   才进入学习报告的排行榜，拒绝后不再打扰。
+- **成就**：学习报告最下方 13 个成就（首次答题/交卷、排行榜前 10/5/1、
+  5 次每日热身、5 天达成目标、10 轮、100/500 题、单轮全对、10 收藏、
+  连续 7 天），解锁时间存 `ach`，之后一直保留。
+- **主题**：浅色与暗色都走暖褐色调；点导航栏的 popipa 回新主页。
 - **再练一遍没做对的**：交卷后出现在结果页，把这一轮「没做对」的题抽出来开新的一轮。
   新一轮是独立记录（新的 session id），原先那一轮的成绩、逐题记录、用时、进度
   都原样保留在 `rounds` 里，数字不会被覆盖。
