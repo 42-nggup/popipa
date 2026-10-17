@@ -1087,6 +1087,9 @@ const st54 = els['app'].innerHTML;
 ok('成就显示在统计页最下方',
    st54.indexOf('成就') >= 0 && st54.indexOf('ach-grid') >= 0 &&
    st54.indexOf('ach-grid') > st54.indexOf('排行榜'));
+ok('学习报告最下方有我的成绩历史',
+   st54.indexOf('我的成绩历史') >= 0 &&
+   st54.indexOf('我的成绩历史') > st54.indexOf('ach-grid'));
 
 section('55. 暗色主题也暖色化');
 ok('暗色变量改成棕褐',

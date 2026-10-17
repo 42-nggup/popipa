@@ -2213,6 +2213,7 @@ function renderStats() {
   const consented = u.consent === true;
   const rounds = (u.rounds || []).slice(0, 12).reverse();
   const ach = syncAchievements(S.user);
+  const historyHtml = renderRounds();
   const tip = consented ? '' :
     '<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2">' +
       '<span class="flex-grow-1">你还没有同意数据收集，当前不会出现在排行榜里。</span>' +
@@ -2263,7 +2264,8 @@ function renderStats() {
           (a.unlockedAt ? '<div class="ach-date">' + dateStamp(a.unlockedAt) + '</div>' : '') +
         '</div>').join('') +
       '</div>' +
-    '</div></section>';
+    '</div></section>' +
+    (historyHtml ? '<div class="mt-4">' + historyHtml + '</div>' : '');
   pageShell('stats', main);
   refreshStatsBoard();
 }
