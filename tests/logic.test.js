@@ -737,5 +737,14 @@ ok('答题阶段不闪：题目卡与当前题都没有动画',
 ok('尊重“减少动态效果”偏好',
    /@media \(prefers-reduced-motion: reduce\)\{[\s\S]*animation:none !important/.test(cssSrc));
 
+
+section('43. Toast 出现/消失动画');
+const toastRule = (cssSrc.match(/\.popipa-toast\{[^}]*\}/) || [''])[0];
+ok('Toast 的过渡包含透明度与位移',
+   /transition:[^;}]*opacity/.test(toastRule) && /transform/.test(toastRule));
+ok('通用颜色过渡没有覆盖 Toast 动画',
+   !/body,\.navbar,\.popipa-toast\{transition/.test(cssSrc));
+ok('Toast 有 .show 状态', /\.popipa-toast\.show\{opacity:1/.test(cssSrc));
+
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

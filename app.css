@@ -192,7 +192,9 @@ pre.code code{background:none;border:0;padding:0;color:inherit;white-space:pre}
               background:var(--bs-body-bg);color:var(--bs-body-color);font-size:13.5px;
               border:1px solid var(--bs-border-color);
               padding:11px 20px;border-radius:var(--bs-border-radius);opacity:0;
-              pointer-events:none;transition:.25s;box-shadow:var(--bs-box-shadow-lg)}
+              pointer-events:none;box-shadow:var(--bs-box-shadow-lg);
+              transition:opacity .25s ease,transform .25s ease,
+                         background-color .22s ease,color .22s ease,border-color .22s ease}
 .popipa-toast.show{opacity:1;transform:translate(-50%,0)}
 
 /* ---------- 11. 导出分享图的预览 ---------- */
@@ -310,7 +312,7 @@ h1 .sub{display:block;font-size:14px;font-weight:400;color:var(--bs-secondary-co
   .opt:active{transform:scale(.995)}
   .progress-bar{transition:width .35s ease}
   /* 颜色过渡放在组件自己的 transform 过渡之前，避免把 hover 抬升的过渡覆盖掉 */
-  body,.navbar,.popipa-toast{transition:background-color .22s ease,color .22s ease,border-color .22s ease}
+  body,.navbar{transition:background-color .22s ease,color .22s ease,border-color .22s ease}
   .card{transition:background-color .22s ease,color .22s ease,border-color .22s ease}
   .bank-card{transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,
              background-color .22s ease,color .22s ease}
