@@ -794,5 +794,17 @@ ok('开练的题全部来自错题集',
 H.pickBank('java', 'fav');
 ok('空收藏集时退回按章节练', H.S.favOnly === false && H.S.wrongOnly === false);
 
+
+section('45. 题库描述与实际题数一致');
+const TYPE_NAME45 = { single: '单选题', multiple: '多选题', judge: '判断题', fill: '填空题' };
+for (const bank of H.BANKS) {
+  const cnt = { single: 0, multiple: 0, judge: 0, fill: 0 };
+  bank.chapters.forEach(ch => ch.questions.forEach(q => { cnt[q.type]++; }));
+  const parts = ['single', 'multiple', 'judge', 'fill']
+    .filter(t => cnt[t]).map(t => TYPE_NAME45[t] + ' ' + cnt[t]);
+  const expected = bank.chapters.length + ' 个章节 · ' + parts.join(' + ');
+  ok(bank.id + ' 的 desc 与实际题数一致', bank.desc === expected);
+}
+
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

@@ -120,8 +120,10 @@ function parseAnswer(raw) {
   return raw.split(/[、,，;；\s]+/).map(s => s.trim().toUpperCase()).filter(Boolean);
 }
 function makeDesc(summary, chapterCount, typeCount) {
-  if (summary) return summary.replace(/^共\s*\d+\s*题\s*[|｜]\s*/, '').replace(/\s*[|｜]\s*/g, ' · ');
-  return chapterCount + ' 个章节 · ' + Object.entries(typeCount).map(([k, v]) => k + ' ' + v).join(' + ');
+  /* 用“实际保留的题”重新统计，不用源文件摘要：
+     摘要里的数字可能包含后面被剔除的脏题（Web 题库就多了 1 道单选）。 */
+  const counts = Object.entries(typeCount).map(([k, v]) => k + ' ' + v).join(' + ');
+  return chapterCount + ' 个章节' + (counts ? ' · ' + counts : '');
 }
 
 /* ---------------- 主流程 ---------------- */
