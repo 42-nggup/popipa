@@ -64,7 +64,7 @@ globalThis.__hook = { S, stats, isCorrect, hasAnswer, startSession, pickKey, sub
   store, KEY, userOf, users, userTable, migrateUsers, roundsOf, pushRound,
   favIds, isFav, toggleFavId, toggleFav,
   wrongIds, sanitizeSession, historyOf, loadProgress, lastName,
-  applyTheme, theme, toggleTheme, navTargetScroll,
+  applyTheme, theme, toggleTheme, navTargetScroll, scrollNavToCurrent,
   getAuto: () => autoJump,
   exportPng, shareCardHtml, shareRecord, dateStamp,
   getToast: () => toastEl.textContent,
@@ -498,6 +498,54 @@ section('28. 展开键与答题卡等高');
 ok('容器用 stretch 让按钮和 qmap 同高',
    /\.qmap-wrap\{[^}]*align-items:stretch/.test(cssSrc));
 ok('按钮不再写死高度', /\.qmap-expand\{[^}]*height:auto/.test(cssSrc));
+ok('竖向 padding 在容器上，按钮与 grid 内容框等高',
+   /\.qmap-wrap\{[^}]*padding:\.85rem 0 \.4rem/.test(cssSrc) &&
+   /\.qmap\{[^}]*padding:0 2px/.test(cssSrc));
+
+
+section('29. 最后一题只留一个交卷按钮');
+H.S.user = '小明'; H.S.view = 'setup'; H.S.bankId = 'web';
+H.S.chapters = H.bankById('web').chapters.map(c => c.id);
+H.S.wrongOnly = false;
+H.startSession();
+const lastIdx = H.S.session.order.length - 1;
+H.jump(lastIdx);
+H.render();
+let html29 = els['app'].innerHTML;
+ok('最后一题只有一个交卷按钮',
+   (html29.match(/data-act="finish"/g) || []).length === 1);
+ok('不再出现「交卷看结果」', html29.indexOf('交卷看结果') === -1);
+H.jump(0);
+H.render();
+html29 = els['app'].innerHTML;
+ok('非最后一题仍有「下一题」和「交卷」',
+   html29.indexOf('data-act="next"') >= 0 &&
+   (html29.match(/data-act="finish"/g) || []).length === 1);
+
+section('30. 展开态也自动定位（竖向 35%）');
+H.S.qmapOpen = true;
+const qm30 = els['qmap'];
+qm30.getBoundingClientRect = () => ({ left: 0, top: 0 });
+qm30.querySelector = () => ({ getBoundingClientRect: () => ({ left: 0, top: 600 }) });
+qm30.clientHeight = 300;
+qm30.scrollHeight = 1200;
+qm30.scrollTop = 0;
+H.scrollNavToCurrent();
+ok('展开时把当前题竖向定位到 35%（600 - 300×0.35 = 495）', qm30.scrollTop === 495);
+H.S.qmapOpen = false;
+
+section('31. Toast 跟随主题 / 品牌可点回选题页');
+ok('Toast 背景与文字跟随主题',
+   /\.popipa-toast\{[^}]*background:var\(--bs-body-color\)[^}]*color:var\(--bs-body-bg\)/.test(cssSrc));
+const htmlSrc = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+ok('品牌名绑定了返回选题页的动作',
+   /navbar-brand[^>]*data-act="back-banks"/.test(htmlSrc));
+H.S.view = 'banks';
+fire('back-banks');
+ok('已在选题页时点品牌无副作用', H.S.view === 'banks');
+H.startSession();
+fire('back-banks');
+ok('答题中点品牌会回到选题页', H.S.view === 'banks');
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

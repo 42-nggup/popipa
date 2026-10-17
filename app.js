@@ -707,9 +707,10 @@ function renderQuiz() {
           : '<button class="btn btn-primary flex-grow-1" data-act="submit">提交答案</button>') +
         '<button class="btn btn-outline-secondary" data-act="prev" ' + (isFirst ? 'disabled' : '') + '>上一题</button>' +
         (isLast
-          ? '<button class="btn btn-primary" data-act="finish">交卷看结果</button>'
-          : '<button class="btn btn-outline-secondary" data-act="next">下一题</button>') +
-        '<button class="btn btn-outline-secondary" data-act="finish">交卷</button>' +
+          /* 最后一题没有下一题：只留一个「交卷」，放在下一题的位置；不再重复放两个交卷按钮 */
+          ? '<button class="btn btn-primary" data-act="finish">交卷</button>'
+          : '<button class="btn btn-outline-secondary" data-act="next">下一题</button>' +
+            '<button class="btn btn-outline-secondary" data-act="finish">交卷</button>') +
       '</div>' +
     '</div>' +
     '<div class="qmap-wrap' + (S.qmapOpen ? ' open' : '') + '">' +
@@ -755,9 +756,16 @@ function scrollNavToCurrent() {
   if (!box || !box.querySelector || !box.getBoundingClientRect) return;
   const cur = box.querySelector('.cur');
   if (!cur || !cur.getBoundingClientRect) return;
-  const boxLeft = box.getBoundingClientRect().left;
-  const curLeft = cur.getBoundingClientRect().left - boxLeft + (box.scrollLeft || 0);
-  box.scrollLeft = navTargetScroll(curLeft, box.clientWidth, box.scrollWidth);
+  const boxRect = box.getBoundingClientRect();
+  const curRect = cur.getBoundingClientRect();
+  if (S.qmapOpen) {
+    /* 展开态是多行网格：竖直方向用同一套 35% 规则，把当前题定位到可视区偏上 */
+    const curTop = curRect.top - boxRect.top + (box.scrollTop || 0);
+    box.scrollTop = navTargetScroll(curTop, box.clientHeight, box.scrollHeight);
+  } else {
+    const curLeft = curRect.left - boxRect.left + (box.scrollLeft || 0);
+    box.scrollLeft = navTargetScroll(curLeft, box.clientWidth, box.scrollWidth);
+  }
 }
 
 /* ---- 6.6 答题操作 ---- */
@@ -1097,6 +1105,8 @@ timer = setInterval(() => { if (S.view === 'quiz') tickTimer(); tickAuto(); }, 1
 document.addEventListener('click', function (e) {
   const el = e.target.closest('[data-act]');
   if (!el) return;
+  /* 导航类链接（比如顶栏品牌）不跳转，交给下面的动作处理；下载链接保持默认 */
+  if (el.tagName === 'A' && !(el.hasAttribute && el.hasAttribute('download'))) e.preventDefault();
   const act = el.dataset.act;
   switch (act) {
     case 'login': doLogin(); break;
