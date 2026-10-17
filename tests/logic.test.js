@@ -902,5 +902,19 @@ H.refreshSetup();
 ok('refreshSetup 就地更新 chip 的 span.n',
    span47.textContent === String(H.chipCounts(H.bankById('web')).chapters['web-c1'] || 0));
 
+
+section('48. #modeSeg 滑块动画');
+ok('顺序/随机有滑块与过渡',
+   /\.seg::before\{[^}]*transition:transform/.test(cssSrc));
+ok('随机模式下滑块右移',
+   /\.seg\[data-mode="random"\]::before\{transform:translateX/.test(cssSrc));
+H.S.view = 'setup'; H.S.bankId = 'web'; H.S.mode = 'order'; H.render();
+const sh48 = els['app'].innerHTML;
+ok('modeSeg 初始带 data-mode', /id="modeSeg" data-mode="order"/.test(sh48));
+const before48 = els['app'].innerHTML;
+H.S.mode = 'random'; H.refreshSetup();
+ok('切换顺序只改 data-mode，不重绘整页',
+   els['modeSeg'].dataset.mode === 'random' && els['app'].innerHTML === before48);
+
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

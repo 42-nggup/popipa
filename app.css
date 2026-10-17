@@ -220,11 +220,19 @@ h1 .sub{display:block;font-size:14px;font-weight:400;color:var(--bs-secondary-co
 .qno{font-size:12.5px;color:var(--bs-secondary-color)}
 
 /* 模式切换（顺序 / 随机） */
-.seg{display:inline-flex;gap:4px;padding:4px;border-radius:var(--bs-border-radius);background:var(--bs-secondary-bg)}
-.seg button{padding:6px 14px;border:0;background:none;border-radius:var(--bs-border-radius-sm);
-            font-size:13px;color:var(--bs-secondary-color)}
-.seg button.on{background:var(--bs-body-bg);color:var(--bs-primary-text-emphasis);font-weight:600;
-               box-shadow:var(--bs-box-shadow-sm)}
+.seg{position:relative;display:flex;width:100%;gap:4px;padding:4px;
+     border-radius:var(--bs-border-radius);background:var(--bs-secondary-bg)}
+/* 顺序/随机 的滑块：只靠 data-mode 移动，切换时不重绘 DOM */
+.seg::before{content:"";position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 6px);
+             border-radius:var(--bs-border-radius-sm);background:var(--bs-body-bg);
+             box-shadow:var(--bs-box-shadow-sm);z-index:0;
+             transition:transform .28s cubic-bezier(.22,1,.36,1)}
+.seg[data-mode="random"]::before{transform:translateX(calc(100% + 4px))}
+.seg button{position:relative;z-index:1;flex:1 1 0;padding:6px 14px;border:0;background:none;
+            border-radius:var(--bs-border-radius-sm);font-size:13px;color:var(--bs-secondary-color);
+            transition:color .2s ease,transform .12s ease}
+.seg button.on{background:none;color:var(--bs-primary-text-emphasis);font-weight:600}
+.seg button:active{transform:scale(.97)}
 
 /* 结果页 */
 .score-hero{display:flex;align-items:center;gap:28px;flex-wrap:wrap;margin-top:20px;padding:24px}

@@ -779,10 +779,13 @@ function refreshSetup() {
     });
   }
   const seg = byId('modeSeg');
-  if (seg && seg.children) {
-    Array.prototype.forEach.call(seg.children, b => {
-      b.classList.toggle('on', b.dataset.mode === S.mode);
-    });
+  if (seg) {
+    seg.dataset.mode = S.mode;          /* 滑块位置只认这个属性 */
+    if (seg.children) {
+      Array.prototype.forEach.call(seg.children, b => {
+        b.classList.toggle('on', b.dataset.mode === S.mode);
+      });
+    }
   }
   const hint = byId('chapterHint');
   if (hint) hint.textContent = (S.wrongOnly || S.favOnly)
@@ -863,7 +866,7 @@ function renderSetup() {
         '<section>' +
           '<h2 class="h6 fw-bold"><i class="bi bi-shuffle me-1"></i>出题顺序</h2>' +
           '<p class="hint">顺序即按题库原顺序；随机适合反复刷。</p>' +
-          '<div class="seg" id="modeSeg">' +
+          '<div class="seg" id="modeSeg" data-mode="' + S.mode + '">' +
             '<button class="' + (S.mode === 'order' ? 'on' : '') + '" data-act="mode" data-mode="order">' +
               '<i class="bi bi-list-ol me-1"></i>顺序</button>' +
             '<button class="' + (S.mode === 'random' ? 'on' : '') + '" data-act="mode" data-mode="random">' +
