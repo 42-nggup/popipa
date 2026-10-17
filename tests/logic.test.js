@@ -677,5 +677,51 @@ ok('file:// 下退回单页视图切换（跨页存储被隔离）', H.pageMode(
 const serverSrc = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
 ok('仓库自带零依赖静态服务器', /createServer/.test(serverSrc) && /\.listen\(/.test(serverSrc));
 
+
+section('39. 交卷先提交当前题');
+H.S.user = '小明'; H.S.view = 'setup'; H.S.bankId = 'web';
+H.S.chapters = H.bankById('web').chapters.map(c => c.id);
+H.S.types = ['single', 'multiple', 'judge', 'fill'];
+H.S.wrongOnly = false;
+H.startSession();
+const last39 = H.S.session.order.length - 1;
+H.jump(last39);
+const lastQid = H.S.session.order[last39];
+H.pickKey(H.QMAP[lastQid].answer[0]);
+ok('最后一题选了答案但没提交', !H.S.session.submitted[lastQid]);
+fire('finish');
+ok('交卷时先提交了这道题', H.S.session.submitted[lastQid] === true);
+ok('然后正常进入结果页', H.S.view === 'result');
+ok('逐轮记录里这道题算已作答',
+   H.roundsOf('小明')[0].submitted[lastQid] === true);
+
+section('40. 分享图落款');
+const card40 = H.shareCardHtml(H.shareRecord());
+ok('落款是「用户名。📢U咩哇帕瓦📢」',
+   card40.indexOf('小明。📢U咩哇帕瓦📢') >= 0);
+ok('旧落款已移除', card40.indexOf('刷题吧') === -1);
+
+section('41. 组卷页按题型筛选');
+H.S.view = 'setup'; H.S.bankId = 'web';
+H.S.chapters = H.bankById('web').chapters.map(c => c.id);
+H.S.types = ['single', 'multiple', 'judge', 'fill'];
+H.S.wrongOnly = false;
+H.render();
+const setup41 = els['app'].innerHTML;
+ok('组卷页同时有章节与题型分类',
+   setup41.indexOf('id="chapterChips"') >= 0 && setup41.indexOf('id="typeChips"') >= 0);
+ok('题型 chips 带切换动作',
+   (setup41.match(/data-act="toggle-type"/g) || []).length === 4);
+const singles41 = H.bankById('web').chapters.reduce((n, ch) =>
+  n + ch.questions.filter(q => q.type === 'single' && q.answer.length).length, 0);
+H.S.types = ['single'];
+H.render();
+H.startSession();
+ok('只出选中的题型', H.S.session.order.every(id => H.QMAP[id].type === 'single'));
+ok('题量与单选筛选一致', H.S.session.order.length === singles41);
+H.S.view = 'setup'; H.render();
+fire('toggle-type', { type: 'single' });
+ok('点题型可取消选中', H.S.types.indexOf('single') === -1);
+
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

@@ -45,6 +45,8 @@ const TYPE_LABEL = {
   judge: { text: '判断题', cls: 'j' },
   fill: { text: '填空题', cls: 'f' }
 };
+const QTYPE_LIST = ['single', 'multiple', 'judge', 'fill'];
+function selectedTypes() { return Array.isArray(S.types) ? S.types : QTYPE_LIST; }
 
 function esc(s) {
   return String(s == null ? '' : s)
@@ -431,6 +433,7 @@ const S = {
   view: 'login',
   bankId: null,
   chapters: [],       // 组卷时选中的章节
+  types: QTYPE_LIST.slice(),   // 组卷时选中的题型
   mode: 'order',      // order | random
   wrongOnly: false,   // 只练错题本
   theme: 'light',
@@ -651,6 +654,7 @@ function renderRounds() {
 function pickBank(id) {
   S.bankId = id;
   S.chapters = bankById(id).chapters.map(c => c.id);
+  S.types = QTYPE_LIST.slice();
   S.mode = 'order';
   S.wrongOnly = false;
   S.view = 'setup';
@@ -660,9 +664,11 @@ function pickBank(id) {
 /* ---- 6.3 组卷面板 ---- */
 /* ---- 6.3 组卷面板 ---- */
 function setupPicked(bank) {
+  const types = selectedTypes();
   return S.wrongOnly ? wrongIds(S.user, bank.id).length
     : bank.chapters.filter(ch => S.chapters.indexOf(ch.id) >= 0)
-        .reduce((n, ch) => n + ch.questions.filter(q => q.answer.length).length, 0);
+        .reduce((n, ch) => n + ch.questions.filter(q =>
+          q.answer.length && types.indexOf(q.type) >= 0).length, 0);
 }
 /* 组卷页的开关都是定向刷新：只改相关类名/数字，不重绘整页 */
 function refreshSetup() {
@@ -694,6 +700,16 @@ function refreshSetup() {
       b.disabled = S.wrongOnly;
     });
   }
+  const typeBox = byId('typeChips');
+  if (typeBox && typeBox.children) {
+    const types = selectedTypes();
+    Array.prototype.forEach.call(typeBox.children, b => {
+      const on = types.indexOf(b.dataset.type) >= 0;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+      b.disabled = S.wrongOnly;
+    });
+  }
   const seg = byId('modeSeg');
   if (seg && seg.children) {
     Array.prototype.forEach.call(seg.children, b => {
@@ -710,6 +726,15 @@ function renderSetup() {
   const favCount = favIds(S.user, bank.id).length;
   const prog = loadProgress(S.user, bank.id);
   const prev = prog ? stats(prog).answered : 0;
+  const typeChips = QTYPE_LIST.map(t => {
+    const on = selectedTypes().indexOf(t) >= 0;
+    const n = bank.chapters.reduce((sum, ch) =>
+      sum + ch.questions.filter(q => q.type === t && q.answer.length).length, 0);
+    return '<button class="chip' + (on ? ' on' : '') + '" data-act="toggle-type" data-type="' + t + '"' +
+      ' role="switch" aria-checked="' + (on ? 'true' : 'false') + '"' +
+      (S.wrongOnly ? ' disabled' : '') + '>' + TYPE_LABEL[t].text +
+      '<span class="n">' + n + '</span></button>';
+  }).join('');
   const chips = bank.chapters.map(ch => {
     const on = S.chapters.indexOf(ch.id) >= 0;
     return '<button class="chip' + (on ? ' on' : '') + '" data-act="toggle-chapter" data-id="' + ch.id + '"' +
@@ -740,14 +765,27 @@ function renderSetup() {
           '</div>' +
         '</section>' +
         '<hr class="my-4">' +
-        '<section>' +
-          '<div class="d-flex align-items-baseline gap-2 flex-wrap">' +
-            '<h2 class="h6 fw-bold mb-0"><i class="bi bi-list-check me-1"></i>章节</h2>' +
-            '<span class="small text-body-secondary" id="chapterHint">' +
-              (S.wrongOnly ? '正在只练错题，章节不生效' : '只选中的章节会进入本次练习') + '</span>' +
+        '<div class="row g-4">' +
+          '<div class="col-md-6">' +
+            '<section>' +
+              '<div class="d-flex align-items-baseline gap-2 flex-wrap">' +
+                '<h2 class="h6 fw-bold mb-0"><i class="bi bi-list-check me-1"></i>章节</h2>' +
+                '<span class="small text-body-secondary" id="chapterHint">' +
+                  (S.wrongOnly ? '正在只练错题，章节不生效' : '只选中的章节会进入本次练习') + '</span>' +
+              '</div>' +
+              '<div class="chips mt-2" id="chapterChips">' + chips + '</div>' +
+            '</section>' +
           '</div>' +
-          '<div class="chips mt-2" id="chapterChips">' + chips + '</div>' +
-        '</section>' +
+          '<div class="col-md-6">' +
+            '<section>' +
+              '<div class="d-flex align-items-baseline gap-2 flex-wrap">' +
+                '<h2 class="h6 fw-bold mb-0"><i class="bi bi-ui-checks me-1"></i>题型</h2>' +
+                '<span class="small text-body-secondary">只选中的题型会进入本次练习</span>' +
+              '</div>' +
+              '<div class="chips mt-2" id="typeChips">' + typeChips + '</div>' +
+            '</section>' +
+          '</div>' +
+        '</div>' +
         '<hr class="my-4">' +
         '<section>' +
           '<h2 class="h6 fw-bold"><i class="bi bi-shuffle me-1"></i>出题顺序</h2>' +
@@ -790,9 +828,12 @@ function startSession() {
     ids = wrongIds(S.user, bank.id);
     if (!ids.length) { toast('错题本是空的，先按章节练一练'); return; }
   } else {
+    const types = selectedTypes();
     bank.chapters.forEach(ch => {
       if (S.chapters.indexOf(ch.id) < 0) return;
-      ch.questions.forEach(q => { if (q.answer.length) ids.push(q.id); });
+      ch.questions.forEach(q => {
+        if (q.answer.length && types.indexOf(q.type) >= 0) ids.push(q.id);
+      });
     });
     if (!ids.length) { toast('请至少选择一个章节'); return; }
   }
@@ -802,7 +843,7 @@ function startSession() {
   S.session = {
     id: 's' + Date.now(),
     bankId: bank.id, bankName: bank.name + (S.wrongOnly ? ' · 错题本' : ''),
-    chapters: S.chapters.slice(), mode: S.mode,
+    chapters: S.chapters.slice(), types: selectedTypes().slice(), mode: S.mode,
     order: ids, idx: 0,
     answers: {}, submitted: {}, fav: {},
     startedAt: Date.now(), finishedAt: 0, finished: false
@@ -1116,6 +1157,15 @@ function tickAuto() {
   if (el) el.textContent = left;
   if (left <= 0) { const t = autoJump.target; autoJump = null; jump(t); }
 }
+/* 交卷：当前题有答案但没提交时，先按「提交答案」提交，再交卷；
+   没作答或已提交则和「下一题」一样直接放行 */
+function submitAndFinish() {
+  const s = S.session;
+  if (!s) return;
+  const qid = s.order[s.idx], q = QMAP[qid];
+  if (!s.submitted[qid] && hasAnswer(q, s.answers[qid])) submitCurrent(false);
+  finish();
+}
 function finish() {
   autoJump = null;
   const s = S.session, st = stats(s);
@@ -1289,7 +1339,8 @@ function shareCardHtml(rec) {
           '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="small text-body-secondary mt-3 pt-3 border-top">刷题吧 · popipa</div>' +
+      '<div class="small text-body-secondary mt-3 pt-3 border-top">' +
+        esc(rec.user) + '。📢U咩哇帕瓦📢</div>' +
     '</div>';
 }
 function dateStamp(ms) {
@@ -1299,6 +1350,7 @@ function dateStamp(ms) {
 function shareRecord() {
   const s = S.session, st = stats(s);
   return {
+    user: S.user || '匿名',
     bankName: s.bankName, total: st.total, correct: st.correct, wrong: st.wrong,
     unanswered: st.unanswered, rate: st.rate, score: st.score,
     used: fmtTime((s.finishedAt || Date.now()) - s.startedAt),
@@ -1371,6 +1423,14 @@ document.addEventListener('click', function (e) {
       if (i >= 0) S.chapters.splice(i, 1); else S.chapters.push(id);
       refreshSetup(); break;
     }
+    case 'toggle-type': {
+      const t = el.dataset.type;
+      const list = selectedTypes().slice();
+      const i = list.indexOf(t);
+      if (i >= 0) list.splice(i, 1); else list.push(t);
+      S.types = list;
+      refreshSetup(); break;
+    }
     case 'mode': S.mode = el.dataset.mode; refreshSetup(); break;
     case 'wrong-only': S.wrongOnly = el.dataset.on === '1'; refreshSetup(); break;
     case 'theme': toggleTheme(); break;
@@ -1392,7 +1452,7 @@ document.addEventListener('click', function (e) {
     case 'next': step(1); break;
     case 'jump': jump(Number(el.dataset.i)); break;
     case 'cancel-auto': autoJump = null; render(); toast('已取消自动跳转'); break;
-    case 'finish': finish(); break;
+    case 'finish': submitAndFinish(); break;
     case 'tab': S.reviewTab = el.dataset.tab; S.reviewOpen = {}; render(); break;
     case 'toggle-rev': {
       const qid = el.dataset.qid;
