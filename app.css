@@ -356,26 +356,12 @@ h1 .sub{display:block;font-size:14px;font-weight:400;color:var(--bs-secondary-co
 }
 .btn-warm{--bs-btn-color:#fff;--bs-btn-bg:#a97142;--bs-btn-border-color:#a97142;
   --bs-btn-hover-color:#fff;--bs-btn-hover-bg:#8a5a2b;--bs-btn-hover-border-color:#8a5a2b;
-  --bs-btn-active-color:#fff;--bs-btn-active-bg:#7a4d24;--bs-btn-active-border-color:#7a4d24;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 2px 0 rgba(90,55,25,.18)}
+  --bs-btn-active-color:#fff;--bs-btn-active-bg:#7a4d24;--bs-btn-active-border-color:#7a4d24}
 
 /* 小英文眉题 */
 .eyebrow{font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;
   color:var(--bs-secondary-color);opacity:.7;margin-bottom:.35rem}
 
-/* 简单半拟物装饰：卡片的胶带 + 右下角点，按钮的内高光 */
-.deco{position:relative}
-.deco::before{content:"";position:absolute;z-index:2;top:-7px;left:22px;width:48px;height:14px;
-  border-radius:3px;background:rgba(180,140,96,.28);border:1px dashed rgba(138,90,43,.35);
-  transform:rotate(-3deg);pointer-events:none}
-.deco::after{content:"";position:absolute;right:12px;bottom:9px;width:6px;height:6px;border-radius:50%;
-  background:rgba(138,90,43,.22);
-  box-shadow:-11px 0 0 rgba(138,90,43,.14),-22px 0 0 rgba(138,90,43,.08);pointer-events:none}
-[data-bs-theme="dark"] .deco::before{background:rgba(220,190,150,.12);border-color:rgba(230,205,170,.22)}
-[data-bs-theme="dark"] .deco::after{background:rgba(230,205,170,.18);
-  box-shadow:-11px 0 0 rgba(230,205,170,.1),-22px 0 0 rgba(230,205,170,.06)}
-.btn{box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
-[data-bs-theme="dark"] .btn{box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
 
 /* 新页面用更宽的容器 */
 body[data-page="home"] .app-shell,

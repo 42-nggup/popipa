@@ -639,7 +639,7 @@ function renderBanks() {
     bank.chapters.forEach(ch => ch.questions.forEach(q => counts[q.type]++));
     const st = prog ? stats(prog) : null;
     const pct = st ? Math.round(st.answered / st.total * 100) : 0;
-    return '<div class="card bank-card deco" data-act="pick-bank" data-id="' + bank.id + '">' +
+    return '<div class="card bank-card" data-act="pick-bank" data-id="' + bank.id + '">' +
       '<div class="card-body p-3 p-sm-4">' +
         '<div class="d-flex align-items-start gap-3">' +
           '<span class="bank-ico"><i class="bi ' + bankIcon(bank.id) + '"></i></span>' +
@@ -1388,7 +1388,7 @@ function renderResult() {
 
   app.innerHTML =
     '<h1>答题结果<span class="sub">' + esc(s.bankName) + ' · ' + esc(s.mode === 'random' ? '随机顺序' : '顺序作答') + '</span></h1>' +
-    '<div class="card score-hero deco">' +
+    '<div class="card score-hero">' +
       '<div class="ring" style="background:conic-gradient(' + color + ' ' + deg + 'deg,var(--bs-secondary-bg) ' + deg + 'deg)">' +
         '<div class="in"><div><div class="v" style="color:' + toneText + '">' + st.rate + '%</div>' +
         '<div class="u">正确率</div></div></div>' +
@@ -1899,7 +1899,7 @@ function renderHome() {
   const maxDay = Math.max(1, ...days.map(d => d.answered));
 
   const statCard = (label, value, sub, icon, attrs) =>
-    (attrs ? '<button type="button" class="stat-card deco"' + attrs + '>' : '<div class="stat-card deco">') +
+    (attrs ? '<button type="button" class="stat-card"' + attrs + '>' : '<div class="stat-card">') +
       '<div class="stat-ico"><i class="bi ' + icon + '"></i></div>' +
       '<div class="stat-label">' + label + '</div>' +
       '<div class="stat-value">' + value + '</div>' +
@@ -1936,7 +1936,7 @@ function renderHome() {
     '</div>').join('');
 
   const main =
-    '<section class="hero-home deco">' +
+    '<section class="hero-home">' +
       '<div class="eyebrow">PRACTICE MAKES PERFECT</div>' +
       '<h1 class="welcome-line">' + welcome + '</h1>' +
       '<p class="hero-sub">欢迎回来，' + esc(S.user) + '。今天想从哪开始？</p>' +
@@ -1944,7 +1944,7 @@ function renderHome() {
         '<i class="bi bi-play-fill me-1"></i>开始练习</button>' +
     '</section>' +
     '<div class="mt-3">' +
-        '<section class="card home-card deco" id="goalCard">' +
+        '<section class="card home-card" id="goalCard">' +
           '<div class="card-body">' +
             '<div class="eyebrow">DAILY GOAL</div>' +
             '<div class="d-flex flex-wrap justify-content-between align-items-end gap-2">' +
@@ -1974,7 +1974,7 @@ function renderHome() {
     '</div>' +
     '<div class="row g-3">' +
       '<div class="col-lg-6">' +
-        '<section class="card home-card deco h-100">' +
+        '<section class="card home-card h-100">' +
           '<div class="card-body">' +
             '<div class="eyebrow">LAST SESSION</div>' +
             '<h2 class="h5 mb-1">上次进度</h2>' + progHtml +
@@ -1982,7 +1982,7 @@ function renderHome() {
         '</section>' +
       '</div>' +
       '<div class="col-lg-6">' +
-        '<section class="card home-card deco h-100">' +
+        '<section class="card home-card h-100">' +
           '<div class="card-body">' +
             '<div class="eyebrow">RECENT</div>' +
             '<h2 class="h5 mb-3">近日统计</h2>' +
@@ -2033,7 +2033,7 @@ function renderSummary() {
         '<div class="sum-qs">' + rows + '</div>' +
       '</details>';
     }).join('');
-    return '<section class="card home-card deco mb-4">' +
+    return '<section class="card home-card mb-4">' +
       '<div class="card-body">' +
         '<div class="d-flex align-items-center gap-3 mb-3">' +
           '<span class="bank-ico"><i class="bi ' + bankIcon(bank.id) + '"></i></span>' +
@@ -2059,7 +2059,7 @@ function renderCollection() {
     if (!ids.length) return '';
     const c = { single: 0, multiple: 0, judge: 0, fill: 0 };
     ids.forEach(id => { if (QMAP[id]) c[QMAP[id].type]++; });
-    return '<section class="card home-card deco mb-3"><div class="card-body d-flex flex-wrap align-items-center gap-3">' +
+    return '<section class="card home-card mb-3"><div class="card-body d-flex flex-wrap align-items-center gap-3">' +
       '<span class="bank-ico"><i class="bi ' + bankIcon(bank.id) + '"></i></span>' +
       '<div class="flex-grow-1 min-w-0"><h2 class="h6 fw-bold mb-1 text-truncate">' + esc(bank.name) + '</h2>' +
         '<div class="small text-body-secondary">' + countsText(c) + '</div></div>' +
@@ -2072,7 +2072,7 @@ function renderCollection() {
     '<div class="page-head"><div class="eyebrow">' + eye + '</div>' +
     '<h1 class="h3 fw-bold mb-1">' + label + '</h1>' +
     '<p class="text-body-secondary mb-4">按题库查看，点进去会进入组卷页并自动勾选' + label + '。</p></div>' +
-    (rows || '<div class="card home-card deco"><div class="card-body text-body-secondary">' +
+    (rows || '<div class="card home-card"><div class="card-body text-body-secondary">' +
       label + '还是空的，先去练几道题吧。</div></div>'));
 }
 
@@ -2137,7 +2137,7 @@ function renderStats() {
       '<p class="text-body-secondary mb-4">每次题数与正确率；排行榜只统计同意数据收集的用户。</p></div>' +
     tip +
     (consented
-      ? '<section class="card home-card deco mb-4"><div class="card-body">' +
+      ? '<section class="card home-card mb-4"><div class="card-body">' +
           '<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">' +
             '<h2 class="h5 mb-0">我的答题曲线</h2>' +
             '<span class="small text-body-secondary">最近 ' + rounds.length + ' 轮</span></div>' +
@@ -2145,9 +2145,9 @@ function renderStats() {
           '<div class="small text-body-secondary mt-2">累计用时 ' +
             fmtDur(rounds.reduce((n, r) => n + (r.seconds || 0), 0)) + '</div>' +
         '</div></section>'
-      : '<section class="card home-card deco mb-4"><div class="card-body text-body-secondary">' +
+      : '<section class="card home-card mb-4"><div class="card-body text-body-secondary">' +
           '同意数据收集后，这里会显示你的答题曲线。</div></section>') +
-    '<section class="card home-card deco"><div class="card-body">' +
+    '<section class="card home-card"><div class="card-body">' +
       '<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">' +
         '<h2 class="h5 mb-0">排行榜</h2>' +
         '<div class="d-flex gap-2">' +

@@ -990,5 +990,17 @@ ok('学习报告有曲线和排行榜',
 H.S.collectionType = 'wrong'; H.S.view = 'collection'; H.render();
 ok('错题本页按题库列出', els['app'].innerHTML.indexOf('错题本') >= 0);
 
+
+section('53. 装饰已移除');
+ok('JS 不再使用 deco 类', !/\bdeco\b/.test(logicSrc));
+ok('CSS 不再定义 .deco 伪元素', !/\.deco\b/.test(cssSrc));
+ok('按钮不再有装饰性内高光',
+   cssSrc.indexOf('inset 0 1px 0 rgba(255,255,255,.18)') < 0 &&
+   cssSrc.indexOf('inset 0 1px 0 rgba(255,255,255,.22)') < 0);
+for (const f of ['index.html', 'home.html', 'stats.html']) {
+  ok(f + ' 不再有 deco 类',
+     !/\bdeco\b/.test(fs.readFileSync(path.join(root, f), 'utf8')));
+}
+
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);
