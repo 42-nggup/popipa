@@ -1098,5 +1098,20 @@ ok('暗色变量改成棕褐',
 ok('暗色主按钮也是暖色',
    /\[data-bs-theme="dark"\] \.btn-primary\{[^}]*--bs-btn-bg:#a97142/.test(cssSrc));
 
+
+section('56. 题库页 / 组卷页与其他页面统一外壳');
+H.S.user = '主页用户';
+H.S.view = 'banks'; H.render();
+const b56 = els['app'].innerHTML;
+ok('题库列表有侧边栏', b56.indexOf('home-wrap') >= 0 && b56.indexOf('side-link') >= 0);
+ok('侧边栏高亮「开始练习」',
+   /class="side-link active"[^>]*href="banks.html"/.test(b56));
+H.pickBank('web');
+const s56 = els['app'].innerHTML;
+ok('组卷页也有侧边栏',
+   s56.indexOf('home-wrap') >= 0 && s56.indexOf('setup-grid') >= 0);
+ok('组卷页侧边栏仍高亮「开始练习」',
+   /class="side-link active"[^>]*href="banks.html"/.test(s56));
+
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

@@ -680,7 +680,7 @@ function renderBanks() {
         '</div>' +
       '</div></div>';
   }).join('');
-  app.innerHTML =
+  const main =
     '<div class="banks-head">' +
       '<div><div class="eyebrow">QUESTION LIBRARY</div>' +
       '<h1 class="h3 fw-bold mb-1">选择题库</h1>' +
@@ -688,12 +688,11 @@ function renderBanks() {
       '<div class="d-flex align-items-center gap-2">' +
         (rounds.length ? '<span class="badge rounded-pill text-bg-secondary">' +
           '<i class="bi bi-clock-history me-1"></i>已记录 ' + rounds.length + ' 轮</span>' : '') +
-        '<button class="btn btn-sm btn-outline-secondary" data-act="home" title="回首页">' +
-          '<i class="bi bi-house-door"></i></button>' +
       '</div>' +
     '</div>' +
     '<div class="bank-grid">' + cards + '</div>' +
     renderRounds();
+  pageShell('banks', main);
 }
 
 /* ---- 6.2.1 历史轮次回看（原地展开，不跳页）----
@@ -869,12 +868,10 @@ function renderSetup() {
       ' role="switch" aria-checked="' + (on ? 'true' : 'false') + '"' +
       '>' + esc(ch.name) + '<span class="n">' + (cc.chapters[ch.id] || 0) + '</span></button>';
   }).join('');
-  app.innerHTML =
+  const main =
     '<div class="setup-head">' +
       '<button class="btn btn-sm btn-outline-secondary" data-act="back-banks">' +
         '<i class="bi bi-arrow-left me-1"></i>题库</button>' +
-      '<button class="btn btn-sm btn-outline-secondary" data-act="home" title="回首页">' +
-        '<i class="bi bi-house-door"></i></button>' +
       '<div class="ms-2 min-w-0">' +
         '<div class="eyebrow">SETUP</div>' +
         '<h1 class="h4 fw-bold mb-0 text-truncate">' + esc(bank.name) + '</h1>' +
@@ -950,6 +947,7 @@ function renderSetup() {
           '<i class="bi bi-arrow-left me-1"></i>返回题库</button>' +
       '</div></aside>' +
     '</div>';
+  pageShell('banks', main);
   refreshSetup();
 }
 
