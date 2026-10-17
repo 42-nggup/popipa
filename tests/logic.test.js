@@ -61,7 +61,8 @@ vm.runInContext(dataSrc + '\n' + logicSrc + `
 globalThis.__hook = { S, stats, isCorrect, hasAnswer, startSession, pickKey, submitCurrent, redoCurrent,
   jump, go, step, finish, pickBank, doLogin, retryWrong,
   tickAuto, QMAP, bankById, bankQuestionIds, LETTERS, render,
-  store, KEY, userOf, users, wrongIds, sanitizeSession, historyOf, loadProgress, lastName,
+  store, KEY, userOf, users, userTable, migrateUsers, roundsOf, pushRound,
+  wrongIds, sanitizeSession, historyOf, loadProgress, lastName,
   applyTheme, theme, toggleTheme, navTargetScroll,
   getAuto: () => autoJump,
   exportPng, shareCardHtml, shareRecord, dateStamp,
@@ -367,6 +368,59 @@ H.exportPng();
 ok('生成后弹出预览 Modal', H.shareShown() === true);
 ok('预览里是 PNG dataURL', H.shareHtml().indexOf('data:image/png;base64') >= 0);
 ok('预览里有下载按钮', H.shareHtml().indexOf('download="popipa-') >= 0);
+
+
+/* ===================== 分支 B：用户表拆分 ===================== */
+
+section('21. 用户表只记身份，业务数据进每用户表');
+const idx = H.users();
+ok('用户表条目只有 name / lastLogin',
+   Object.keys(idx['小明']).sort().join(',') === 'lastLogin,name');
+const t13 = H.userTable('小明');
+ok('每用户表里有主题/进度/错题/收藏/成绩/逐轮记录',
+   ['theme','books','wrong','fav','history','rounds'].every(k => k in t13));
+ok('主题存在每用户表里', t13.theme === 'light' || t13.theme === 'dark');
+ok('两张表合并后仍是完整用户',
+   H.userOf('小明').lastLogin > 0 && Array.isArray(H.userOf('小明').history) &&
+   Array.isArray(H.userOf('小明').rounds));
+
+section('22. 逐轮记录：交卷落快照，回看数字不变');
+const rounds = H.roundsOf('小明');
+ok('已经落了逐轮记录', rounds.length >= 1);
+const r0 = rounds[0];
+ok('快照含逐题作答（题号/答案/提交状态）',
+   Array.isArray(r0.order) && r0.order.length > 0 &&
+   !!r0.answers && !!r0.submitted);
+ok('快照含用时', typeof r0.seconds === 'number' && r0.seconds >= 0 &&
+   typeof r0.startedAt === 'number' && typeof r0.finishedAt === 'number');
+ok('快照含汇总（总题数/答对/答错/未答/正确率）',
+   r0.total === r0.order.length && r0.correct + r0.wrong === r0.total - r0.unanswered &&
+   typeof r0.rate === 'number' && typeof r0.score === 'number');
+ok('快照是独立副本：改动当前会话不影响已存记录',
+   (function () {
+     const saved = JSON.stringify(r0.answers);
+     H.S.session.answers[r0.order[0]] = ['__changed__'];
+     const same = JSON.stringify(H.roundsOf('小明')[0].answers) === saved;
+     delete H.S.session.answers[r0.order[0]];
+     return same;
+   })());
+
+section('23. 旧结构迁移：业务字段搬进每用户表');
+const legacy = {};
+legacy['老用户'] = {
+  name: '老用户', lastLogin: 123, theme: 'dark',
+  books: { web: { order: ['x'] } }, wrong: { q1: 1 },
+  history: [{ rate: 50 }], fav: { q2: 2 }
+};
+H.store.set(H.KEY.users, legacy);
+H.migrateUsers();
+ok('用户表只剩身份字段',
+   Object.keys(H.users()['老用户']).sort().join(',') === 'lastLogin,name');
+const tOld = H.userTable('老用户');
+ok('主题/进度/错题/收藏/成绩都搬进了每用户表',
+   tOld.theme === 'dark' && !!tOld.books.web && tOld.wrong.q1 === 1 &&
+   tOld.fav.q2 === 2 && tOld.history.length === 1);
+ok('再跑一次迁移不会重复搬', H.migrateUsers() === false);
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);
