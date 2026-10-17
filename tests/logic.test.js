@@ -26,7 +26,7 @@ const mkEl = id => {
     },
     addEventListener() {}, focus() {}, select() {}, matches: () => false,
     closest() { return this; },   /* 事件委托靠它找到 [data-act]，桩里返回自己就够 */
-    setAttribute() {}, remove() {}, appendChild() {}
+    setAttribute() {}, remove() {}, appendChild() {}, querySelector: () => null
   };
 };
 /* 假 bootstrap.Modal：真组件靠 .show 类 + hidden.bs.modal 事件，这里只模仿类切换 */
@@ -60,7 +60,7 @@ vm.createContext(sandbox);
 vm.runInContext(dataSrc + '\n' + logicSrc + `
 globalThis.__hook = { S, stats, isCorrect, hasAnswer, startSession, pickKey, submitCurrent, redoCurrent,
   jump, go, step, finish, pickBank, doLogin, retryWrong,
-  tickAuto, QMAP, bankById, bankQuestionIds, LETTERS, render, renderQuiz,
+  tickAuto, QMAP, BANKS, bankById, bankQuestionIds, LETTERS, render, renderQuiz, roundDone,
   store, KEY, userOf, users, userTable, migrateUsers, roundsOf, pushRound,
   favIds, isFav, toggleFavId, toggleFav,
   wrongIds, sanitizeSession, historyOf, loadProgress, lastName,
@@ -535,8 +535,8 @@ ok('展开时把当前题竖向定位到 35%（600 - 300×0.35 = 495）', qm30.s
 H.S.qmapOpen = false;
 
 section('31. Toast 跟随主题 / 品牌可点回选题页');
-ok('Toast 背景与文字跟随主题',
-   /\.popipa-toast\{[^}]*background:var\(--bs-body-color\)[^}]*color:var\(--bs-body-bg\)/.test(cssSrc));
+ok('Toast 背景与文字跟随主题（不再反色）',
+   /\.popipa-toast\{[^}]*background:var\(--bs-body-bg\)[^}]*color:var\(--bs-body-color\)/.test(cssSrc));
 const htmlSrc = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 ok('品牌名绑定了返回选题页的动作',
    /navbar-brand[^>]*data-act="back-banks"/.test(htmlSrc));
@@ -546,6 +546,39 @@ ok('已在选题页时点品牌无副作用', H.S.view === 'banks');
 H.startSession();
 fire('back-banks');
 ok('答题中点品牌会回到选题页', H.S.view === 'banks');
+
+
+section('32. 选题页重构');
+H.S.user = '小明'; H.S.view = 'banks';
+H.render();
+const bh = els['app'].innerHTML;
+ok('题目卡改成响应式网格', bh.indexOf('bank-grid') >= 0 &&
+   (bh.match(/bank-card/g) || []).length >= H.BANKS.length);
+ok('每张卡都能进入题库', (bh.match(/data-act="pick-bank"/g) || []).length === H.BANKS.length);
+ok('卡片上有题数/章节/开始练习', bh.indexOf('开始练习') >= 0 && bh.indexOf(' 章') >= 0);
+ok('有历史轮次时卡片显示上次成绩', /上次 \d+%/.test(bh));
+
+section('33. rounds 回看：原地展开的逐题表格');
+const r33 = H.roundsOf('小明')[0];
+const ans33 = H.roundsOf('小明').reduce((n, r) =>
+  n + r.order.filter(q => r.submitted[q]).length, 0);
+H.S.roundOpen = {};
+H.render();
+const rh = els['app'].innerHTML;
+ok('成绩历史列出轮次', rh.indexOf('我的成绩历史') >= 0 && rh.indexOf('round-card') >= 0);
+ok('展开区是四列表格',
+   rh.indexOf('题号') >= 0 && rh.indexOf('用户答案') >= 0 &&
+   rh.indexOf('正确答案') >= 0 && rh.indexOf('解析') >= 0);
+ok('明细只含已作答的题',
+   (rh.match(/bi-(check|x)-circle-fill/g) || []).length === ans33);
+ok('最后一行是汇总五数',
+   rh.indexOf('round-sum') >= 0 && rh.indexOf('总题数') >= 0 &&
+   rh.indexOf('答错') >= 0 && rh.indexOf('答对') >= 0 &&
+   rh.indexOf('未答') >= 0 && rh.indexOf('正确率') >= 0);
+fire('round-toggle', { round: r33.id });
+ok('点击轮次会记录展开状态', H.S.roundOpen[r33.id] === true);
+H.render();
+ok('展开状态在重绘后保留', els['app'].innerHTML.indexOf('collapse show') >= 0);
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

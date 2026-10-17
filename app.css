@@ -49,15 +49,20 @@ body{
           box-shadow:0 .6rem 2rem -1rem var(--bs-primary)}
 .login-box{max-width:400px;margin:2rem auto 0}
 
-/* ---------- 5. 题库卡片 ---------- */
-.bank{cursor:pointer;transition:.18s;position:relative}
-.bank:hover{transform:translateY(-2px);border-color:var(--bs-primary);
-            box-shadow:var(--bs-box-shadow-lg)}
-.b-ico{width:42px;height:42px;border-radius:.75rem;display:grid;place-items:center;font-size:1.25rem;
-       background:var(--bs-primary-bg-subtle);color:var(--bs-primary);flex:0 0 auto}
-.b-go{position:absolute;right:1.1rem;top:50%;transform:translateY(-50%);
-      color:var(--bs-secondary-color);transition:.18s}
-.bank:hover .b-go{color:var(--bs-primary);transform:translateY(-50%) translateX(3px)}
+/* ---------- 5. 选题页 ---------- */
+.banks-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;
+            gap:8px;margin:28px 0 18px}
+.bank-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.bank-card{cursor:pointer;transition:.18s;border:1px solid var(--bs-border-color)}
+.bank-card:hover{transform:translateY(-2px);border-color:var(--bs-primary);
+                 box-shadow:var(--bs-box-shadow-lg)}
+.bank-ico{width:46px;height:46px;border-radius:calc(var(--bs-border-radius) + 2px);
+          display:grid;place-items:center;font-size:1.3rem;flex:0 0 auto;
+          background:var(--bs-primary-bg-subtle);color:var(--bs-primary)}
+.bank-meta{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;
+           font-size:12.5px;color:var(--bs-secondary-color)}
+.bank-meta i{margin-right:4px}
+.bank-progress{margin-top:12px}
 
 /* ---------- 6. 章节 chips（保留自定义，未换 btn-check） ---------- */
 .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -164,7 +169,7 @@ pre.code code{background:none;border:0;padding:0;color:inherit;white-space:pre}
 
 /* ---------- 10. 自己的 Toast（按需求不换成 Bootstrap 的） ---------- */
 .popipa-toast{position:fixed;left:50%;bottom:32px;transform:translate(-50%,20px);z-index:1090;
-              background:var(--bs-body-color);color:var(--bs-body-bg);font-size:13.5px;
+              background:var(--bs-body-bg);color:var(--bs-body-color);font-size:13.5px;
               border:1px solid var(--bs-border-color);
               padding:11px 20px;border-radius:var(--bs-border-radius);opacity:0;
               pointer-events:none;transition:.25s;box-shadow:var(--bs-box-shadow-lg)}
@@ -179,15 +184,6 @@ pre.code code{background:none;border:0;padding:0;color:inherit;white-space:pre}
 
 /* ---------- 12. 自定义组件：Bootstrap 没有同款的补齐（迁移时漏掉的部分） ---------- */
 h1 .sub{display:block;font-size:14px;font-weight:400;color:var(--bs-secondary-color);margin-top:6px}
-
-/* 题库卡内部 */
-.b-top{display:flex;align-items:center;gap:12px}
-.b-name{font-weight:700}
-.b-desc{font-size:13px;color:var(--bs-secondary-color)}
-.b-stat{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:12.5px;color:var(--bs-secondary-color)}
-.b-stat b{color:var(--bs-body-color);font-variant-numeric:tabular-nums}
-.resume{font-size:12px;padding:2px 8px;border-radius:var(--bs-border-radius-pill);
-        background:var(--bs-secondary-bg);color:var(--bs-secondary-color)}
 
 /* 题型徽章（单选/多选/判断/填空） */
 .badge{font-weight:600;background:var(--bs-secondary-bg);color:var(--bs-secondary-color)}
@@ -234,16 +230,17 @@ h1 .sub{display:block;font-size:14px;font-weight:400;color:var(--bs-secondary-co
 .rev-b .line{padding:4px 0;color:var(--bs-secondary-color)}
 .rev-b .line b{color:var(--bs-body-color)}
 
-/* 成绩历史 */
-.hist{margin-top:28px}
-.hist h3{font-size:14px;font-weight:600;color:var(--bs-secondary-color);margin:0 0 10px}
-.rec{display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:6px;font-size:13.5px;
-     background:var(--bs-body-bg);border:1px solid var(--bs-border-color);border-radius:var(--bs-border-radius)}
-.rec .r-name{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rec .r-rate{font-weight:700;font-variant-numeric:tabular-nums}
-.rec .good{color:var(--bs-success-text-emphasis)}
-.rec .mid{color:var(--bs-warning-text-emphasis)}
-.rec .bad{color:var(--bs-danger-text-emphasis)}
+/* 历史轮次回看 */
+.rounds{margin-top:34px}
+.round-head{cursor:pointer;transition:.15s;border-radius:var(--bs-border-radius)}
+.round-head:hover{background:var(--bs-tertiary-bg)}
+.round-cx{transition:transform .18s}
+.round-table{font-size:13px;--bs-table-bg:transparent}
+.round-table thead th{font-size:12px;font-weight:600;color:var(--bs-secondary-color);
+                      border-bottom-color:var(--bs-border-color)}
+.round-table td,.round-table th{vertical-align:top}
+.round-sum td{background:var(--bs-tertiary-bg);font-weight:600;
+              border-top:2px solid var(--bs-border-color);border-bottom:0}
 
 /* 空状态 / 提示 */
 .empty{padding:36px 16px;text-align:center;color:var(--bs-secondary-color);font-size:14px}
@@ -256,4 +253,12 @@ h1 .sub{display:block;font-size:14px;font-weight:400;color:var(--bs-secondary-co
   .theme-btn{right:14px;bottom:14px;width:40px;height:40px;font-size:1rem}
   .score-hero{padding:18px;gap:18px}
   .qbar{gap:6px 12px}
+  .bank-grid{grid-template-columns:1fr}
+  /* 窄屏：历史轮次的表格改成两列竖排，答案/解析不横向挤 */
+  .round-table thead{display:none}
+  .round-table tbody tr{display:grid;grid-template-columns:3.2rem 1fr}
+  .round-table tbody td{display:block;border:0;padding:.2rem .4rem}
+  .round-table tbody td:nth-child(3)::before{content:'正确答案 ';color:var(--bs-secondary-color)}
+  .round-table tbody td:nth-child(4){grid-column:1/-1}
+  .round-sum td{grid-column:1/-1}
 }

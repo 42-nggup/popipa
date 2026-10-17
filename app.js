@@ -397,6 +397,10 @@ function bankQuestionIds(bank) {
   bank.chapters.forEach(ch => ch.questions.forEach(q => { if (q.answer.length) ids.push(q.id); }));
   return ids;
 }
+/* 题库图标：题库 JSON 里存的是 emoji，这里统一映射到 Bootstrap Icons */
+function bankIcon(id) {
+  return ({ java: 'bi-cup-hot', web: 'bi-window-stack' })[id] || 'bi-collection';
+}
 function countLegacy(bank) {
   let n = 0;
   bank.chapters.forEach(ch => ch.questions.forEach(q => { if (!q.answer.length) n++; }));
@@ -418,6 +422,7 @@ const S = {
   session: null,
   reviewTab: 'all',
   reviewOpen: {},
+  roundOpen: {},     // 选题页：展开的历史轮次
   qmapOpen: false,   // 答题卡是否展开成多行网格
   qmapScroll: 0,     // 答题卡上次的横向滑动位置
   finishAt: 0
@@ -491,43 +496,142 @@ function doLogin() {
 }
 
 /* ---- 6.2 选题界面 ---- */
+function rateBadge(rate) {
+  return rate >= 80 ? 'text-bg-success' : rate >= 60 ? 'text-bg-warning' : 'text-bg-danger';
+}
+
+/* ---- 6.2 选题界面 ---- */
 function renderBanks() {
-  const recs = historyOf(S.user);
-  const cards = (BANKS || []).map(bank => {
+  const list = BANKS || [];
+  const rounds = roundsOf(S.user);
+  const totalQ = list.reduce((n, b) => n + bankQuestionIds(b).length, 0);
+  const cards = list.map(bank => {
     const total = bankQuestionIds(bank).length;
     const legacy = countLegacy(bank);
     const prog = loadProgress(S.user, bank.id);
     const wrong = wrongIds(S.user, bank.id).length;
-    let counts = { single: 0, multiple: 0, judge: 0, fill: 0 };
+    const fav = favIds(S.user, bank.id).length;
+    const mine = rounds.filter(r => r.bankId === bank.id);
+    const last = mine[0];
+    const counts = { single: 0, multiple: 0, judge: 0, fill: 0 };
     bank.chapters.forEach(ch => ch.questions.forEach(q => counts[q.type]++));
     const st = prog ? stats(prog) : null;
-    return '<div class="card bank" data-act="pick-bank" data-id="' + bank.id + '">' +
-      '<div class="b-top"><span class="b-ico">' + bank.icon + '</span>' +
-        '<div><div class="b-name">' + esc(bank.name) + '</div>' +
-        '<div class="b-desc">' + esc(bank.desc) + '</div></div></div>' +
-      '<div class="b-stat">' +
-        '<span>共 <b>' + total + '</b> 题</span>' +
-        '<span><b>' + bank.chapters.length + '</b> 个章节</span>' +
-        '<span>单选 ' + counts.single + ' · 多选 ' + counts.multiple +
-              ' · 判断 ' + counts.judge + ' · 填空 ' + counts.fill + '</span>' +
-        (legacy ? '<span class="resume" style="color:var(--bs-warning-text-emphasis)">' + legacy + ' 题答案缺失（已容错）</span>' : '') +
-        (wrong ? '<span class="resume" style="color:var(--bs-danger-text-emphasis);background:var(--bs-danger-bg-subtle)">错题 ' + wrong + ' 道</span>' : '') +
-        (st ? '<span class="resume">上次答到第 ' + (st.answered) + ' 题，继续？</span>' : '') +
-      '</div>' +
-      '<span class="b-go"><i class="bi bi-chevron-right"></i></span></div>';
+    const pct = st ? Math.round(st.answered / st.total * 100) : 0;
+    return '<div class="card bank-card" data-act="pick-bank" data-id="' + bank.id + '">' +
+      '<div class="card-body p-3 p-sm-4">' +
+        '<div class="d-flex align-items-start gap-3">' +
+          '<span class="bank-ico"><i class="bi ' + bankIcon(bank.id) + '"></i></span>' +
+          '<div class="flex-grow-1 min-w-0">' +
+            '<div class="d-flex align-items-center gap-2">' +
+              '<h2 class="h6 fw-bold mb-0 text-truncate">' + esc(bank.name) + '</h2>' +
+              (last ? '<span class="badge rounded-pill ' + rateBadge(last.rate) + ' ms-auto flex-shrink-0">' +
+                '上次 ' + last.rate + '%</span>' : '') +
+            '</div>' +
+            '<div class="small text-body-secondary text-truncate">' + esc(bank.desc) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="bank-meta">' +
+          '<span><i class="bi bi-collection"></i>' + total + ' 题</span>' +
+          '<span><i class="bi bi-list-ol"></i>' + bank.chapters.length + ' 章</span>' +
+          '<span><i class="bi bi-ui-checks"></i>单选 ' + counts.single + ' · 多选 ' + counts.multiple +
+            ' · 判断 ' + counts.judge + (counts.fill ? ' · 填空 ' + counts.fill : '') + '</span>' +
+        '</div>' +
+        (st ? '<div class="bank-progress">' +
+          '<div class="d-flex justify-content-between small text-body-secondary">' +
+            '<span><i class="bi bi-play-circle me-1"></i>上次答到第 ' + st.answered + ' 题</span>' +
+            '<span>' + pct + '%</span></div>' +
+          '<div class="progress mt-1" style="height:5px" role="progressbar" aria-label="上次进度">' +
+            '<div class="progress-bar" style="width:' + pct + '%"></div></div>' +
+        '</div>' : '') +
+        '<div class="d-flex flex-wrap align-items-center gap-1 mt-3">' +
+          (wrong ? '<span class="badge rounded-pill text-bg-danger-subtle border border-danger-subtle">' +
+            '<i class="bi bi-journal-bookmark me-1"></i>错题 ' + wrong + '</span>' : '') +
+          (fav ? '<span class="badge rounded-pill text-bg-warning-subtle border border-warning-subtle">' +
+            '<i class="bi bi-star-fill me-1"></i>收藏 ' + fav + '</span>' : '') +
+          (legacy ? '<span class="badge rounded-pill text-bg-secondary">' +
+            '<i class="bi bi-exclamation-triangle me-1"></i>' + legacy + ' 题缺答案</span>' : '') +
+          '<span class="btn btn-sm btn-primary ms-auto">开始练习<i class="bi bi-arrow-right ms-1"></i></span>' +
+        '</div>' +
+      '</div></div>';
   }).join('');
   app.innerHTML =
-    '<h1>选择题库<span class="sub">共 ' + (BANKS || []).length + ' 个题库，' +
-      (BANKS || []).reduce((n, b) => n + bankQuestionIds(b).length, 0) + ' 道题</span></h1>' +
-    '<div style="margin-top:18px">' + cards + '</div>' +
-    (recs.length ? '<div class="hist"><h3>我的成绩历史</h3>' + recs.map(r => {
-      const cls = r.rate >= 80 ? 'good' : r.rate >= 60 ? 'mid' : 'bad';
-      return '<div class="rec"><span class="r-name">' + esc(r.bankName) + '</span>' +
-        '<span class="text-body-secondary">' + esc(String(r.at || '').slice(5, 16).replace('T', ' ')) + '</span>' +
-        '<span class="text-body-secondary">' + r.correct + '/' + r.total + '</span>' +
-        '<span class="r-rate ' + cls + '">' + r.rate + '%</span></div>';
-    }).join('') + '</div>' : '');
+    '<div class="banks-head">' +
+      '<div><h1 class="h3 fw-bold mb-1">选择题库</h1>' +
+      '<p class="text-body-secondary mb-0">共 ' + list.length + ' 个题库 · ' + totalQ + ' 道题</p></div>' +
+      (rounds.length ? '<span class="badge rounded-pill text-bg-secondary">' +
+        '<i class="bi bi-clock-history me-1"></i>已记录 ' + rounds.length + ' 轮</span>' : '') +
+    '</div>' +
+    '<div class="bank-grid">' + cards + '</div>' +
+    renderRounds();
 }
+
+/* ---- 6.2.1 历史轮次回看（原地展开，不跳页）----
+   只展示已作答的题：题号 / 用户答案 / 正确答案 / 解析；最后一行是汇总。
+   题干解析现查 QMAP，查不到的题号跳过，但汇总数字仍取快照，保证"数字不变"。 */
+function fmtWhen(ms) {
+  const d = new Date(ms || 0), p = n => (n < 10 ? '0' : '') + n;
+  return (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日 ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+function roundDone(r) {
+  return (r.order || []).filter(qid => r.submitted && r.submitted[qid]);
+}
+function renderRoundBody(r) {
+  const rows = roundDone(r).map(qid => {
+    const q = QMAP[qid];
+    if (!q) return '';
+    const ok = isCorrect(q, r.answers[qid]);
+    return '<tr>' +
+      '<td class="text-body-secondary">' + (r.order.indexOf(qid) + 1) + '</td>' +
+      '<td class="' + (ok ? '' : 'text-danger') + '">' + esc(pickedText(q, r.answers[qid])) +
+        ' <i class="bi ' + (ok ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger') + '"></i></td>' +
+      '<td class="text-success">' + esc(answerText(q).replace(/\s+/g, ' ').trim()) + '</td>' +
+      '<td class="text-body-secondary">' + (q.analysis ? fmt(q.analysis) : '—') + '</td>' +
+      '</tr>';
+  }).join('');
+  const sum = '<tr class="round-sum"><td colspan="4">' +
+    '总题数 <b>' + r.total + '</b>　答错 <b class="text-danger">' + r.wrong + '</b>　' +
+    '答对 <b class="text-success">' + r.correct + '</b>　未答 <b>' + r.unanswered + '</b>　' +
+    '正确率 <b>' + r.rate + '%</b></td></tr>';
+  return '<div class="table-responsive"><table class="table table-sm align-middle round-table mb-0">' +
+    '<thead><tr><th style="width:4.5rem">题号</th><th style="width:9rem">用户答案</th>' +
+    '<th style="width:9rem">正确答案</th><th>解析</th></tr></thead>' +
+    '<tbody>' + (rows || '<tr><td colspan="4" class="text-body-secondary">这一轮没有作答记录</td></tr>') +
+    sum + '</tbody></table></div>';
+}
+function renderRounds() {
+  const list = roundsOf(S.user);
+  if (!list.length) return '';
+  const cards = list.map((r, i) => {
+    const open = !!S.roundOpen[r.id];
+    return '<div class="card round-card shadow-sm mb-2">' +
+      '<div class="card-body py-2 d-flex flex-wrap align-items-center gap-2 gap-sm-3 round-head"' +
+        ' data-act="round-toggle" data-round="' + esc(r.id) + '" data-bs-toggle="collapse"' +
+        ' data-bs-target="#roundBody' + i + '" role="button"' +
+        ' aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="roundBody' + i + '">' +
+        '<span class="badge rounded-pill text-bg-secondary">' + esc(r.bankName) + '</span>' +
+        '<span class="small text-body-secondary"><i class="bi bi-clock me-1"></i>' +
+          fmtWhen(r.finishedAt || r.startedAt) + '</span>' +
+        '<span class="small text-body-secondary">得分 ' + r.score + '</span>' +
+        '<span class="small text-body-secondary">用时 ' + fmtTime((r.seconds || 0) * 1000) + '</span>' +
+        '<span class="ms-auto d-flex align-items-center gap-2">' +
+          '<b class="' + (r.rate >= 80 ? 'text-success' : r.rate >= 60 ? 'text-warning' : 'text-danger') + '">' +
+            r.rate + '%</b>' +
+          '<i class="bi ' + (open ? 'bi-chevron-up' : 'bi-chevron-down') +
+            ' text-body-secondary round-cx"></i>' +
+        '</span>' +
+      '</div>' +
+      '<div class="collapse' + (open ? ' show' : '') + '" id="roundBody' + i + '">' +
+        '<div class="card-body pt-0">' + renderRoundBody(r) + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  return '<section class="rounds">' +
+    '<div class="d-flex align-items-baseline gap-2 mb-2 flex-wrap">' +
+      '<h2 class="h6 fw-bold mb-0"><i class="bi bi-clock-history me-1"></i>我的成绩历史</h2>' +
+      '<span class="small text-body-secondary">共 ' + list.length + ' 轮，点开看逐题记录</span>' +
+    '</div>' + cards + '</section>';
+}
+
 function pickBank(id) {
   S.bankId = id;
   S.chapters = bankById(id).chapters.map(c => c.id);
@@ -1146,6 +1250,17 @@ document.addEventListener('click', function (e) {
       const qid = el.dataset.qid;
       if (S.reviewOpen[qid]) delete S.reviewOpen[qid]; else S.reviewOpen[qid] = true;
       render(); break;
+    }
+    case 'round-toggle': {
+      const id = el.dataset.round;
+      if (S.roundOpen[id]) delete S.roundOpen[id]; else S.roundOpen[id] = true;
+      /* 展开/收起交给 Bootstrap collapse，只同步箭头 */
+      const box = el.parentNode && el.parentNode.querySelector('.collapse');
+      const open = box && box.classList.contains('show');
+      const cx = el.querySelector('.round-cx');
+      if (cx) cx.className = 'bi ' + (open ? 'bi-chevron-up' : 'bi-chevron-down') +
+        ' text-body-secondary round-cx';
+      break;
     }
     case 'retry-wrong': retryWrong(); break;
     case 'again': again(); break;
