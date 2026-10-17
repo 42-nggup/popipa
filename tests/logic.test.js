@@ -60,7 +60,7 @@ vm.createContext(sandbox);
 vm.runInContext(dataSrc + '\n' + logicSrc + `
 globalThis.__hook = { S, stats, isCorrect, hasAnswer, startSession, pickKey, submitCurrent, redoCurrent,
   jump, go, step, finish, pickBank, doLogin, retryWrong,
-  tickAuto, QMAP, bankById, bankQuestionIds, LETTERS, render,
+  tickAuto, QMAP, bankById, bankQuestionIds, LETTERS, render, renderQuiz,
   store, KEY, userOf, users, userTable, migrateUsers, roundsOf, pushRound,
   favIds, isFav, toggleFavId, toggleFav,
   wrongIds, sanitizeSession, historyOf, loadProgress, lastName,
@@ -442,6 +442,62 @@ ok('重开一局后星星还在', els['app'].innerHTML.indexOf('bi-star-fill') >
 ok('stats() 的收藏数按用户表算', H.stats(H.S.session).fav === 1);
 H.toggleFav();
 ok('再点一次取消收藏', H.isFav('小明', favQid) === false);
+
+
+section('25. 「再练一遍没做对的」入口');
+H.S.user = '小明'; H.S.view = 'setup'; H.S.bankId = 'web';
+H.S.chapters = H.bankById('web').chapters.map(c => c.id);
+H.S.wrongOnly = false;
+H.startSession();
+const ord25 = H.S.session.order;
+const w25 = ord25.findIndex(id => H.QMAP[id].type === 'single');
+H.jump(w25);
+H.pickKey(H.LETTERS.split('').slice(0, H.QMAP[ord25[w25]].options.length)
+  .find(k => H.QMAP[ord25[w25]].answer.indexOf(k) < 0));
+H.submitCurrent(false);
+const wrongSet = H.S.session.order.filter(id =>
+  H.S.session.submitted[id] && !H.isCorrect(H.QMAP[id], H.S.session.answers[id]));
+const oldId = H.S.session.id;
+H.finish();
+ok('结果页有入口按钮', els['app'].innerHTML.indexOf('再练一遍没做对的') >= 0);
+const oldRound = JSON.parse(JSON.stringify(H.roundsOf('小明')[0]));
+fire('retry-wrong');
+ok('进入新的一轮（新 session id）', H.S.view === 'quiz' && H.S.session.id !== oldId);
+ok('新轮只含这一轮没做对的题',
+   H.S.session.order.length === wrongSet.length &&
+   H.S.session.order.every(id => wrongSet.indexOf(id) >= 0));
+const stillOld = H.roundsOf('小明')[0];
+ok('旧一轮的逐题记录与数字原样保留',
+   stillOld.id === oldRound.id && stillOld.rate === oldRound.rate &&
+   stillOld.correct === oldRound.correct && stillOld.wrong === oldRound.wrong &&
+   JSON.stringify(stillOld.answers) === JSON.stringify(oldRound.answers));
+
+section('26. 全对时入口置灰');
+H.startSession();
+const only = H.S.session.order[0];
+H.S.session.order = [only];
+H.S.session.answers = {}; H.S.session.submitted = {};
+H.S.session.answers[only] = H.QMAP[only].answer.slice();
+H.S.session.submitted[only] = true;
+H.S.view = 'result';
+H.render();
+ok('没有答错的题时入口被禁用', /data-act="retry-wrong"[^>]*disabled/.test(els['app'].innerHTML));
+
+section('27. 答题卡滑动位置保持');
+H.S.view = 'setup'; H.S.bankId = 'web';
+H.S.chapters = H.bankById('web').chapters.map(c => c.id);
+H.startSession();
+els['qmap'].scrollLeft = 480;
+H.render();                                  /* 重绘前记住 480 */
+ok('重绘前记住了滑动位置', H.S.qmapScroll === 480);
+els['qmap'].scrollLeft = 0;                  /* 模拟整页重绘把位置冲成 0 */
+H.renderQuiz();                              /* 只重绘答题页 */
+ok('重绘后从上次位置继续，而不是从 0 滑过来', els['qmap'].scrollLeft === 480);
+
+section('28. 展开键与答题卡等高');
+ok('容器用 stretch 让按钮和 qmap 同高',
+   /\.qmap-wrap\{[^}]*align-items:stretch/.test(cssSrc));
+ok('按钮不再写死高度', /\.qmap-expand\{[^}]*height:auto/.test(cssSrc));
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

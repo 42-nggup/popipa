@@ -107,12 +107,15 @@ pre.code code{background:none;border:0;padding:0;color:inherit;white-space:pre}
 
 /* 答题卡：119/219 个带状态的小方块，Bootstrap 没有对应控件。
    注意：原来叫 .nav，与 Bootstrap 的导航组件 .nav 撞名，已改名 .qmap */
-.qmap-wrap{display:flex;align-items:center;gap:8px;margin-top:8px}
+.qmap-wrap{display:flex;align-items:stretch;gap:8px;margin-top:8px}
 .qmap-wrap .qmap{flex:1 1 auto;min-width:0}
+/* 展开后答题卡会变高，按钮不再拉伸，回到顶部对齐 */
+.qmap-wrap.open{align-items:flex-start}
+.qmap-wrap.open .qmap-expand{height:32px}
 .qmap{display:flex;gap:6px;overflow-x:auto;padding:.85rem 2px .4rem;scroll-behavior:smooth}
 /* 展开：单行横向滚动 → 多行网格，整份答题卡一眼看全 */
 .qmap.open{flex-wrap:wrap;overflow-x:visible;max-height:42vh;overflow-y:auto}
-.qmap-expand{flex:0 0 auto;width:32px;height:32px;display:grid;place-items:center;
+.qmap-expand{flex:0 0 auto;width:32px;min-height:32px;height:auto;display:grid;place-items:center;
              border:1px solid var(--bs-border-color);border-radius:var(--bs-border-radius-sm);
              background:var(--bs-body-bg);color:var(--bs-secondary-color);transition:.15s}
 .qmap-expand:hover{border-color:var(--bs-primary);color:var(--bs-primary)}

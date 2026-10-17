@@ -419,6 +419,7 @@ const S = {
   reviewTab: 'all',
   reviewOpen: {},
   qmapOpen: false,   // 答题卡是否展开成多行网格
+  qmapScroll: 0,     // 答题卡上次的横向滑动位置
   finishAt: 0
 };
 
@@ -435,6 +436,9 @@ function renderThemeBtn() {
 
 /* ============ 6. 渲染 ============ */
 function render() {
+  /* 切题会整页重绘，先把答题卡当前的滑动位置记下来，避免每次都从左端重新滑 */
+  const qm = document.getElementById('qmap');
+  if (qm && !S.qmapOpen && typeof qm.scrollLeft === 'number') S.qmapScroll = qm.scrollLeft;
   renderThemeBtn();
   if (S.view === 'login' || !S.user) return renderLogin();
   topbar.hidden = false;
@@ -591,7 +595,8 @@ function startSession() {
     if (!ids.length) { toast('请至少选择一个章节'); return; }
   }
   if (S.mode === 'random') ids = shuffle(ids);
-  S.qmapOpen = false;                      /* 新一局答题卡默认收起 */
+  S.qmapOpen = false;
+  S.qmapScroll = 0;                      /* 新一局答题卡默认收起 */
   S.session = {
     id: 's' + Date.now(),
     bankId: bank.id, bankName: bank.name + (S.wrongOnly ? ' · 错题本' : ''),
@@ -609,6 +614,7 @@ function resumeSession() {
   if (!p) { toast('没有可继续的记录'); return; }
   p.finished = false;
   S.qmapOpen = false;
+  S.qmapScroll = 0;
   S.session = p;
   S.view = 'quiz';
   render();
@@ -706,7 +712,7 @@ function renderQuiz() {
         '<button class="btn btn-outline-secondary" data-act="finish">交卷</button>' +
       '</div>' +
     '</div>' +
-    '<div class="qmap-wrap">' +
+    '<div class="qmap-wrap' + (S.qmapOpen ? ' open' : '') + '">' +
       '<div class="qmap' + (S.qmapOpen ? ' open' : '') + '" id="qmap">' + nav + '</div>' +
       '<button class="qmap-expand" type="button" data-act="qmap-toggle"' +
         ' aria-expanded="' + (S.qmapOpen ? 'true' : 'false') + '"' +
@@ -717,6 +723,7 @@ function renderQuiz() {
     '<div class="kbdhint">快捷键：<span class="kbd">←</span> <span class="kbd">→</span> 切题 · ' +
       '<span class="kbd">1</span>~<span class="kbd">4</span> 选项 · ' +
       '<span class="kbd">Enter</span> 提交 · <span class="kbd">F</span> 收藏</div>';
+  restoreQmapScroll();
   scrollNavToCurrent();
   tickTimer();
 }
@@ -729,6 +736,19 @@ function navTargetScroll(curLeft, boxW, totalW) {
   const max = totalW - boxW;
   if (max <= 0) return 0;
   return Math.max(0, Math.min(max, curLeft - boxW * NAV_ANCHOR));
+}
+/* 先把答题卡放回上次的滑动位置，再算"把当前题滑到 35%"的新目标：
+   这样切换题目时是从上一次的位置继续平移，而不是每次都从最左边滑过来。 */
+function restoreQmapScroll() {
+  const box = document.getElementById('qmap');
+  if (!box || S.qmapOpen || typeof box.scrollLeft !== 'number') return;
+  const prev = S.qmapScroll || 0;
+  if (!prev) return;
+  const smooth = box.style ? box.style.scrollBehavior : '';
+  if (box.style) box.style.scrollBehavior = 'auto';   /* 归位这一步不要动画 */
+  box.scrollLeft = prev;
+  void box.scrollWidth;                               /* 强制回流，后续动画从新位置起算 */
+  if (box.style) box.style.scrollBehavior = smooth;
 }
 function scrollNavToCurrent() {
   const box = document.getElementById('qmap');
@@ -925,7 +945,10 @@ function renderResult() {
         '<h2>得分 ' + st.score + ' 分</h2>' +
         '<p>' + verdict + '　用时 ' + fmtTime(used) + '</p>' +
         '<div class="d-flex flex-wrap align-items-center gap-2 mt-3">' +
-          '<button class="btn btn-outline-primary" data-act="retry-wrong">重做错题</button>' +
+          '<button class="btn btn-outline-primary" data-act="retry-wrong"' +
+            (st.wrong ? '' : ' disabled') +
+            ' title="' + (st.wrong ? '把这一轮答错的题抽出来再练一遍' : '这一轮没有答错的题，不需要重练') + '">' +
+            '<i class="bi bi-arrow-repeat me-1"></i>再练一遍没做对的</button>' +
           '<button class="btn btn-outline-secondary" data-act="again">再刷一遍</button>' +
           '<button class="btn btn-primary" data-act="share-png">' +
             '<i class="bi bi-download me-1"></i>导出分享图</button>' +
@@ -948,10 +971,12 @@ function retryWrong() {
   const s = S.session;
   autoJump = null;
   S.qmapOpen = false;
+  S.qmapScroll = 0;
   const ids = s.order.filter(qid => s.submitted[qid] && !isCorrect(QMAP[qid], s.answers[qid]));
-  if (!ids.length) { toast('没有错题，太棒了'); return; }
+  if (!ids.length) { toast('这一轮没有答错的题'); return; }
+  /* 新的一轮用新的 session id：上一轮已在交卷时落进 rounds，数字不会被覆盖 */
   S.session = {
-    id: 's' + Date.now(), bankId: s.bankId, bankName: s.bankName + ' · 错题重做',
+    id: 's' + Date.now(), bankId: s.bankId, bankName: s.bankName + ' · 再练没做对的',
     chapters: s.chapters.slice(), mode: 'order',
     order: ids, idx: 0, answers: {}, submitted: {}, fav: {},
     startedAt: Date.now(), finishedAt: 0, finished: false
@@ -964,6 +989,7 @@ function again() {
   const s = S.session;
   autoJump = null;
   S.qmapOpen = false;
+  S.qmapScroll = 0;
   S.session = {
     id: 's' + Date.now(), bankId: s.bankId, bankName: s.bankName,
     chapters: s.chapters.slice(), mode: s.mode,
