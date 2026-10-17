@@ -447,6 +447,7 @@ function render() {
   renderThemeBtn();
   if (S.view === 'login' || !S.user) return renderLogin();
   topbar.hidden = false;
+  document.getElementById('whoBox').hidden = false;
   document.getElementById('whoName').textContent = S.user;
   document.getElementById('avatar').textContent = S.user.slice(0, 1).toUpperCase();
   if (S.view === 'banks') return renderBanks();
@@ -457,7 +458,8 @@ function render() {
 
 /* ---- 6.1 登录主页 ---- */
 function renderLogin() {
-  topbar.hidden = true;
+  topbar.hidden = false;                       /* 登录页也保留顶栏：主题开关在 navbar 里 */
+  document.getElementById('whoBox').hidden = true;
   const last = lastName();          /* 只用来回填昵称，不再列出"本机记录" */
   app.innerHTML =
     '<div class="hero">' +
@@ -773,8 +775,13 @@ function renderQuiz() {
       '</div>';
   }
 
-  /* 答题卡 */
-  const nav = s.order.map((id, i) => {
+  /* 答题卡：同一局且题数没变就复用已有节点——切题不重建格子，滚动位置也不丢 */
+  let reuseMap = document.getElementById('qmap');
+  if (reuseMap && (!reuseMap.children || reuseMap.children.length !== s.order.length ||
+      reuseMap.dataset.session !== String(s.id))) reuseMap = null;
+  if (reuseMap && reuseMap.parentNode) reuseMap.parentNode.removeChild(reuseMap);
+
+  const nav = reuseMap ? '' : s.order.map((id, i) => {
     const d = !!s.submitted[id];
     const c = d ? (isCorrect(QMAP[id], s.answers[id]) ? 'ok' : 'no') : '';
     return '<b class="' + c + (i === s.idx ? ' cur' : '') + '" data-act="jump" data-i="' + i + '">' +
@@ -818,7 +825,8 @@ function renderQuiz() {
       '</div>' +
     '</div>' +
     '<div class="qmap-wrap' + (S.qmapOpen ? ' open' : '') + '">' +
-      '<div class="qmap' + (S.qmapOpen ? ' open' : '') + '" id="qmap">' + nav + '</div>' +
+      '<div class="qmap' + (S.qmapOpen ? ' open' : '') + '" id="qmap" data-session="' + esc(s.id) + '">' +
+        nav + '</div>' +
       '<button class="qmap-expand" type="button" data-act="qmap-toggle"' +
         ' aria-expanded="' + (S.qmapOpen ? 'true' : 'false') + '"' +
         ' title="' + (S.qmapOpen ? '收起答题卡' : '展开答题卡') + '"' +
@@ -828,6 +836,22 @@ function renderQuiz() {
     '<div class="kbdhint">快捷键：<span class="kbd">←</span> <span class="kbd">→</span> 切题 · ' +
       '<span class="kbd">1</span>~<span class="kbd">4</span> 选项 · ' +
       '<span class="kbd">Enter</span> 提交 · <span class="kbd">F</span> 收藏</div>';
+  /* 复用的节点重新插回去，只更新每个格子的状态类（结构不动） */
+  if (reuseMap) {
+    const slot = document.getElementById('qmap');
+    if (slot && slot.parentNode) {
+      reuseMap.className = 'qmap' + (S.qmapOpen ? ' open' : '');
+      reuseMap.dataset.session = String(s.id);
+      const kids = reuseMap.children;
+      for (let i = 0; i < kids.length; i++) {
+        const qid2 = s.order[i];
+        kids[i].className = (s.submitted[qid2]
+          ? (isCorrect(QMAP[qid2], s.answers[qid2]) ? 'ok' : 'no') : '') +
+          (i === s.idx ? ' cur' : '');
+      }
+      slot.parentNode.replaceChild(reuseMap, slot);
+    }
+  }
   restoreQmapScroll();
   scrollNavToCurrent();
   tickTimer();
@@ -912,8 +936,31 @@ function toggleFav() {
   const on = toggleFavId(S.user, qid);   /* 收藏记在每用户表，跨场次保留 */
   if (on) s.fav[qid] = true; else delete s.fav[qid];
   saveProgress();
-  render();
+  /* 只更新这颗星星，不重绘整页 */
+  const btn = document.querySelector('.fav[data-act="fav"]');
+  if (btn) {
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.innerHTML = '<i class="bi ' + (on ? 'bi-star-fill' : 'bi-star') + '"></i>';
+  }
   toast(on ? '已加入收藏' : '已取消收藏');
+}
+/* 答题卡展开/收起：只切 class 和箭头，不重绘整页 */
+function toggleQmap() {
+  S.qmapOpen = !S.qmapOpen;
+  const wrap = document.querySelector('.qmap-wrap');
+  const box = document.getElementById('qmap');
+  const btn = wrap && wrap.querySelector('.qmap-expand');
+  if (!wrap || !box || !btn) { render(); return; }   /* 极端情况兜底 */
+  wrap.classList.toggle('open', S.qmapOpen);
+  box.classList.toggle('open', S.qmapOpen);
+  btn.setAttribute('aria-expanded', S.qmapOpen ? 'true' : 'false');
+  const tip = S.qmapOpen ? '收起答题卡' : '展开答题卡';
+  btn.title = tip;
+  btn.setAttribute('aria-label', tip);
+  const icon = btn.querySelector('i');
+  if (icon) icon.className = 'bi ' + (S.qmapOpen ? 'bi-chevron-up' : 'bi-chevron-down');
+  scrollNavToCurrent();
 }
 function go(delta) {
   const s = S.session;
@@ -1237,7 +1284,7 @@ document.addEventListener('click', function (e) {
     case 'submit': submitCurrent(); break;
     case 'redo': redoCurrent(); break;
     case 'fav': toggleFav(); break;
-    case 'qmap-toggle': S.qmapOpen = !S.qmapOpen; render(); break;
+    case 'qmap-toggle': toggleQmap(); break;
     case 'share-png': exportPng(); break;
     case 'share-dl': bootstrap.Modal.getOrCreateInstance(shareModalEl).hide(); break;
     case 'prev': step(-1); break;
@@ -1249,7 +1296,10 @@ document.addEventListener('click', function (e) {
     case 'toggle-rev': {
       const qid = el.dataset.qid;
       if (S.reviewOpen[qid]) delete S.reviewOpen[qid]; else S.reviewOpen[qid] = true;
-      render(); break;
+      /* 只切当前卡片的 open 类，不重绘整页 */
+      const card = el.parentNode;
+      if (card && card.classList) card.classList.toggle('open', !!S.reviewOpen[qid]);
+      break;
     }
     case 'round-toggle': {
       const id = el.dataset.round;

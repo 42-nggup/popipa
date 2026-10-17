@@ -42,6 +42,7 @@ const sandbox = {
   console, Math, JSON, Date, Number, String, Array, Object, Boolean, RegExp, Error, isNaN,
   document: {
     getElementById: id => (els[id] || (els[id] = mkEl(id))),
+    querySelector: () => null,          /* 组件定向更新在桩里走兜底渲染 */
     createElement: () => mkEl('tmp'),
     body: mkEl('body'),
     addEventListener: (t, fn) => { if (t === 'click') handlers.click.push(fn); },
@@ -498,9 +499,9 @@ section('28. 展开键与答题卡等高');
 ok('容器用 stretch 让按钮和 qmap 同高',
    /\.qmap-wrap\{[^}]*align-items:stretch/.test(cssSrc));
 ok('按钮不再写死高度', /\.qmap-expand\{[^}]*height:auto/.test(cssSrc));
-ok('竖向 padding 在容器上，按钮与 grid 内容框等高',
-   /\.qmap-wrap\{[^}]*padding:\.85rem 0 \.4rem/.test(cssSrc) &&
-   /\.qmap\{[^}]*padding:0 2px/.test(cssSrc));
+ok('按钮与 grid 内容框等高，底部留出滚动条位置',
+   /\.qmap-wrap\{[^}]*padding:\.85rem 0 0/.test(cssSrc) &&
+   /\.qmap\{[^}]*padding:0 2px 10px/.test(cssSrc));
 
 
 section('29. 最后一题只留一个交卷按钮');
@@ -579,6 +580,27 @@ fire('round-toggle', { round: r33.id });
 ok('点击轮次会记录展开状态', H.S.roundOpen[r33.id] === true);
 H.render();
 ok('展开状态在重绘后保留', els['app'].innerHTML.indexOf('collapse show') >= 0);
+
+
+section('34. 主题开关进 navbar / 组件定向更新');
+ok('主题开关在 navbar 的用户区里',
+   /id="whoBox"[\s\S]*id="themeBtn"/.test(htmlSrc));
+ok('不再有独立浮动的主题按钮', htmlSrc.indexOf('class="theme-btn" id="themeBtn"') === -1);
+H.S.user = null; H.S.view = 'login';
+H.render();
+ok('登录页也显示 navbar（品牌 + 主题），但隐藏用户区',
+   els['top'].hidden === false && els['whoBox'].hidden === true);
+H.S.user = '小明'; H.S.view = 'banks';
+H.render();
+ok('登录后显示用户区', els['whoBox'].hidden === false);
+
+/* 收藏只改星星本身，不重绘整页 */
+H.S.view = 'setup'; H.S.bankId = 'web';
+H.S.chapters = H.bankById('web').chapters.map(c => c.id);
+H.startSession();
+const beforeHtml = els['app'].innerHTML;
+H.toggleFav();
+ok('收藏不触发整页重绘', els['app'].innerHTML === beforeHtml);
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

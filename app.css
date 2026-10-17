@@ -35,11 +35,8 @@ body{
         font-size:12px;font-weight:700;background:linear-gradient(135deg,var(--bs-primary),var(--bs-primary-border-subtle))}
 
 /* ---------- 3. 主题开关（#app 外面，所有页面同一位置） ---------- */
-.theme-btn{position:fixed;right:20px;bottom:20px;z-index:1030;width:44px;height:44px;border-radius:50%;
-           display:grid;place-items:center;font-size:1.15rem;
-           background:var(--bs-body-bg);color:var(--bs-body-color);
-           border:1px solid var(--bs-border-color);box-shadow:var(--bs-box-shadow);transition:.16s}
-.theme-btn:hover{color:var(--bs-primary);border-color:var(--bs-primary);transform:translateY(-2px)}
+/* 主题开关在 navbar 里，尺寸和旁边的按钮一致 */
+.theme-btn{width:32px;height:32px;padding:0;display:inline-grid;place-items:center;font-size:1rem}
 
 /* ---------- 4. 登录页 ---------- */
 .hero{padding:3rem 0 .5rem;text-align:center}
@@ -112,11 +109,12 @@ pre.code code{background:none;border:0;padding:0;color:inherit;white-space:pre}
 
 /* 答题卡：119/219 个带状态的小方块，Bootstrap 没有对应控件。
    注意：原来叫 .nav，与 Bootstrap 的导航组件 .nav 撞名，已改名 .qmap */
-.qmap-wrap{display:flex;align-items:stretch;gap:8px;margin-top:8px;padding:.85rem 0 .4rem}
+.qmap-wrap{display:flex;align-items:stretch;gap:8px;margin-top:8px;padding:.85rem 0 0}
 .qmap-wrap .qmap{flex:1 1 auto;min-width:0}
-.qmap{display:flex;gap:6px;overflow-x:auto;padding:0 2px;scroll-behavior:smooth}
+/* 底部留出滚动条的位置：下端向下几 px，横向滚动条不会盖住格子 */
+.qmap{display:flex;gap:6px;overflow-x:auto;padding:0 2px 10px;scroll-behavior:smooth}
 /* 展开：单行横向滚动 → 多行网格，整份答题卡一眼看全 */
-.qmap.open{flex-wrap:wrap;overflow-x:visible;max-height:42vh;overflow-y:auto}
+.qmap.open{flex-wrap:wrap;overflow-x:visible;max-height:42vh;overflow-y:auto;scrollbar-gutter:stable}
 .qmap-expand{flex:0 0 auto;width:32px;min-height:32px;height:auto;display:grid;place-items:center;
              border:1px solid var(--bs-border-color);border-radius:var(--bs-border-radius-sm);
              background:var(--bs-body-bg);color:var(--bs-secondary-color);transition:.15s}
@@ -250,7 +248,6 @@ h1 .sub{display:block;font-size:14px;font-weight:400;color:var(--bs-secondary-co
 /* ---------- 13. 移动端 ---------- */
 @media (max-width:560px){
   .hero{padding:2rem 0 .25rem}
-  .theme-btn{right:14px;bottom:14px;width:40px;height:40px;font-size:1rem}
   .score-hero{padding:18px;gap:18px}
   .qbar{gap:6px 12px}
   .bank-grid{grid-template-columns:1fr}
