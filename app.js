@@ -21,11 +21,8 @@
 const app = document.getElementById('app');
 const topbar = document.getElementById('top');
 const toastEl = document.getElementById('toast');
-const askModalEl = document.getElementById('askModal');
-const dialogEl = document.getElementById('dialog');
 const shareModalEl = document.getElementById('shareModal');
 const shareBodyEl = document.getElementById('shareBody');
-const askModal = () => bootstrap.Modal.getOrCreateInstance(askModalEl);
 
 const TYPE_LABEL = {
   single: { text: '单选题', cls: '' },
@@ -147,8 +144,7 @@ const KEY = {
   user: 'popipa:user',    /* 当前登录的是谁（退出登录会清）*/
   last: 'popipa:last',    /* 最近一次登录过谁（不清）*/
   users: 'popipa:users',
-  theme: 'popipa:theme',
-  noPrompt: 'popipa:noPrompt'
+  theme: 'popipa:theme'
 };
 const store = {
   get(k, d) {
@@ -331,7 +327,6 @@ const S = {
   chapters: [],       // 组卷时选中的章节
   mode: 'order',      // order | random
   wrongOnly: false,   // 只练错题本
-  noPrompt: store.get(KEY.noPrompt, false),  // 未提交就切下一题时，不再询问直接提交
   theme: 'light',
   session: null,
   reviewTab: 'all',
@@ -483,13 +478,6 @@ function renderSetup() {
       '<div class="seg">' +
         '<button class="' + (S.mode === 'order' ? 'on' : '') + '" data-act="mode" data-mode="order">顺序</button>' +
         '<button class="' + (S.mode === 'random' ? 'on' : '') + '" data-act="mode" data-mode="random">随机</button>' +
-      '</div>' +
-      '<div class="hr"></div>' +
-      '<h3>答题设置</h3><p class="hint">多选题 / 填空题选了答案却没提交就点「下一题」时，默认会先问一句；' +
-        '单选题 / 判断题则直接提交。这个开关可以改回来。</p>' +
-      '<div class="chips">' +
-        '<button class="chip ' + (S.noPrompt ? 'on' : '') + '" data-act="toggle-noprompt">' +
-          (S.noPrompt ? '<i class="bi bi-check-lg me-1"></i>' : '') + '不再提醒，直接提交</button>' +
       '</div>' +
       '<div class="d-flex flex-wrap align-items-center gap-2 mt-3"><span class="flex-grow-1 text-body-secondary">本次将出 <b>' + picked + '</b> 道题</span>' +
         '<button class="btn btn-outline-secondary" data-act="back-banks">返回</button>' +
@@ -726,48 +714,22 @@ function jump(i) {
 /* ---- 6.6.1 规则一：选了答案但没提交就点「下一题」----
    单选题 / 判断题：自动提交（答案唯一，提交符合用户预期）
    多选题 / 填空题：先问一句，提示框上可以勾「不再提醒」       */
+/* ---- 6.6.1 规则一：「下一题」= 提交 + 判题 ----
+   没作答 / 已提交：直接切下一题；
+   有答案但没提交：视同点「提交答案」——
+     答对：提交后立刻进入下一题；
+     答错：与提交答案完全一致（留在本题看正确答案与解析，10 秒后自动跳）。 */
 function step(delta) {
-  if (delta > 0 && !leaveCurrent()) return;    /* 询问框已弹出，等用户选 */
+  if (delta < 0) { go(delta); return; }
+  const s = S.session, qid = s.order[s.idx], q = QMAP[qid];
+  if (!s.submitted[qid] && hasAnswer(q, s.answers[qid])) {
+    const correct = isCorrect(q, s.answers[qid]);
+    submitCurrent();                 /* 走和「提交答案」同一条路径 */
+    if (correct) { autoJump = null; go(1); }
+    return;
+  }
   go(delta);
 }
-function leaveCurrent() {
-  const s = S.session, qid = s.order[s.idx], q = QMAP[qid];
-  if (s.submitted[qid]) return true;                        /* 已提交，直接走 */
-  if (!hasAnswer(q, s.answers[qid])) return true;            /* 没作答，也直接走 */
-  const auto = q.type === 'single' || q.type === 'judge';    /* 答案唯一的题型可以安全自动提交 */
-  if (auto || S.noPrompt) {
-    submitCurrent(false);
-    if (!auto) toast('已按「不再提醒」自动提交本题');
-    return true;
-  }
-  askUnsubmitted();
-  return false;
-}
-function askUnsubmitted() {
-  const q = QMAP[S.session.order[S.session.idx]];
-  dialogEl.innerHTML =
-    '<div class="modal-header">' +
-      '<h5 class="modal-title">这道题还没提交</h5>' +
-      '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>' +
-    '</div>' +
-    '<div class="modal-body">' +
-      '<p>你已经选了答案，但还没点「提交答案」。' + esc(TYPE_LABEL[q.type].text) +
-        '的答案可能不止一个，所以我没敢自作主张。</p>' +
-      '<button class="memory' + (S.noPrompt ? ' on' : '') + '" data-act="toggle-noprompt"' +
-        ' role="switch" aria-checked="' + (S.noPrompt ? 'true' : 'false') + '">' +
-        '<i class="bi ' + (S.noPrompt ? 'bi-check-lg' : '') + '"></i>不再提醒，以后直接提交</button>' +
-    '</div>' +
-    '<div class="modal-footer">' +
-      '<button class="btn btn-outline-secondary" data-act="dlg-cancel">留在此题</button>' +
-      '<button class="btn btn-outline-primary" data-act="dlg-skip">不提交，继续</button>' +
-      '<button class="btn btn-primary" data-act="dlg-submit">提交并继续</button>' +
-    '</div>';
-  askModal().show();
-}
-/* Modal 的显示/隐藏是异步的（要等淡入淡出），所以收尾放在 hidden 事件里，
-   保证下次 show() 之前内容已经清干净。*/
-function closeDialog() { askModal().hide(); }
-askModalEl.addEventListener('hidden.bs.modal', function () { dialogEl.innerHTML = ''; });
 
 /* ---- 6.6.2 规则二：提交后自动进入下一题（答对 3 秒，答错 10 秒）----
    计时器只存内存，任何一次切题 / 重做都会取消它；最后一题不自动跳，免得误触交卷 */
@@ -1016,7 +978,6 @@ timer = setInterval(() => { if (S.view === 'quiz') tickTimer(); tickAuto(); }, 1
 
 /* ============ 7. 事件 ============ */
 document.addEventListener('click', function (e) {
-  if (e.target.id === 'mask') { closeDialog(); return; }   /* 点遮罩关闭询问框 */
   const el = e.target.closest('[data-act]');
   if (!el) return;
   const act = el.dataset.act;
@@ -1052,14 +1013,6 @@ document.addEventListener('click', function (e) {
     case 'next': step(1); break;
     case 'jump': jump(Number(el.dataset.i)); break;
     case 'cancel-auto': autoJump = null; render(); toast('已取消自动跳转'); break;
-    case 'toggle-noprompt':
-      S.noPrompt = !S.noPrompt; store.set(KEY.noPrompt, S.noPrompt);
-      toast(S.noPrompt ? '已开启：以后直接提交' : '已恢复提醒');
-      if (el.classList.contains('memory')) askUnsubmitted(); else render();
-      break;
-    case 'dlg-submit': closeDialog(); submitCurrent(false); go(1); break;
-    case 'dlg-skip': closeDialog(); go(1); break;
-    case 'dlg-cancel': closeDialog(); break;
     case 'finish': finish(); break;
     case 'tab': S.reviewTab = el.dataset.tab; S.reviewOpen = {}; render(); break;
     case 'toggle-rev': {
