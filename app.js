@@ -328,6 +328,32 @@ function syncWrong(user, session) {
 }
 
 /* ---- 收藏：存在每用户表里，跨场次保留（答对答错都不掉）---- */
+/* 当前范围的基础集合：错题集 / 收藏集 / 整个题库（走索引） */
+function scopeBaseIds(bank) {
+  if (S.wrongOnly) return wrongIds(S.user, bank.id);
+  if (S.favOnly) return favIds(S.user, bank.id);
+  return QINDEX[bank.id] ? QINDEX[bank.id].all : bankQuestionIds(bank);
+}
+/* chips 上的可用题数（交叉计数）：
+   - 章节 n：当前集合 + 已选题型下，这一章有多少题（不看章节是否勾选）
+   - 题型 n：当前集合 + 已选章节下，这一题型有多少题（不看题型是否勾选） */
+function chipCounts(bank) {
+  const base = scopeBaseIds(bank);
+  const types = selectedTypes();
+  const chapters = {}, byType = {};
+  base.forEach(id => {
+    const q = QMAP[id], pos = QPOS[id];
+    if (!q || !pos) return;
+    if (types.indexOf(q.type) >= 0) {
+      chapters[pos.chapterId] = (chapters[pos.chapterId] || 0) + 1;
+    }
+    if (S.chapters.indexOf(pos.chapterId) >= 0) {
+      byType[q.type] = (byType[q.type] || 0) + 1;
+    }
+  });
+  return { chapters, types: byType };
+}
+
 /* 收藏集/错题集里再按当前选中的章节与题型过滤 */
 function collectionIds(bankId) {
   const base = S.wrongOnly ? wrongIds(S.user, bankId)
@@ -417,6 +443,24 @@ const QPOS = {};   // qid -> { bankId, bankName, chapterId, chapterName }
       QPOS[q.id] = { bankId: bank.id, bankName: bank.name, chapterId: ch.id, chapterName: ch.name };
     });
   });
+});
+
+/* 题库索引：bankId -> { all, byChapter, byType }，值都是题号数组。
+   组卷页筛选、chips 计数都走这里，不再每次遍历全题库。 */
+const QINDEX = {};
+(BANKS || []).forEach(bank => {
+  const idx = { all: [], byChapter: {}, byType: {} };
+  QTYPE_LIST.forEach(t => { idx.byType[t] = []; });
+  bank.chapters.forEach(ch => {
+    const arr = idx.byChapter[ch.id] = [];
+    ch.questions.forEach(q => {
+      if (!q.answer.length) return;
+      arr.push(q.id);
+      idx.all.push(q.id);
+      if (idx.byType[q.type]) idx.byType[q.type].push(q.id);
+    });
+  });
+  QINDEX[bank.id] = idx;
 });
 function bankById(id) { return (BANKS || []).find(b => b.id === id); }
 function bankQuestionIds(bank) {
@@ -712,12 +756,15 @@ function refreshSetup() {
       b.setAttribute('aria-checked', on ? 'true' : 'false');
     });
   }
+  const cc = chipCounts(bank);
   const chapters = byId('chapterChips');
   if (chapters && chapters.children) {
     Array.prototype.forEach.call(chapters.children, b => {
       const on = S.chapters.indexOf(b.dataset.id) >= 0;
       b.classList.toggle('on', on);
       b.setAttribute('aria-checked', on ? 'true' : 'false');
+      const n = b.querySelector && b.querySelector('.n');
+      if (n) n.textContent = String(cc.chapters[b.dataset.id] || 0);
     });
   }
   const typeBox = byId('typeChips');
@@ -727,6 +774,8 @@ function refreshSetup() {
       const on = types.indexOf(b.dataset.type) >= 0;
       b.classList.toggle('on', on);
       b.setAttribute('aria-checked', on ? 'true' : 'false');
+      const n = b.querySelector && b.querySelector('.n');
+      if (n) n.textContent = String(cc.types[b.dataset.type] || 0);
     });
   }
   const seg = byId('modeSeg');
@@ -748,10 +797,10 @@ function renderSetup() {
   const collection = S.wrongOnly || S.favOnly;
   const prog = loadProgress(S.user, bank.id);
   const prev = prog ? stats(prog).answered : 0;
+  const cc = chipCounts(bank);
   const typeChips = QTYPE_LIST.map(t => {
     const on = selectedTypes().indexOf(t) >= 0;
-    const n = bank.chapters.reduce((sum, ch) =>
-      sum + ch.questions.filter(q => q.type === t && q.answer.length).length, 0);
+    const n = cc.types[t] || 0;
     return '<button class="chip' + (on ? ' on' : '') + '" data-act="toggle-type" data-type="' + t + '"' +
       ' role="switch" aria-checked="' + (on ? 'true' : 'false') + '"' +
       '>' + TYPE_LABEL[t].text +
@@ -761,7 +810,7 @@ function renderSetup() {
     const on = S.chapters.indexOf(ch.id) >= 0;
     return '<button class="chip' + (on ? ' on' : '') + '" data-act="toggle-chapter" data-id="' + ch.id + '"' +
       ' role="switch" aria-checked="' + (on ? 'true' : 'false') + '"' +
-      '>' + esc(ch.name) + '<span class="n">' + ch.questions.length + '</span></button>';
+      '>' + esc(ch.name) + '<span class="n">' + (cc.chapters[ch.id] || 0) + '</span></button>';
   }).join('');
   app.innerHTML =
     '<div class="setup-head">' +
@@ -854,10 +903,10 @@ function startSession() {
     if (!ids.length) { toast('这个范围里没有题，换个章节或题型试试'); return; }
   } else {
     const types = selectedTypes();
-    bank.chapters.forEach(ch => {
-      if (S.chapters.indexOf(ch.id) < 0) return;
-      ch.questions.forEach(q => {
-        if (q.answer.length && types.indexOf(q.type) >= 0) ids.push(q.id);
+    const idx = QINDEX[bank.id];
+    S.chapters.forEach(chId => {
+      (idx && idx.byChapter[chId] ? idx.byChapter[chId] : []).forEach(id => {
+        if (types.indexOf(QMAP[id].type) >= 0) ids.push(id);
       });
     });
     if (!ids.length) { toast('请至少选择一个章节'); return; }

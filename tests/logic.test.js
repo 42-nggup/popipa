@@ -67,6 +67,7 @@ globalThis.__hook = { S, stats, isCorrect, hasAnswer, startSession, pickKey, sub
   favIds, isFav, toggleFavId, toggleFav,
   wrongIds, sanitizeSession, historyOf, loadProgress, lastName,
   applyTheme, theme, toggleTheme, navTargetScroll, scrollNavToCurrent, toggleQmap, restoreQmapScroll, pageMode,
+  QINDEX, chipCounts, refreshSetup, scopeBaseIds,
   getAuto: () => autoJump,
   exportPng, shareCardHtml, shareRecord, dateStamp,
   getToast: () => toastEl.textContent,
@@ -845,6 +846,61 @@ H.S.view = 'banks'; H.render();
 const st46b = els['app'].innerHTML;
 ok('进度清掉后显示「上次 xx%」',
    /class="bank-status"[^>]*>[\s\S]{0,200}上次 \d+%/.test(st46b));
+
+
+section('47. 题库索引与 chips 就地刷新');
+for (const bank of H.BANKS) {
+  const idx = H.QINDEX[bank.id];
+  const all = H.bankQuestionIds(bank);
+  ok(bank.id + ' 索引总数与题库一致', idx.all.length === all.length);
+  ok(bank.id + ' 索引可按题型拼回',
+     ['single', 'multiple', 'judge', 'fill']
+       .reduce((n, t) => n + idx.byType[t].length, 0) === idx.all.length);
+  ok(bank.id + ' 索引可按章节拼回',
+     bank.chapters.reduce((n, ch) => n + idx.byChapter[ch.id].length, 0) === idx.all.length);
+}
+
+const idxUser47 = '索引用户';
+H.S.user = idxUser47; H.S.wrongOnly = false; H.S.favOnly = false;
+H.S.bankId = 'web'; H.S.chapters = H.bankById('web').chapters.map(c => c.id);
+H.S.types = ['single', 'multiple', 'judge', 'fill'];
+const cc47 = H.chipCounts(H.bankById('web'));
+const sumCh47 = H.bankById('web').chapters.reduce((n, ch) => n + (cc47.chapters[ch.id] || 0), 0);
+ok('无集合时章节计数之和 = 可练题数', sumCh47 === H.QINDEX.web.all.length);
+ok('无集合时题型计数之和 = 可练题数',
+   ['single', 'multiple', 'judge', 'fill'].reduce((n, t) => n + (cc47.types[t] || 0), 0)
+   === H.QINDEX.web.all.length);
+
+H.S.types = ['single'];
+const cc47b = H.chipCounts(H.bankById('web'));
+const singles47 = H.QINDEX.web.byType.single.length;
+ok('切换题型后章节计数按题型收缩',
+   H.bankById('web').chapters.reduce((n, ch) => n + (cc47b.chapters[ch.id] || 0), 0) === singles47);
+ok('题型计数仍按章节统计（不看题型勾选）',
+   (cc47b.types.multiple || 0) > 0);
+
+/* 切到收藏集：计数只算收藏题，且不重绘整页 */
+const favQ47 = H.QINDEX.web.byType.single[0];
+H.toggleFavId(idxUser47, favQ47);
+H.pickBank('web', 'fav');
+H.S.types = ['single', 'multiple', 'judge', 'fill'];
+const cc47c = H.chipCounts(H.bankById('web'));
+ok('收藏集下章节计数只算收藏题',
+   H.bankById('web').chapters.reduce((n, ch) => n + (cc47c.chapters[ch.id] || 0), 0)
+   === H.favIds(idxUser47, 'web').length);
+ok('收藏集下题型计数只算收藏题',
+   ['single', 'multiple', 'judge', 'fill'].reduce((n, t) => n + (cc47c.types[t] || 0), 0)
+   === H.favIds(idxUser47, 'web').length);
+
+/* refreshSetup 只改 span.n，不重绘：用假 DOM 节点直接断言 */
+const span47 = { textContent: '' };
+const chip47 = { dataset: { id: 'web-c1' }, classList: { toggle() {} },
+  setAttribute() {}, querySelector: () => span47 };
+els['chapterChips'] = { children: [chip47] };
+H.S.types = ['single'];
+H.refreshSetup();
+ok('refreshSetup 就地更新 chip 的 span.n',
+   span47.textContent === String(H.chipCounts(H.bankById('web')).chapters['web-c1'] || 0));
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);
