@@ -18,6 +18,18 @@
    便于答题页 / 结果页 / 事件处理复用同一套判分与统计逻辑。 */
 
 /* ============ 1. 工具函数 ============ */
+/* ============ 0. 页面路由 ============
+   index.html = 登录页；banks.html = 主界面 + 选题页；quiz.html = 做题页（含结果）。
+   同一份 app.js 在三个页面复用，靠 body[data-page] 决定启动视图。 */
+const PAGE = (document.body && document.body.dataset && document.body.dataset.page) || 'login';
+/* 浏览器里真的跳页；测试环境没有 location，退回页内渲染，方便断言逻辑 */
+function goPage(url, view) {
+  if (typeof location !== 'undefined' && location && typeof location.href === 'string') {
+    location.href = url;
+    return;
+  }
+  if (view) { S.view = view; render(); }
+}
 const app = document.getElementById('app');
 const topbar = document.getElementById('top');
 const toastEl = document.getElementById('toast');
@@ -493,8 +505,7 @@ function doLogin() {
   S.user = v;
   rememberLogin(v);            /* 记下"最近一次谁登录了" */
   applyTheme(theme());         /* 换成这个用户自己的主题 */
-  S.view = 'banks';
-  render();
+  goPage('banks.html', 'banks');
 }
 
 /* ---- 6.2 选题界面 ---- */
@@ -794,8 +805,7 @@ function startSession() {
     startedAt: Date.now(), finishedAt: 0, finished: false
   };
   saveProgress();
-  S.view = 'quiz';
-  render();
+  goPage('quiz.html?bank=' + encodeURIComponent(bank.id), 'quiz');
 }
 function resumeSession() {
   const p = loadProgress(S.user, S.bankId);
@@ -804,8 +814,7 @@ function resumeSession() {
   S.qmapOpen = false;
   S.qmapScroll = 0;
   S.session = p;
-  S.view = 'quiz';
-  render();
+  goPage('quiz.html?bank=' + encodeURIComponent(S.bankId), 'quiz');
   toast('已回到上次的位置');
 }
 
@@ -1350,9 +1359,9 @@ document.addEventListener('click', function (e) {
     case 'login': doLogin(); break;
     case 'logout':
       if (S.view === 'quiz' && !confirm('正在答题，退出后进度会保留在本地。确定退出登录吗？')) return;
-      S.user = null; store.del(KEY.user); S.view = 'login'; S.session = null;
+      S.user = null; S.session = null; store.del(KEY.user);
       applyTheme(theme());     /* 回到本机默认主题 */
-      render(); break;
+      goPage('index.html', 'login'); break;
     case 'pick-bank': pickBank(el.dataset.id); break;
     case 'toggle-chapter': {
       const id = el.dataset.id, i = S.chapters.indexOf(id);
@@ -1363,7 +1372,13 @@ document.addEventListener('click', function (e) {
     case 'wrong-only': S.wrongOnly = el.dataset.on === '1'; refreshSetup(); break;
     case 'theme': toggleTheme(); break;
     case 'back-banks':
-      if (S.view === 'quiz' && !confirm('返回会保存当前进度，确定离开吗？')) return;
+      if (PAGE === 'quiz') {
+        if (S.view === 'quiz' && !confirm('返回会保存当前进度，确定离开吗？')) return;
+        S.session = null;
+        goPage('banks.html', 'banks');
+        break;
+      }
+      /* banks 页：从组卷面板退回题库列表 */
       S.view = 'banks'; S.session = null; render(); break;
     case 'start': startSession(); break;
     case 'resume': resumeSession(); break;
@@ -1436,7 +1451,24 @@ document.addEventListener('keydown', function (e) {
 });
 
 /* ============ 8. 启动 ============ */
-clearLegacy();         /* 清掉被取代的本机键，保持轻量 */
-migrateUsers();        /* 旧用户表里的业务字段搬进每用户自己的表 */
-applyTheme(theme());   /* 页面一加载就把主题定下来，避免闪一下浅色 */
-render();
+function boot() {
+  clearLegacy();         /* 清掉被取代的本机键，保持轻量 */
+  migrateUsers();        /* 旧用户表里的业务字段搬进每用户自己的表 */
+  applyTheme(theme());   /* 页面一加载就把主题定下来，避免闪一下浅色 */
+  if (PAGE === 'login') { S.view = 'login'; render(); return; }
+  if (!S.user) { goPage('index.html', 'login'); return; }
+  if (PAGE === 'banks') { S.view = 'banks'; render(); return; }
+  if (PAGE === 'quiz') {
+    /* 做题页靠 ?bank= 找到这局没答完的进度；没有就回主界面 */
+    let bankId = null;
+    try { bankId = new URLSearchParams(location.search).get('bank'); } catch (e) {}
+    const prog = bankId ? loadProgress(S.user, bankId) : null;
+    if (!prog) { goPage('banks.html', 'banks'); return; }
+    S.qmapOpen = false;
+    S.qmapScroll = 0;
+    S.session = prog;
+    S.view = 'quiz';
+    render();
+  }
+}
+boot();

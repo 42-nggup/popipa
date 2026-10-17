@@ -56,7 +56,8 @@ const sandbox = {
   bootstrap: { Modal: FakeModal },
   setTimeout, clearTimeout, setInterval: () => 0, clearInterval() {}, confirm: () => true
 };
-sandbox.window = sandbox;                 // demo.data.js 里用 window.BANKS
+sandbox.document.body.dataset.page = 'banks';   /* 测试跑主界面+选题页的启动逻辑 */
+sandbox.window = sandbox;                 // app.data.js 里用 window.BANKS
 vm.createContext(sandbox);
 vm.runInContext(dataSrc + '\n' + logicSrc + `
 globalThis.__hook = { S, stats, isCorrect, hasAnswer, startSession, pickKey, submitCurrent, redoCurrent,
@@ -644,6 +645,25 @@ ok('关闭时先瞬间回到上次位置，再定位当前题', qmBox.scrollLeft
 ok('状态已切回收起', H.S.qmapOpen === false);
 sandbox.document.querySelector = realQS;
 sandbox.document.getElementById = realGE;
+
+
+section('37. 页面拆分：index / banks / quiz');
+const idxHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const bankHtml = fs.readFileSync(path.join(root, 'banks.html'), 'utf8');
+const quizHtml = fs.readFileSync(path.join(root, 'quiz.html'), 'utf8');
+ok('index.html 是登录页', /<body[^>]*data-page="login"/.test(idxHtml));
+ok('banks.html 是主界面 + 选题页', /<body[^>]*data-page="banks"/.test(bankHtml));
+ok('quiz.html 是做题页', /<body[^>]*data-page="quiz"/.test(quizHtml));
+ok('三页共用 navbar（品牌 + 主题开关）',
+   [idxHtml, bankHtml, quizHtml].every(h =>
+     h.indexOf('navbar-brand') >= 0 && h.indexOf('id="themeBtn"') >= 0));
+ok('登录页初始隐藏用户区', /id="whoBox" hidden/.test(idxHtml));
+ok('分享图组件只在做题页加载',
+   quizHtml.indexOf('html2canvas') >= 0 &&
+   bankHtml.indexOf('html2canvas') === -1 && idxHtml.indexOf('html2canvas') === -1);
+ok('分享预览 Modal 只在做题页',
+   quizHtml.indexOf('id="shareModal"') >= 0 &&
+   bankHtml.indexOf('shareModal') === -1 && idxHtml.indexOf('shareModal') === -1);
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

@@ -7,6 +7,16 @@
 ## 运行
 
 直接用浏览器打开 `index.html` 即可（`file://` 也能跑，不依赖服务器）。
+页面之间用普通链接跳转，登录态和每用户数据都在 localStorage 里：
+
+```
+index.html  登录页
+banks.html  主界面（题库列表）+ 选题页（组卷面板，同页切换）
+quiz.html   做题页（答题 + 交卷结果，同页切换）
+```
+
+浏览器地址栏需要带上 `?bank=<题库 id>` 才能直接打开做题页；
+正常流程从主界面点「开始答题」进入，会自动带上。
 测试：
 
 ```bash
@@ -16,15 +26,21 @@ node tests/logic.test.js
 ## 目录
 
 ```
-index.html          页面骨架：顶栏、#app、两个 Modal、主题开关、Toast
+index.html          登录页
+banks.html          主界面 + 选题页（顶栏、#app、Toast）
+quiz.html           做题页（顶栏、#app、分享预览 Modal、Toast）
 app.css             自定义样式（颜色全部走 Bootstrap 变量，圆角用 --bs-border-radius*）
-app.js              全部逻辑（渲染 / 判分 / 存储 / 事件）
+app.js              全部逻辑（页面路由 / 渲染 / 判分 / 存储 / 事件），三个页面共用
 app.data.js         题库（自动生成，勿手改）
 data/               题库源文件与解析产物
 scripts/            Markdown → JSON 的解析脚本
 tests/logic.test.js Node 逻辑自测（极简 DOM 桩 + 假 Bootstrap Modal）
 vendor/             Bootstrap、Bootstrap Icons、html2canvas
 ```
+
+`app.js` 用 `<body data-page="...">` 判断当前页；三个页面共用同一份逻辑和样式，
+跳转由 `goPage()` 统一处理（登录 → `banks.html`，开始答题 → `quiz.html?bank=…`，
+返回题库 → `banks.html`，退出登录 → `index.html`）。
 
 ## 存储模型
 
