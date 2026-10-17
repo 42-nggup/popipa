@@ -41,6 +41,25 @@ try{
 
 <main class="container app-shell flex-grow-1 pb-5" id="app"><!-- 由 app.js 渲染登录页 --></main>
 
+<!-- 数据收集同意（file:// 单页模式也会在主页面用到） -->
+<div class="modal fade" id="consentModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content deco">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-shield-check me-2"></i>数据收集</h5>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">是否同意把你在本机的答题数据（每轮题数、正确率、用时）用于「学习报告」里的统计与排行榜？</p>
+        <p class="small text-body-secondary mb-0">数据只保存在本机浏览器，不会上传到服务器；不同意也不会影响刷题。</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-act="consent-no">不同意</button>
+        <button class="btn btn-primary" data-act="consent-yes">同意</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast popipa-toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- 数据与逻辑分离：先数据，后逻辑 -->

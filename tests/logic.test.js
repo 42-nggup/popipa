@@ -68,6 +68,8 @@ globalThis.__hook = { S, stats, isCorrect, hasAnswer, startSession, pickKey, sub
   wrongIds, sanitizeSession, historyOf, loadProgress, lastName,
   applyTheme, theme, toggleTheme, navTargetScroll, scrollNavToCurrent, toggleQmap, restoreQmapScroll, pageMode,
   QINDEX, chipCounts, refreshSetup, scopeBaseIds,
+  totalsOf, todayAnswered, last7, latestProgress, setGoal, setConsent,
+  leaderboard, startWarmup, boardRows,
   getAuto: () => autoJump,
   exportPng, shareCardHtml, shareRecord, dateStamp,
   getToast: () => toastEl.textContent,
@@ -91,7 +93,7 @@ const fire = (act, data) => {
 section('1. 登录与选题');
 els['nick'].value = '小明';
 H.doLogin();
-ok('登录后进入选题页', H.S.view === 'banks' && H.S.user === '小明');
+ok('登录后进入新主页', H.S.view === 'home' && H.S.user === '小明');
 H.pickBank('web');
 ok('选择题库后进入组卷页', H.S.view === 'setup');
 ok('默认选中全部章节', H.S.chapters.length === H.bankById('web').chapters.length);
@@ -559,7 +561,7 @@ const bh = els['app'].innerHTML;
 ok('题目卡改成响应式网格', bh.indexOf('bank-grid') >= 0 &&
    (bh.match(/bank-card/g) || []).length >= H.BANKS.length);
 ok('每张卡都能进入题库',
-   (bh.match(/class="card bank-card"/g) || []).length === H.BANKS.length &&
+   (bh.match(/class="card bank-card/g) || []).length === H.BANKS.length &&
    (bh.match(/data-act="pick-bank"/g) || []).length >= H.BANKS.length);
 ok('卡片上有题数/章节/开始练习', bh.indexOf('开始练习') >= 0 && bh.indexOf(' 章') >= 0);
 ok('卡片状态合并成一行', /class="bank-status"/.test(bh));
@@ -915,6 +917,78 @@ const before48 = els['app'].innerHTML;
 H.S.mode = 'random'; H.refreshSetup();
 ok('切换顺序只改 data-mode，不重绘整页',
    els['modeSeg'].dataset.mode === 'random' && els['app'].innerHTML === before48);
+
+
+section('49. 新页面骨架与主页');
+for (const pair of [['home.html', 'home'], ['summary.html', 'summary'],
+                    ['stats.html', 'stats'], ['collection.html', 'collection']]) {
+  const src = fs.readFileSync(path.join(root, pair[0]), 'utf8');
+  ok(pair[0] + ' 存在且 data-page 正确',
+     new RegExp('<body[^>]*data-page="' + pair[1] + '"').test(src));
+}
+H.S.user = '主页用户'; H.S.view = 'home'; H.render();
+const homeHtml = els['app'].innerHTML;
+ok('主页有侧边栏与欢迎语',
+   homeHtml.indexOf('home-wrap') >= 0 && homeHtml.indexOf('welcome-line') >= 0);
+ok('主页有每日目标与五项统计',
+   homeHtml.indexOf('每日目标') >= 0 && homeHtml.indexOf('总写题数') >= 0 &&
+   homeHtml.indexOf('总正确率') >= 0 && homeHtml.indexOf('总写题时间') >= 0);
+ok('侧边栏有每日热身与两个集合入口',
+   homeHtml.indexOf('每日热身') >= 0 && homeHtml.indexOf('错题本') >= 0 &&
+   homeHtml.indexOf('收藏集') >= 0);
+ok('主页底部顺序：上次进度在近日统计之前',
+   homeHtml.indexOf('上次进度') >= 0 &&
+   homeHtml.indexOf('上次进度') < homeHtml.indexOf('近日统计'));
+ok('主页与学习报告都带同意收集弹窗',
+   /id="consentModal"/.test(fs.readFileSync(path.join(root, 'home.html'), 'utf8')) &&
+   /id="consentModal"/.test(fs.readFileSync(path.join(root, 'stats.html'), 'utf8')));
+
+section('50. 终身统计 / 每日目标 / 同意收集');
+const u50 = '统计用户';
+H.S.user = u50;
+H.setGoal(30);
+ok('每日目标可调并保存', H.userOf(u50).goal === 30);
+H.S.view = 'banks'; H.S.bankId = 'web';
+H.S.chapters = H.bankById('web').chapters.map(c => c.id);
+H.S.types = ['single', 'multiple', 'judge', 'fill'];
+H.S.wrongOnly = false; H.S.favOnly = false;
+H.startSession();
+H.jump(0);
+const q50 = H.S.session.order[0];
+H.pickKey(H.QMAP[q50].answer[0]);
+H.submitCurrent(false);
+H.finish();
+const t50 = H.totalsOf(u50);
+ok('终身累计写题数与正确率', t50.answered === 1 && t50.correct === 1 && t50.rate === 100);
+ok('今日写题数', H.todayAnswered(u50) === 1);
+ok('近日统计是 7 天', H.last7(u50).length === 7);
+ok('默认未表态', H.userOf(u50).consent === null);
+H.setConsent(true);
+ok('同意后出现在排行榜', H.leaderboard().some(r => r.name === u50));
+H.setConsent(false);
+ok('拒绝后不出现在排行榜', !H.leaderboard().some(r => r.name === u50));
+
+section('51. 每日热身');
+H.S.user = '热身用户';
+H.startWarmup();
+ok('热身是 warmup 局', H.S.session.bankId === 'warmup');
+ok('热身 5 道题都有效', H.S.session.order.length === 5 &&
+   H.S.session.order.every(id => !!H.QMAP[id]));
+ok('热身进度可以恢复', !!H.loadProgress('热身用户', 'warmup'));
+
+section('52. 汇总 / 报告 / 收藏页渲染');
+H.S.user = '主页用户';
+H.setConsent(true);
+H.S.view = 'summary'; H.render();
+ok('题库汇总列出章节与练习入口',
+   els['app'].innerHTML.indexOf('题库汇总') >= 0 &&
+   els['app'].innerHTML.indexOf('只练这一章') >= 0);
+H.S.view = 'stats'; H.render();
+ok('学习报告有曲线和排行榜',
+   els['app'].innerHTML.indexOf('我的答题曲线') >= 0 &&
+   els['app'].innerHTML.indexOf('排行榜') >= 0);
+H.S.collectionType = 'wrong'; H.S.view = 'collection'; H.render();
+ok('错题本页按题库列出', els['app'].innerHTML.indexOf('错题本') >= 0);
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

@@ -46,6 +46,7 @@ const TYPE_LABEL = {
   fill: { text: '填空题', cls: 'f' }
 };
 const QTYPE_LIST = ['single', 'multiple', 'judge', 'fill'];
+const WARMUP_ID = 'warmup';   /* 每日热身：跨题库的临时 session */
 function selectedTypes() { return Array.isArray(S.types) ? S.types : QTYPE_LIST; }
 
 function esc(s) {
@@ -165,7 +166,8 @@ const KEY = {
   theme: 'popipa:theme'
 };
 /* 每用户表里放的业务数据：成绩、逐题记录、进度、用时、收藏 */
-const USER_FIELDS = ['theme', 'books', 'wrong', 'fav', 'history', 'rounds'];
+const USER_FIELDS = ['theme', 'books', 'wrong', 'fav', 'history', 'rounds',
+  'consent', 'consentAt', 'goal', 'lifetime', 'days'];
 const ROUNDS_MAX = 20;
 const store = {
   get(k, d) {
@@ -198,7 +200,12 @@ function blankUser(name) {
     wrong: {},          /* 错题本 */
     fav: {},            /* 收藏 */
     history: [],        /* 成绩摘要 */
-    rounds: []          /* 逐轮记录：逐题作答 + 用时 + 汇总 */
+    rounds: [],         /* 逐轮记录：逐题作答 + 用时 + 汇总 */
+    consent: null,      /* 是否同意数据用于统计（null=还没问） */
+    consentAt: 0,
+    goal: 20,           /* 每日写题目标 */
+    lifetime: { answered: 0, correct: 0, seconds: 0 },
+    days: {}            /* 'YYYY-M-D' -> { answered, correct } */
   };
 }
 function users() {
@@ -220,7 +227,15 @@ function userOf(name) {
     wrong: t.wrong && typeof t.wrong === 'object' ? t.wrong : {},
     fav: t.fav && typeof t.fav === 'object' ? t.fav : {},
     history: Array.isArray(t.history) ? t.history : [],
-    rounds: Array.isArray(t.rounds) ? t.rounds : []
+    rounds: Array.isArray(t.rounds) ? t.rounds : [],
+    consent: typeof t.consent === 'boolean' ? t.consent : null,
+    consentAt: t.consentAt || 0,
+    goal: Number(t.goal) > 0 ? Math.max(5, Math.min(200, Math.round(Number(t.goal)))) : 20,
+    lifetime: t.lifetime && typeof t.lifetime === 'object'
+      ? { answered: +t.lifetime.answered || 0, correct: +t.lifetime.correct || 0,
+          seconds: +t.lifetime.seconds || 0 }
+      : { answered: 0, correct: 0, seconds: 0 },
+    days: t.days && typeof t.days === 'object' ? t.days : {}
   });
 }
 function saveUser(name, u) {
@@ -291,7 +306,8 @@ function clearProgress(bankId) {
    否则 QMAP[id] 是 undefined，一进选题页就会报错（用户名 "11" 那个 bug）。*/
 function sanitizeSession(p, bankId) {
   if (!p || !Array.isArray(p.order)) return null;
-  const order = p.order.filter(id => QMAP[id] && QPOS[id].bankId === bankId);
+  const order = p.order.filter(id => QMAP[id] &&
+    (bankId === WARMUP_ID || QPOS[id].bankId === bankId));
   if (!order.length) return null;
   const keep = {};
   order.forEach(id => { keep[id] = 1; });
@@ -398,6 +414,30 @@ function pushRound(user, session) {
     total: st.total, correct: st.correct, wrong: st.wrong,
     unanswered: st.unanswered, rate: st.rate, score: st.score
   };
+  /* 终身累计与按天累计：不随 rounds 的截断而丢失 */
+  const answered = Math.max(0, rec.total - rec.unanswered);
+  let life = u.lifetime || { answered: 0, correct: 0, seconds: 0 };
+  /* 老用户没有 lifetime：先用已有 rounds 补种，避免第一次交卷把历史清零 */
+  if (!life.answered && !life.seconds && (u.rounds || []).length) {
+    const seed = { answered: 0, correct: 0, seconds: 0 };
+    u.rounds.forEach(r => {
+      seed.answered += Math.max(0, (r.total || 0) - (r.unanswered || 0));
+      seed.correct += r.correct || 0;
+      seed.seconds += r.seconds || 0;
+    });
+    life = seed;
+  }
+  life.answered = (life.answered || 0) + answered;
+  life.correct = (life.correct || 0) + rec.correct;
+  life.seconds = (life.seconds || 0) + rec.seconds;
+  u.lifetime = life;
+  const dk = dayKey(rec.finishedAt);
+  const d = u.days[dk] || { answered: 0, correct: 0 };
+  d.answered += answered;
+  d.correct += rec.correct;
+  u.days[dk] = d;
+  const keys = Object.keys(u.days).sort();
+  if (keys.length > 120) keys.slice(0, keys.length - 120).forEach(k => { delete u.days[k]; });
   u.rounds = [rec].concat(u.rounds || []).slice(0, ROUNDS_MAX);
   saveUser(user, u);
   return rec;
@@ -499,6 +539,8 @@ const S = {
   roundOpen: {},     // 选题页：展开的历史轮次
   qmapOpen: false,   // 答题卡是否展开成多行网格
   qmapScroll: 0,     // 答题卡上次的横向滑动位置
+  collectionType: 'wrong',   // collection 页：wrong | fav
+  statSort: 'answered',      // 学习报告：排行榜排序
   finishAt: 0
 };
 
@@ -524,6 +566,10 @@ function render() {
   document.getElementById('whoBox').hidden = false;
   document.getElementById('whoName').textContent = S.user;
   document.getElementById('avatar').textContent = S.user.slice(0, 1).toUpperCase();
+  if (S.view === 'home') { renderHome(); return; }
+  if (S.view === 'summary') { renderSummary(); return; }
+  if (S.view === 'stats') { renderStats(); return; }
+  if (S.view === 'collection') { renderCollection(); return; }
   if (S.view === 'banks') return renderBanks();
   if (S.view === 'setup') return renderSetup();
   if (S.view === 'quiz') return renderQuiz();
@@ -538,6 +584,7 @@ function renderLogin() {
   app.innerHTML =
     '<div class="hero">' +
       '<div class="logo-big"><i class="bi bi-lightning-charge-fill"></i></div>' +
+      '<div class="eyebrow">POPIPA · PRACTICE</div>' +
       '<h1 class="fw-bold">popipa</h1>' +
       '<p class="text-body-secondary">挑一套题库，答完立刻知道对错，随时看得见自己的进度。</p>' +
     '</div>' +
@@ -567,7 +614,7 @@ function doLogin() {
   S.user = v;
   rememberLogin(v);            /* 记下"最近一次谁登录了" */
   applyTheme(theme());         /* 换成这个用户自己的主题 */
-  goPage('banks.html', 'banks');
+  goPage('home.html', 'home');
 }
 
 /* ---- 6.2 选题界面 ---- */
@@ -592,7 +639,7 @@ function renderBanks() {
     bank.chapters.forEach(ch => ch.questions.forEach(q => counts[q.type]++));
     const st = prog ? stats(prog) : null;
     const pct = st ? Math.round(st.answered / st.total * 100) : 0;
-    return '<div class="card bank-card" data-act="pick-bank" data-id="' + bank.id + '">' +
+    return '<div class="card bank-card deco" data-act="pick-bank" data-id="' + bank.id + '">' +
       '<div class="card-body p-3 p-sm-4">' +
         '<div class="d-flex align-items-start gap-3">' +
           '<span class="bank-ico"><i class="bi ' + bankIcon(bank.id) + '"></i></span>' +
@@ -633,10 +680,15 @@ function renderBanks() {
   }).join('');
   app.innerHTML =
     '<div class="banks-head">' +
-      '<div><h1 class="h3 fw-bold mb-1">选择题库</h1>' +
+      '<div><div class="eyebrow">QUESTION LIBRARY</div>' +
+      '<h1 class="h3 fw-bold mb-1">选择题库</h1>' +
       '<p class="text-body-secondary mb-0">共 ' + list.length + ' 个题库 · ' + totalQ + ' 道题</p></div>' +
-      (rounds.length ? '<span class="badge rounded-pill text-bg-secondary">' +
-        '<i class="bi bi-clock-history me-1"></i>已记录 ' + rounds.length + ' 轮</span>' : '') +
+      '<div class="d-flex align-items-center gap-2">' +
+        (rounds.length ? '<span class="badge rounded-pill text-bg-secondary">' +
+          '<i class="bi bi-clock-history me-1"></i>已记录 ' + rounds.length + ' 轮</span>' : '') +
+        '<button class="btn btn-sm btn-outline-secondary" data-act="home" title="回首页">' +
+          '<i class="bi bi-house-door"></i></button>' +
+      '</div>' +
     '</div>' +
     '<div class="bank-grid">' + cards + '</div>' +
     renderRounds();
@@ -819,7 +871,10 @@ function renderSetup() {
     '<div class="setup-head">' +
       '<button class="btn btn-sm btn-outline-secondary" data-act="back-banks">' +
         '<i class="bi bi-arrow-left me-1"></i>题库</button>' +
+      '<button class="btn btn-sm btn-outline-secondary" data-act="home" title="回首页">' +
+        '<i class="bi bi-house-door"></i></button>' +
       '<div class="ms-2 min-w-0">' +
+        '<div class="eyebrow">SETUP</div>' +
         '<h1 class="h4 fw-bold mb-0 text-truncate">' + esc(bank.name) + '</h1>' +
         '<p class="small text-body-secondary mb-0">选择章节与出题顺序，然后开始</p>' +
       '</div>' +
@@ -1333,7 +1388,7 @@ function renderResult() {
 
   app.innerHTML =
     '<h1>答题结果<span class="sub">' + esc(s.bankName) + ' · ' + esc(s.mode === 'random' ? '随机顺序' : '顺序作答') + '</span></h1>' +
-    '<div class="card score-hero">' +
+    '<div class="card score-hero deco">' +
       '<div class="ring" style="background:conic-gradient(' + color + ' ' + deg + 'deg,var(--bs-secondary-bg) ' + deg + 'deg)">' +
         '<div class="in"><div><div class="v" style="color:' + toneText + '">' + st.rate + '%</div>' +
         '<div class="u">正确率</div></div></div>' +
@@ -1385,6 +1440,7 @@ function retryWrong() {
 function again() {
   const s = S.session;
   autoJump = null;
+  if (s && s.bankId === WARMUP_ID) { startWarmup(); return; }
   S.qmapOpen = false;
   S.qmapScroll = 0;
   S.session = {
@@ -1501,6 +1557,63 @@ document.addEventListener('click', function (e) {
   const act = el.dataset.act;
   switch (act) {
     case 'login': doLogin(); break;
+    case 'nav': {
+      const view = el.dataset.view;
+      if (view === 'collection') {
+        S.collectionType = el.dataset.type === 'fav' ? 'fav' : 'wrong';
+        goPage('collection.html?type=' + S.collectionType, 'collection');
+      } else {
+        goPage(el.getAttribute('href') || (view + '.html'), view);
+      }
+      break;
+    }
+    case 'home': S.session = null; goPage('home.html', 'home'); break;
+    case 'go-banks': goPage('banks.html', 'banks'); break;
+    case 'goal': setGoal((userOf(S.user).goal || 20) + Number(el.dataset.delta || 0)); break;
+    case 'warmup': startWarmup(); break;
+    case 'consent-yes': setConsent(true); break;
+    case 'consent-no': setConsent(false); break;
+    case 'consent-open': {
+      const m = document.getElementById('consentModal');
+      if (m && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(m).show();
+      break;
+    }
+    case 'practice-chapter': {
+      const bank = bankById(el.dataset.bank);
+      if (!bank) break;
+      S.bankId = bank.id;
+      S.chapters = [el.dataset.chapter];
+      S.types = QTYPE_LIST.slice();
+      S.mode = 'order'; S.wrongOnly = false; S.favOnly = false;
+      S.view = 'setup';
+      goPage('banks.html?bank=' + encodeURIComponent(bank.id) +
+        '&chapter=' + encodeURIComponent(el.dataset.chapter), 'setup');
+      break;
+    }
+    case 'start-collection': {
+      const bank = bankById(el.dataset.bank);
+      if (!bank) break;
+      const type = el.dataset.type === 'fav' ? 'fav' : 'wrong';
+      S.bankId = bank.id;
+      S.chapters = bank.chapters.map(c => c.id);
+      S.types = QTYPE_LIST.slice();
+      S.mode = 'order';
+      S.wrongOnly = type === 'wrong';
+      S.favOnly = type === 'fav';
+      S.view = 'setup';
+      goPage('banks.html?bank=' + encodeURIComponent(bank.id) + '&scope=' + type, 'setup');
+      break;
+    }
+    case 'resume-progress': {
+      const bank = el.dataset.bank;
+      const p = loadProgress(S.user, bank);
+      if (!p) { toast('没有可继续的记录'); break; }
+      S.session = p;
+      goPage('quiz.html?bank=' + encodeURIComponent(bank), 'quiz');
+      break;
+    }
+    case 'stat-sort': S.statSort = el.dataset.sort === 'rate' ? 'rate' : 'answered';
+      refreshStatsBoard(); break;
     case 'logout':
       if (S.view === 'quiz' && !confirm('正在答题，退出后进度会保留在本地。确定退出登录吗？')) return;
       S.user = null; S.session = null; store.del(KEY.user);
@@ -1532,7 +1645,8 @@ document.addEventListener('click', function (e) {
       if (S.view === 'quiz' && !confirm('返回会保存当前进度，确定离开吗？')) return;
       S.session = null;
       if (PAGE === 'quiz' && !FILE_MODE) { goPage('banks.html', 'banks'); break; }
-      S.view = 'banks'; render(); break;
+      if (PAGE === 'banks' || PAGE === 'login') { S.view = 'banks'; render(); break; }
+      goPage('home.html', 'home'); break;
     case 'start': startSession(); break;
     case 'resume': resumeSession(); break;
     case 'pick': pickKey(el.dataset.key); break;
@@ -1603,6 +1717,455 @@ document.addEventListener('keydown', function (e) {
   }
 });
 
+
+/* ============ 8. 新主页 / 题库汇总 / 学习报告 / 收藏集 ============ */
+const WELCOMES = [
+  '今天也来写几道吧',
+  '慢慢来，比较快',
+  '每一题都算数',
+  '保持手感，比刷得多更重要',
+  '先热身，再冲刺'
+];
+
+function dayKey(ms) {
+  const d = new Date(ms || Date.now());
+  return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+}
+function answeredOf(rec) { return Math.max(0, (rec.total || 0) - (rec.unanswered || 0)); }
+function fmtDur(sec) {
+  sec = Math.max(0, Math.round(sec || 0));
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
+  if (h) return h + ' 小时 ' + m + ' 分';
+  if (m) return m + ' 分';
+  return sec + ' 秒';
+}
+/* 终身统计：优先用 lifetime；旧用户从 rounds 里补算 */
+function totalsOf(user) {
+  const u = userOf(user);
+  let answered = 0, correct = 0, seconds = 0;
+  const life = u.lifetime || { answered: 0, correct: 0, seconds: 0 };
+  if (life.answered || life.seconds) {
+    answered = life.answered || 0;
+    correct = life.correct || 0;
+    seconds = life.seconds || 0;
+  } else {
+    (u.rounds || []).forEach(r => {
+      answered += answeredOf(r);
+      correct += r.correct || 0;
+      seconds += r.seconds || 0;
+    });
+  }
+  return {
+    answered: answered, correct: correct, seconds: seconds,
+    rate: answered ? Math.round(correct / answered * 100) : 0,
+    fav: favIds(user).length, wrong: wrongIds(user).length,
+    rounds: (u.rounds || []).length
+  };
+}
+function todayAnswered(user) {
+  const d = (userOf(user).days || {})[dayKey()];
+  return d ? d.answered || 0 : 0;
+}
+function last7(user) {
+  const days = userOf(user).days || {}, out = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
+    const k = dayKey(d), rec = days[k] || { answered: 0, correct: 0 };
+    out.push({
+      key: k, label: (d.getMonth() + 1) + '/' + d.getDate(),
+      answered: rec.answered || 0,
+      rate: rec.answered ? Math.round((rec.correct || 0) / rec.answered * 100) : 0
+    });
+  }
+  return out;
+}
+function latestProgress(user) {
+  const u = userOf(user);
+  let best = null;
+  Object.keys(u.books || {}).forEach(bid => {
+    const p = loadProgress(user, bid);
+    if (!p) return;
+    if (!best || (p.startedAt || 0) > (best.p.startedAt || 0)) best = { bankId: bid, p: p };
+  });
+  return best;
+}
+function setGoal(n) {
+  const u = userOf(S.user);
+  u.goal = Math.max(5, Math.min(200, Math.round(Number(n) || 20)));
+  saveUser(S.user, u);
+  refreshGoalCard();
+  toast('每日目标改为 ' + u.goal + ' 题');
+}
+function refreshGoalCard() {
+  const u = userOf(S.user);
+  const goal = u.goal || 20, today = todayAnswered(S.user);
+  const pct = Math.min(100, Math.round(today / goal * 100));
+  const num = document.getElementById('goalNum');
+  if (num) num.textContent = goal;
+  const txt = document.getElementById('goalText');
+  if (txt) txt.textContent = '今日已写 ' + today + ' / ' + goal + ' 题';
+  const bar = document.getElementById('goalBar');
+  if (bar) bar.style.width = pct + '%';
+}
+function setConsent(yes) {
+  const u = userOf(S.user);
+  u.consent = !!yes;
+  u.consentAt = Date.now();
+  saveUser(S.user, u);
+  const m = document.getElementById('consentModal');
+  if (m && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(m).hide();
+  toast(yes ? '已同意，感谢支持' : '好的，数据不会计入统计');
+  if (S.view === 'stats') refreshStatsBoard();
+}
+function maybeAskConsent() {
+  if (typeof userOf(S.user).consent === 'boolean') return;
+  const m = document.getElementById('consentModal');
+  if (m && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(m).show();
+}
+function startWarmup() {
+  const pool = [];
+  (BANKS || []).forEach(b => {
+    const ix = QINDEX[b.id];
+    if (ix) pool.push.apply(pool, ix.all);
+  });
+  if (!pool.length) { toast('题库还没准备好'); return; }
+  const ids = shuffle(pool).slice(0, Math.min(5, pool.length));
+  S.session = {
+    id: 's' + Date.now(), bankId: WARMUP_ID,
+    bankName: '每日热身 · 随机 5 题',
+    chapters: [], types: [], mode: 'random', order: ids, idx: 0,
+    answers: {}, submitted: {}, fav: {},
+    startedAt: Date.now(), finishedAt: 0, finished: false
+  };
+  S.qmapOpen = false; S.qmapScroll = 0;
+  saveProgress();
+  goPage('quiz.html?bank=' + WARMUP_ID, 'quiz');
+}
+function leaderboard() {
+  const all = users(), out = [];
+  Object.keys(all).forEach(name => {
+    const u = userOf(name);
+    if (u.consent !== true) return;
+    const t = totalsOf(name);
+    out.push({ name: name, answered: t.answered, rate: t.rate });
+  });
+  return out;
+}
+function boardRows(sort) {
+  return leaderboard().sort((a, b) => sort === 'rate'
+    ? (b.rate - a.rate || b.answered - a.answered)
+    : (b.answered - a.answered || b.rate - a.rate));
+}
+
+function sideBar(active) {
+  const wrongN = wrongIds(S.user).length, favN = favIds(S.user).length;
+  const item = (key, view, href, icon, label, n, extra) =>
+    '<a class="side-link' + (active === key ? ' active' : '') + '" href="' + href +
+      '" data-act="nav" data-view="' + view + '"' + (extra || '') + '>' +
+      '<i class="bi ' + icon + '"></i><span>' + label + '</span>' +
+      (n != null ? '<span class="side-n">' + n + '</span>' : '') + '</a>';
+  return '<aside class="side">' +
+    '<div class="side-brand"><span class="brand-logo">pi</span><span>popipa</span></div>' +
+    '<nav class="side-nav">' +
+      item('home', 'home', 'home.html', 'bi-house-door', '学习概览') +
+      item('summary', 'summary', 'summary.html', 'bi-diagram-3', '题库汇总') +
+      item('stats', 'stats', 'stats.html', 'bi-graph-up-arrow', '学习报告') +
+      item('wrong', 'collection', 'collection.html?type=wrong', 'bi-journal-bookmark', '错题本', wrongN, ' data-type="wrong"') +
+      item('fav', 'collection', 'collection.html?type=fav', 'bi-star', '收藏集', favN, ' data-type="fav"') +
+    '</nav>' +
+    '<div class="side-foot">' +
+      '<button class="btn btn-warm w-100" data-act="warmup">' +
+        '<i class="bi bi-cup-hot me-1"></i>每日热身' +
+        '<span class="side-sub">随机 5 题</span></button>' +
+    '</div>' +
+  '</aside>';
+}
+function pageShell(active, main) {
+  app.innerHTML = '<div class="home-wrap">' + sideBar(active) +
+    '<div class="home-main">' + main + '</div></div>';
+}
+
+/* ---- 8.1 学习概览 ---- */
+function renderHome() {
+  const u = userOf(S.user);
+  const t = totalsOf(S.user);
+  const today = todayAnswered(S.user);
+  const goal = u.goal || 20;
+  const pct = Math.min(100, Math.round(today / goal * 100));
+  const welcome = WELCOMES[Math.floor(Math.random() * WELCOMES.length)];
+  const prog = latestProgress(S.user);
+  const lastRound = (u.rounds || [])[0];
+  const days = last7(S.user);
+  const maxDay = Math.max(1, ...days.map(d => d.answered));
+
+  const statCard = (label, value, sub, icon, attrs) =>
+    (attrs ? '<button type="button" class="stat-card deco"' + attrs + '>' : '<div class="stat-card deco">') +
+      '<div class="stat-ico"><i class="bi ' + icon + '"></i></div>' +
+      '<div class="stat-label">' + label + '</div>' +
+      '<div class="stat-value">' + value + '</div>' +
+      '<div class="stat-sub">' + sub + '</div>' +
+    (attrs ? '</button>' : '</div>');
+
+  let progHtml;
+  if (prog) {
+    const st = stats(prog.p);
+    const bank = bankById(prog.bankId);
+    progHtml = '<div class="d-flex flex-wrap align-items-center gap-3">' +
+      '<div class="flex-grow-1 min-w-0"><div class="fw-semibold text-truncate">' +
+        esc(bank ? bank.name : prog.bankId) + '</div>' +
+        '<div class="small text-body-secondary">答到第 ' + st.answered + ' / ' + st.total + ' 题</div></div>' +
+      '<button class="btn btn-sm btn-warm" data-act="resume-progress" data-bank="' +
+        esc(prog.bankId) + '">继续</button></div>';
+  } else if (lastRound) {
+    progHtml = '<div class="d-flex flex-wrap align-items-center gap-3">' +
+      '<div class="flex-grow-1 min-w-0"><div class="fw-semibold text-truncate">' +
+        esc(lastRound.bankName) + '</div>' +
+        '<div class="small text-body-secondary">上次 ' + lastRound.rate + '% · ' +
+        fmtDur(lastRound.seconds) + '</div></div>' +
+      '<span class="badge rounded-pill ' + rateBadge(lastRound.rate) + '">' +
+        lastRound.rate + '%</span></div>';
+  } else {
+    progHtml = '<div class="text-body-secondary small">还没有做题记录，先来一组吧。</div>';
+  }
+
+  const dayBars = days.map(d =>
+    '<div class="day-col" title="' + d.key + '：' + d.answered + ' 题">' +
+      '<span class="day-num">' + (d.answered || '') + '</span>' +
+      '<span class="day-bar" style="height:' + Math.max(6, Math.round(d.answered / maxDay * 100)) + '%"></span>' +
+      '<span class="day-label">' + d.label + '</span>' +
+    '</div>').join('');
+
+  const main =
+    '<section class="hero-home deco">' +
+      '<div class="eyebrow">PRACTICE MAKES PERFECT</div>' +
+      '<h1 class="welcome-line">' + welcome + '</h1>' +
+      '<p class="hero-sub">欢迎回来，' + esc(S.user) + '。今天想从哪开始？</p>' +
+      '<button class="btn btn-primary btn-lg" data-act="go-banks">' +
+        '<i class="bi bi-play-fill me-1"></i>开始练习</button>' +
+    '</section>' +
+    '<div class="mt-3">' +
+        '<section class="card home-card deco" id="goalCard">' +
+          '<div class="card-body">' +
+            '<div class="eyebrow">DAILY GOAL</div>' +
+            '<div class="d-flex flex-wrap justify-content-between align-items-end gap-2">' +
+              '<div><h2 class="h5 mb-1">每日目标</h2>' +
+                '<div class="small text-body-secondary" id="goalText">今日已写 ' + today + ' / ' + goal + ' 题</div></div>' +
+              '<div class="goal-stepper">' +
+                '<button class="btn btn-sm btn-outline-secondary" data-act="goal" data-delta="-5" aria-label="减少目标">−</button>' +
+                '<span class="goal-num" id="goalNum">' + goal + '</span>' +
+                '<button class="btn btn-sm btn-outline-secondary" data-act="goal" data-delta="5" aria-label="增加目标">＋</button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="progress mt-3" style="height:8px" role="progressbar" aria-label="每日目标进度">' +
+              '<div class="progress-bar" id="goalBar" style="width:' + pct + '%"></div></div>' +
+          '</div>' +
+        '</section>' +
+    '</div>' +
+    '<div class="stat-grid mt-3">' +
+      statCard('总写题数', t.answered, '累计作答', 'bi-pencil-square') +
+      statCard('总正确率', t.rate + '%', t.correct + ' 题答对', 'bi-bullseye') +
+      statCard('收藏集', t.fav, '点击查看', 'bi-star', ' data-act="nav" data-view="collection" data-type="fav"') +
+      statCard('错题本', t.wrong, '点击查看', 'bi-journal-bookmark', ' data-act="nav" data-view="collection" data-type="wrong"') +
+      statCard('总写题时间', fmtDur(t.seconds), '累计用时', 'bi-stopwatch') +
+    '</div>' +
+    '<div class="text-center my-3">' +
+      '<button class="btn btn-warm btn-lg" data-act="go-banks">' +
+        '<i class="bi bi-play-fill me-1"></i>开始练习</button>' +
+    '</div>' +
+    '<div class="row g-3">' +
+      '<div class="col-lg-6">' +
+        '<section class="card home-card deco h-100">' +
+          '<div class="card-body">' +
+            '<div class="eyebrow">LAST SESSION</div>' +
+            '<h2 class="h5 mb-1">上次进度</h2>' + progHtml +
+          '</div>' +
+        '</section>' +
+      '</div>' +
+      '<div class="col-lg-6">' +
+        '<section class="card home-card deco h-100">' +
+          '<div class="card-body">' +
+            '<div class="eyebrow">RECENT</div>' +
+            '<h2 class="h5 mb-3">近日统计</h2>' +
+            '<div class="day-bars">' + dayBars + '</div>' +
+            '<div class="small text-body-secondary mt-2">柱高 = 当天写题数；共 ' +
+              days.reduce((n, d) => n + d.answered, 0) + ' 题</div>' +
+          '</div>' +
+        '</section>' +
+      '</div>' +
+    '</div>' +
+    '<div class="text-center mt-3">' +
+      '<button class="btn btn-sm btn-outline-secondary" data-act="consent-open">' +
+        '<i class="bi bi-shield-check me-1"></i>数据与隐私</button>' +
+    '</div>';
+
+  pageShell('home', main);
+  if (typeof u.consent !== 'boolean') maybeAskConsent();
+}
+
+/* ---- 8.2 题库汇总 ---- */
+function chapterCounts(ch) {
+  const c = { single: 0, multiple: 0, judge: 0, fill: 0 };
+  ch.questions.forEach(q => { if (q.answer.length) c[q.type]++; });
+  return c;
+}
+function countsText(c) {
+  const parts = [];
+  QTYPE_LIST.forEach(t => { if (c[t]) parts.push(TYPE_LABEL[t].text.replace('题', '') + ' ' + c[t]); });
+  return parts.join(' · ') || '暂无题目';
+}
+function renderSummary() {
+  const banks = (BANKS || []).map(bank => {
+    const chapters = bank.chapters.map(ch => {
+      const c = chapterCounts(ch);
+      const total = c.single + c.multiple + c.judge + c.fill;
+      const rows = ch.questions.filter(q => q.answer.length).map((q, i) =>
+        '<div class="sum-q"><span class="badge rounded-pill ' +
+          (q.type === 'single' ? 'text-bg-primary' : q.type === 'multiple' ? 'text-bg-info' :
+           q.type === 'judge' ? 'text-bg-success' : 'text-bg-secondary') + '">' +
+          TYPE_LABEL[q.type].text + '</span>' +
+          '<span class="sum-stem">' + esc(q.stem) + '</span></div>').join('');
+      return '<details class="sum-ch">' +
+        '<summary><span class="sum-name">' + esc(ch.name) + '</span>' +
+          '<span class="sum-counts">' + countsText(c) + '</span>' +
+          '<span class="sum-total">' + total + '</span></summary>' +
+        '<div class="sum-tools"><button class="btn btn-sm btn-warm" data-act="practice-chapter" ' +
+          'data-bank="' + bank.id + '" data-chapter="' + ch.id + '">只练这一章</button></div>' +
+        '<div class="sum-qs">' + rows + '</div>' +
+      '</details>';
+    }).join('');
+    return '<section class="card home-card deco mb-4">' +
+      '<div class="card-body">' +
+        '<div class="d-flex align-items-center gap-3 mb-3">' +
+          '<span class="bank-ico"><i class="bi ' + bankIcon(bank.id) + '"></i></span>' +
+          '<div class="flex-grow-1 min-w-0"><h2 class="h5 mb-0 text-truncate">' + esc(bank.name) + '</h2>' +
+            '<div class="small text-body-secondary">' + esc(bank.desc) + '</div></div>' +
+          '<span class="badge rounded-pill text-bg-secondary">' + bankQuestionIds(bank).length + ' 题</span>' +
+        '</div>' + chapters +
+      '</div></section>';
+  }).join('');
+  pageShell('summary',
+    '<div class="page-head"><div class="eyebrow">LIBRARY INDEX</div>' +
+    '<h1 class="h3 fw-bold mb-1">题库汇总</h1>' +
+    '<p class="text-body-secondary mb-4">按题库 → 章节 → 题型展开，点击可只练这一章。</p></div>' + banks);
+}
+
+/* ---- 8.3 收藏集 / 错题本 ---- */
+function renderCollection() {
+  const kind = S.collectionType === 'fav' ? 'fav' : 'wrong';
+  const label = kind === 'fav' ? '收藏集' : '错题本';
+  const eye = kind === 'fav' ? 'FAVORITES' : 'WRONG BOOK';
+  const rows = (BANKS || []).map(bank => {
+    const ids = kind === 'fav' ? favIds(S.user, bank.id) : wrongIds(S.user, bank.id);
+    if (!ids.length) return '';
+    const c = { single: 0, multiple: 0, judge: 0, fill: 0 };
+    ids.forEach(id => { if (QMAP[id]) c[QMAP[id].type]++; });
+    return '<section class="card home-card deco mb-3"><div class="card-body d-flex flex-wrap align-items-center gap-3">' +
+      '<span class="bank-ico"><i class="bi ' + bankIcon(bank.id) + '"></i></span>' +
+      '<div class="flex-grow-1 min-w-0"><h2 class="h6 fw-bold mb-1 text-truncate">' + esc(bank.name) + '</h2>' +
+        '<div class="small text-body-secondary">' + countsText(c) + '</div></div>' +
+      '<div class="text-end"><div class="h4 mb-0">' + ids.length + '</div>' +
+        '<div class="small text-body-secondary">道题</div></div>' +
+      '<button class="btn btn-sm btn-warm" data-act="start-collection" data-bank="' + bank.id +
+        '" data-type="' + kind + '">练这些题</button></div></section>';
+  }).filter(Boolean).join('');
+  pageShell(kind,
+    '<div class="page-head"><div class="eyebrow">' + eye + '</div>' +
+    '<h1 class="h3 fw-bold mb-1">' + label + '</h1>' +
+    '<p class="text-body-secondary mb-4">按题库查看，点进去会进入组卷页并自动勾选' + label + '。</p></div>' +
+    (rows || '<div class="card home-card deco"><div class="card-body text-body-secondary">' +
+      label + '还是空的，先去练几道题吧。</div></div>'));
+}
+
+/* ---- 8.4 学习报告 ---- */
+function statsChart(rounds) {
+  if (!rounds.length) {
+    return '<div class="empty-chart text-body-secondary small">还没有答题记录，交一次卷就会出现在这里。</div>';
+  }
+  const W = 640, H = 200, pad = 28;
+  const maxQ = Math.max(1, ...rounds.map(r => r.total || 0));
+  const step = (W - pad * 2) / Math.max(1, rounds.length - 1);
+  const barW = Math.min(26, step * 0.5);
+  const bars = rounds.map((r, i) => {
+    const x = pad + i * step;
+    const h = Math.round(((r.total || 0) / maxQ) * (H - pad * 2));
+    return '<rect x="' + (x - barW / 2).toFixed(1) + '" y="' + (H - pad - h) +
+      '" width="' + barW.toFixed(1) + '" height="' + h + '" rx="3" class="chart-bar">' +
+      '<title>' + esc(r.bankName || '') + '：' + (r.total || 0) + ' 题，正确率 ' +
+        (r.rate || 0) + '%，用时 ' + fmtDur(r.seconds) + '</title></rect>';
+  }).join('');
+  const pts = rounds.map((r, i) =>
+    (pad + i * step).toFixed(1) + ',' +
+    (H - pad - ((r.rate || 0) / 100) * (H - pad * 2)).toFixed(1)).join(' ');
+  const dots = rounds.map((r, i) =>
+    '<circle cx="' + (pad + i * step).toFixed(1) + '" cy="' +
+    (H - pad - ((r.rate || 0) / 100) * (H - pad * 2)).toFixed(1) + '" r="3" class="chart-dot"/>').join('');
+  return '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="每轮题数与正确率">' +
+    '<line x1="' + pad + '" y1="' + (H - pad) + '" x2="' + (W - pad) + '" y2="' + (H - pad) + '" class="chart-axis"/>' +
+    '<line x1="' + pad + '" y1="' + pad + '" x2="' + pad + '" y2="' + (H - pad) + '" class="chart-axis"/>' +
+    '<text x="' + (pad - 6) + '" y="' + (pad + 4) + '" text-anchor="end" class="chart-tick">' + maxQ + '</text>' +
+    '<text x="' + (pad - 6) + '" y="' + (H - pad + 4) + '" text-anchor="end" class="chart-tick">0</text>' +
+    bars + '<polyline points="' + pts + '" class="chart-line"/>' + dots +
+  '</svg>' +
+  '<div class="chart-legend"><span><i class="dot bar"></i>题数</span><span><i class="dot line"></i>正确率</span></div>';
+}
+function refreshStatsBoard() {
+  const body = document.getElementById('boardBody');
+  if (!body) return;
+  const sort = S.statSort || 'answered';
+  const rows = boardRows(sort);
+  body.innerHTML = rows.length ? rows.map((r, i) =>
+    '<tr' + (r.name === S.user ? ' class="table-active"' : '') + '>' +
+      '<td>' + (i + 1) + '</td><td>' + esc(r.name) + '</td>' +
+      '<td>' + r.answered + '</td><td>' + r.rate + '%</td></tr>').join('')
+    : '<tr><td colspan="4" class="text-body-secondary">还没有人同意数据收集</td></tr>';
+  ['answered', 'rate'].forEach(k => {
+    const b = document.getElementById('sort-' + k);
+    if (b) b.classList.toggle('active', sort === k);
+  });
+}
+function renderStats() {
+  const u = userOf(S.user);
+  const consented = u.consent === true;
+  const rounds = (u.rounds || []).slice(0, 12).reverse();
+  const tip = consented ? '' :
+    '<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2">' +
+      '<span class="flex-grow-1">你还没有同意数据收集，当前不会出现在排行榜里。</span>' +
+      '<button class="btn btn-sm btn-outline-dark" data-act="consent-open">去设置</button></div>';
+  const main =
+    '<div class="page-head"><div class="eyebrow">LEARNING REPORT</div>' +
+      '<h1 class="h3 fw-bold mb-1">学习报告</h1>' +
+      '<p class="text-body-secondary mb-4">每次题数与正确率；排行榜只统计同意数据收集的用户。</p></div>' +
+    tip +
+    (consented
+      ? '<section class="card home-card deco mb-4"><div class="card-body">' +
+          '<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">' +
+            '<h2 class="h5 mb-0">我的答题曲线</h2>' +
+            '<span class="small text-body-secondary">最近 ' + rounds.length + ' 轮</span></div>' +
+          statsChart(rounds) +
+          '<div class="small text-body-secondary mt-2">累计用时 ' +
+            fmtDur(rounds.reduce((n, r) => n + (r.seconds || 0), 0)) + '</div>' +
+        '</div></section>'
+      : '<section class="card home-card deco mb-4"><div class="card-body text-body-secondary">' +
+          '同意数据收集后，这里会显示你的答题曲线。</div></section>') +
+    '<section class="card home-card deco"><div class="card-body">' +
+      '<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">' +
+        '<h2 class="h5 mb-0">排行榜</h2>' +
+        '<div class="d-flex gap-2">' +
+          '<button class="btn btn-sm btn-outline-secondary sort-btn' +
+            ((S.statSort || 'answered') === 'answered' ? ' active' : '') +
+            '" id="sort-answered" data-act="stat-sort" data-sort="answered">按答题数</button>' +
+          '<button class="btn btn-sm btn-outline-secondary sort-btn' +
+            ((S.statSort || 'answered') === 'rate' ? ' active' : '') +
+            '" id="sort-rate" data-act="stat-sort" data-sort="rate">按正确率</button>' +
+        '</div></div>' +
+      '<div class="table-responsive"><table class="table table-sm align-middle mb-0">' +
+        '<thead><tr><th>#</th><th>用户</th><th>总答题数</th><th>正确率</th></tr></thead>' +
+        '<tbody id="boardBody"></tbody></table></div>' +
+    '</div></section>';
+  pageShell('stats', main);
+  refreshStatsBoard();
+}
+
 /* ============ 8. 启动 ============ */
 function boot() {
   clearLegacy();         /* 清掉被取代的本机键，保持轻量 */
@@ -1614,7 +2177,33 @@ function boot() {
     goPage('index.html', 'login');
     return;
   }
-  if (PAGE === 'banks') { S.view = 'banks'; render(); return; }
+  if (PAGE === 'home') { S.view = 'home'; render(); return; }
+  if (PAGE === 'summary') { S.view = 'summary'; render(); return; }
+  if (PAGE === 'stats') { S.view = 'stats'; render(); return; }
+  if (PAGE === 'collection') {
+    let t = 'wrong';
+    try { t = new URLSearchParams(location.search).get('type') || 'wrong'; } catch (e) {}
+    S.collectionType = t === 'fav' ? 'fav' : 'wrong';
+    S.view = 'collection'; render(); return;
+  }
+  if (PAGE === 'banks') {
+    /* 支持从汇总/收藏页带参数直达组卷面板 */
+    let bid = null, ch = null, scope = null;
+    try {
+      const q = new URLSearchParams(location.search);
+      bid = q.get('bank'); ch = q.get('chapter'); scope = q.get('scope');
+    } catch (e) {}
+    if (bid && bankById(bid)) {
+      S.bankId = bid;
+      S.chapters = ch ? [ch] : bankById(bid).chapters.map(c => c.id);
+      S.types = QTYPE_LIST.slice();
+      S.mode = 'order';
+      S.wrongOnly = scope === 'wrong';
+      S.favOnly = scope === 'fav';
+      S.view = 'setup'; render(); return;
+    }
+    S.view = 'banks'; render(); return;
+  }
   if (PAGE === 'quiz') {
     /* 做题页靠 ?bank= 找到这局没答完的进度；没有就回主界面 */
     let bankId = null;

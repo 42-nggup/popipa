@@ -19,9 +19,13 @@ localStorage**（登录态传不到下一个 HTML），所以此时 `app.js` 会
 想要真正的三页跳转，请用 `node server.js` 或任意静态服务器。
 
 ```
-index.html  登录页
-banks.html  主界面（题库列表）+ 选题页（组卷面板，同页切换）
-quiz.html   做题页（答题 + 交卷结果，同页切换）
+index.html       登录页
+home.html        新主页：侧边栏 + 欢迎语 + 每日目标 + 五项统计 + 上次进度 / 近日统计
+summary.html     题库汇总：题库 → 章节 → 题型，可展开看题、只练这一章
+stats.html       学习报告：个人答题曲线 + 仅同意者的排行榜
+collection.html  错题本 / 收藏集（?type=wrong|fav），按题库列出
+banks.html       题库列表 + 组卷面板（同页切换）
+quiz.html        做题页（答题 + 交卷结果，同页切换）
 ```
 
 HTTP 模式下做题页地址需要带 `?bank=<题库 id>`（从主界面点「开始答题」
@@ -36,7 +40,11 @@ node tests/logic.test.js
 
 ```
 index.html          登录页
-banks.html          主界面 + 选题页（顶栏、#app、Toast）
+home.html           新主页（侧边栏、每日目标、统计、同意弹窗）
+summary.html        题库汇总
+stats.html          学习报告（曲线、排行榜、同意弹窗）
+collection.html     错题本 / 收藏集
+banks.html          题库列表 + 组卷面板（顶栏、#app、Toast）
 server.js           零依赖静态服务器（多页面模式用，node server.js）
 quiz.html           做题页（顶栏、#app、分享预览 Modal、Toast）
 app.css             自定义样式（颜色全部走 Bootstrap 变量，圆角用 --bs-border-radius*）
@@ -60,7 +68,11 @@ vendor/             Bootstrap、Bootstrap Icons、html2canvas
   - `theme` 明暗主题
   - `books{}` 进度（每个题库上次答到哪里）
   - `wrong{}` 错题本
-  - `fav{}` 收藏（跨场次保留）
+  - `fav{}` 收藏
+  - `goal` 每日写题目标（5–200）
+  - `consent` 是否同意答题数据用于统计（`null` = 还没问）
+  - `lifetime{answered,correct,seconds}` 终身累计（不随轮次截断丢失）
+  - `days{'YYYY-M-D':{answered,correct}}` 按天累计，用于主页近日统计（跨场次保留）
   - `history[]` 成绩摘要
   - `rounds[]` 逐轮记录：逐题作答（`order/answers/submitted`）、
     起止时间与用时（`startedAt/finishedAt/seconds`）、汇总
@@ -77,6 +89,9 @@ vendor/             Bootstrap、Bootstrap Icons、html2canvas
 - **交卷**：当前题有答案但没提交时，先提交再交卷；没作答/已提交则直接交卷。
 - **组卷筛选**：章节和题型在同一页勾选，只出「选中章节 × 选中题型」的题；
   从错题集/收藏集进入时，仍可在这两个集合内继续按章节、题型筛选。
+- **每日热身**：侧边栏底部，从全部题库随机抽 5 道题，跨题库成局。
+- **数据收集**：首次进新主页会弹窗询问；只有 `consent === true` 的用户
+  才进入学习报告的排行榜，拒绝后不再打扰。
 - **再练一遍没做对的**：交卷后出现在结果页，把这一轮「没做对」的题抽出来开新的一轮。
   新一轮是独立记录（新的 session id），原先那一轮的成绩、逐题记录、用时、进度
   都原样保留在 `rounds` 里，数字不会被覆盖。
