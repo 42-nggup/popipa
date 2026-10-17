@@ -146,10 +146,14 @@ function stats(s) {
 const KEY = {
   user: 'popipa:user',    /* 当前登录的是谁（退出登录会清）*/
   last: 'popipa:last',    /* 最近一次登录过谁（不清）*/
-  users: 'popipa:users',
+  users: 'popipa:users',  /* 用户表：只记 name / lastLogin */
+  utable: 'popipa:u:',    /* 每个用户一张表：popipa:u:<昵称> */
   theme: 'popipa:theme',
   noPrompt: 'popipa:noPrompt'
 };
+/* 每用户表里放的业务数据：成绩、逐题记录、进度、用时、收藏 */
+const USER_FIELDS = ['theme', 'books', 'wrong', 'fav', 'history', 'rounds'];
+const ROUNDS_MAX = 20;
 const store = {
   get(k, d) {
     try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); }
@@ -174,30 +178,73 @@ function clearLegacy() {
 
 /* ---- 用户表 ---- */
 function blankUser(name) {
-  return { name: name, lastLogin: 0, theme: null, books: {}, wrong: {}, history: [] };
+  return {
+    name: name, lastLogin: 0,
+    theme: null,        /* 明暗主题 */
+    books: {},          /* 进度：每个题库上次答到哪里 */
+    wrong: {},          /* 错题本 */
+    fav: {},            /* 收藏 */
+    history: [],        /* 成绩摘要 */
+    rounds: []          /* 逐轮记录：逐题作答 + 用时 + 汇总 */
+  };
 }
 function users() {
   const u = store.get(KEY.users, {});
   return u && typeof u === 'object' && !Array.isArray(u) ? u : {};
 }
+function userTable(name) { return store.get(KEY.utable + name, {}); }
+function saveUserTable(name, t) { store.set(KEY.utable + name, t); }
 function userOf(name) {
   if (!name) return blankUser(null);
-  const u = users()[name];
-  if (!u || typeof u !== 'object') return blankUser(name);
-  /* 补齐字段，旧数据少字段也不会崩 */
+  const rec = users()[name] || {};
+  const t = userTable(name);
   const base = blankUser(name);
-  return Object.assign(base, u, {
+  /* 补齐字段，旧数据少字段也不会崩 */
+  return Object.assign(base, t, {
     name: name,
-    books: u.books && typeof u.books === 'object' ? u.books : {},
-    wrong: u.wrong && typeof u.wrong === 'object' ? u.wrong : {},
-    history: Array.isArray(u.history) ? u.history : []
+    lastLogin: rec.lastLogin || 0,
+    books: t.books && typeof t.books === 'object' ? t.books : {},
+    wrong: t.wrong && typeof t.wrong === 'object' ? t.wrong : {},
+    fav: t.fav && typeof t.fav === 'object' ? t.fav : {},
+    history: Array.isArray(t.history) ? t.history : [],
+    rounds: Array.isArray(t.rounds) ? t.rounds : []
   });
 }
 function saveUser(name, u) {
   if (!name) return;
+  /* 用户表只留身份信息 */
   const all = users();
-  all[name] = u;
+  all[name] = { name: name, lastLogin: u.lastLogin || 0 };
   store.set(KEY.users, all);
+  /* 其余全部写进这个用户自己的表 */
+  const t = {};
+  USER_FIELDS.forEach(k => { t[k] = u[k]; });
+  saveUserTable(name, t);
+}
+/* 旧结构迁移：业务字段从 popipa:users 搬到 popipa:u:<昵称>，用户表只留身份 */
+function migrateUsers() {
+  const all = users();
+  let changed = false;
+  Object.keys(all).forEach(name => {
+    const rec = all[name];
+    if (!rec || typeof rec !== 'object') return;
+    const t = userTable(name);
+    let moved = false;
+    USER_FIELDS.forEach(k => {
+      if (rec[k] !== undefined) {
+        if (t[k] === undefined) t[k] = rec[k];
+        delete rec[k];
+        moved = true;
+      }
+    });
+    if (moved) {
+      saveUserTable(name, t);
+      all[name] = { name: rec.name || name, lastLogin: rec.lastLogin || 0 };
+      changed = true;
+    }
+  });
+  if (changed) store.set(KEY.users, all);
+  return changed;
 }
 /* 登录：记下"最近一次谁登录了" */
 function rememberLogin(name) {
@@ -266,6 +313,30 @@ function syncWrong(user, session) {
   });
   saveUser(user, u);
 }
+
+/* ---- 逐轮记录：每轮交卷时落一份快照（逐题作答 + 用时 + 汇总）----
+   回看时数字直接取快照，不受题库改版影响。 */
+function pushRound(user, session) {
+  const st = stats(session);
+  const u = userOf(user);
+  const rec = {
+    id: session.id,
+    bankId: session.bankId, bankName: session.bankName,
+    order: session.order.slice(),
+    answers: Object.assign({}, session.answers),
+    submitted: Object.assign({}, session.submitted),
+    fav: Object.assign({}, session.fav),
+    startedAt: session.startedAt,
+    finishedAt: session.finishedAt || Date.now(),
+    seconds: Math.round(((session.finishedAt || Date.now()) - session.startedAt) / 1000),
+    total: st.total, correct: st.correct, wrong: st.wrong,
+    unanswered: st.unanswered, rate: st.rate, score: st.score
+  };
+  u.rounds = [rec].concat(u.rounds || []).slice(0, ROUNDS_MAX);
+  saveUser(user, u);
+  return rec;
+}
+function roundsOf(user) { return userOf(user).rounds || []; }
 
 /* ---- 成绩历史（现在是每人一份，不再是一个本机大杂烩）---- */
 function historyOf(user) { return userOf(user).history; }
@@ -799,6 +870,7 @@ function finish() {
     seconds: Math.round((s.finishedAt - s.startedAt) / 1000),
     at: new Date().toISOString()
   });
+  pushRound(S.user, s);      /* 逐轮记录：逐题作答 + 用时 + 汇总，供回看 */
   syncWrong(S.user, s);      /* 错题本：答错的记下，答对的移除 */
   clearProgress(s.bankId);   /* 交了卷就不再是"上次答到哪" */
   S.view = 'result';
@@ -1105,5 +1177,6 @@ document.addEventListener('keydown', function (e) {
 
 /* ============ 8. 启动 ============ */
 clearLegacy();         /* 清掉被取代的本机键，保持轻量 */
+migrateUsers();        /* 旧用户表里的业务字段搬进每用户自己的表 */
 applyTheme(theme());   /* 页面一加载就把主题定下来，避免闪一下浅色 */
 render();
