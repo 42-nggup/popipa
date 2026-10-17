@@ -249,17 +249,6 @@ h1 .sub{display:block;font-size:14px;font-weight:400;color:var(--bs-secondary-co
 .empty .e-ico{font-size:30px;margin-bottom:8px}
 .hint{font-size:13px;color:var(--bs-secondary-color);margin:0 0 10px}
 
-/* 弹窗里的「不再提醒」开关 */
-.memory{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;font-size:13px;
-        border:1px dashed var(--bs-border-color);border-radius:var(--bs-border-radius-pill);
-        background:none;color:var(--bs-secondary-color)}
-.memory:hover{border-color:var(--bs-primary);color:var(--bs-primary-text-emphasis)}
-.memory i{width:15px;height:15px;display:grid;place-items:center;font-size:11px;
-          border:1px solid var(--bs-secondary-color);border-radius:.3rem;font-style:normal}
-.memory.on{border-style:solid;border-color:var(--bs-primary);background:var(--bs-primary-bg-subtle);
-           color:var(--bs-primary-text-emphasis)}
-.memory.on i{background:var(--bs-primary);border-color:var(--bs-primary);color:var(--bs-white)}
-
 /* ---------- 13. 移动端 ---------- */
 @media (max-width:560px){
   .hero{padding:2rem 0 .25rem}
