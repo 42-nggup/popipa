@@ -23,6 +23,8 @@ const topbar = document.getElementById('top');
 const toastEl = document.getElementById('toast');
 const askModalEl = document.getElementById('askModal');
 const dialogEl = document.getElementById('dialog');
+const shareModalEl = document.getElementById('shareModal');
+const shareBodyEl = document.getElementById('shareBody');
 const askModal = () => bootstrap.Modal.getOrCreateInstance(askModalEl);
 
 const TYPE_LABEL = {
@@ -334,6 +336,7 @@ const S = {
   session: null,
   reviewTab: 'all',
   reviewOpen: {},
+  qmapOpen: false,   // 答题卡是否展开成多行网格
   finishAt: 0
 };
 
@@ -513,6 +516,7 @@ function startSession() {
     if (!ids.length) { toast('请至少选择一个章节'); return; }
   }
   if (S.mode === 'random') ids = shuffle(ids);
+  S.qmapOpen = false;                      /* 新一局答题卡默认收起 */
   S.session = {
     id: 's' + Date.now(),
     bankId: bank.id, bankName: bank.name + (S.wrongOnly ? ' · 错题本' : ''),
@@ -529,6 +533,7 @@ function resumeSession() {
   const p = loadProgress(S.user, S.bankId);
   if (!p) { toast('没有可继续的记录'); return; }
   p.finished = false;
+  S.qmapOpen = false;
   S.session = p;
   S.view = 'quiz';
   render();
@@ -625,7 +630,14 @@ function renderQuiz() {
         '<button class="btn btn-outline-secondary" data-act="finish">交卷</button>' +
       '</div>' +
     '</div>' +
-    '<div class="qmap" id="qmap">' + nav + '</div>' +
+    '<div class="qmap-wrap">' +
+      '<div class="qmap' + (S.qmapOpen ? ' open' : '') + '" id="qmap">' + nav + '</div>' +
+      '<button class="qmap-expand" type="button" data-act="qmap-toggle"' +
+        ' aria-expanded="' + (S.qmapOpen ? 'true' : 'false') + '"' +
+        ' title="' + (S.qmapOpen ? '收起答题卡' : '展开答题卡') + '"' +
+        ' aria-label="' + (S.qmapOpen ? '收起答题卡' : '展开答题卡') + '">' +
+        '<i class="bi ' + (S.qmapOpen ? 'bi-chevron-up' : 'bi-chevron-down') + '"></i></button>' +
+    '</div>' +
     '<div class="kbdhint">快捷键：<span class="kbd">←</span> <span class="kbd">→</span> 切题 · ' +
       '<span class="kbd">1</span>~<span class="kbd">4</span> 选项 · ' +
       '<span class="kbd">Enter</span> 提交 · <span class="kbd">F</span> 收藏</div>';
@@ -860,8 +872,10 @@ function renderResult() {
         '<h2>得分 ' + st.score + ' 分</h2>' +
         '<p>' + verdict + '　用时 ' + fmtTime(used) + '</p>' +
         '<div class="d-flex flex-wrap align-items-center gap-2 mt-3">' +
-          '<button class="btn btn-primary" data-act="retry-wrong">重做错题</button>' +
+          '<button class="btn btn-outline-primary" data-act="retry-wrong">重做错题</button>' +
           '<button class="btn btn-outline-secondary" data-act="again">再刷一遍</button>' +
+          '<button class="btn btn-primary" data-act="share-png">' +
+            '<i class="bi bi-download me-1"></i>导出分享图</button>' +
           '<button class="btn btn-outline-secondary" data-act="back-banks">返回题库</button>' +
         '</div>' +
       '</div>' +
@@ -880,6 +894,7 @@ function renderResult() {
 function retryWrong() {
   const s = S.session;
   autoJump = null;
+  S.qmapOpen = false;
   const ids = s.order.filter(qid => s.submitted[qid] && !isCorrect(QMAP[qid], s.answers[qid]));
   if (!ids.length) { toast('没有错题，太棒了'); return; }
   S.session = {
@@ -895,6 +910,7 @@ function retryWrong() {
 function again() {
   const s = S.session;
   autoJump = null;
+  S.qmapOpen = false;
   S.session = {
     id: 's' + Date.now(), bankId: s.bankId, bankName: s.bankName,
     chapters: s.chapters.slice(), mode: s.mode,
@@ -905,6 +921,86 @@ function again() {
   saveProgress();
   S.view = 'quiz';
   render();
+}
+
+/* ---- 6.7.1 导出分享图 ----
+   不截结果页本身：页面有 radial-gradient 背景和 fixed 定位，html2canvas 容易糊；
+   单独画一张固定宽度的干净卡片，导出效果稳定。 */
+function shareCardHtml(rec) {
+  const tone = rec.rate >= 80 ? 'success' : rec.rate >= 60 ? 'warning' : 'danger';
+  const deg = Math.round(rec.rate * 3.6);
+  return '<div class="share-card" style="width:560px;background:var(--bs-body-bg);color:var(--bs-body-color)">' +
+      '<div class="d-flex align-items-center gap-2">' +
+        '<span class="brand-logo">pi</span>' +
+        '<span class="fw-bold fs-5">popipa</span>' +
+        '<span class="ms-auto small text-body-secondary">' + esc(rec.date) + '</span>' +
+      '</div>' +
+      '<div class="d-flex align-items-center gap-4 mt-3">' +
+        '<div class="ring" style="background:conic-gradient(var(--bs-' + tone + ') ' + deg +
+          'deg,var(--bs-secondary-bg) ' + deg + 'deg)">' +
+          '<div class="in"><div><div class="v" style="color:var(--bs-' + tone + '-text-emphasis)">' +
+            rec.rate + '%</div><div class="u">正确率</div></div></div>' +
+        '</div>' +
+        '<div>' +
+          '<div class="h5 fw-bold mb-1">' + esc(rec.bankName) + '</div>' +
+          '<div class="small text-body-secondary mb-2">得分 ' + rec.score + ' 分 · 用时 ' + esc(rec.used) + '</div>' +
+          '<div class="d-flex flex-wrap gap-3 small">' +
+            '<span>总题数 <b>' + rec.total + '</b></span>' +
+            '<span>答对 <b class="text-success">' + rec.correct + '</b></span>' +
+            '<span>答错 <b class="text-danger">' + rec.wrong + '</b></span>' +
+            '<span>未答 <b>' + rec.unanswered + '</b></span>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="small text-body-secondary mt-3 pt-3 border-top">刷题吧 · popipa</div>' +
+    '</div>';
+}
+function dateStamp(ms) {
+  const d = new Date(ms || Date.now()), p = n => (n < 10 ? '0' : '') + n;
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+function shareRecord() {
+  const s = S.session, st = stats(s);
+  return {
+    bankName: s.bankName, total: st.total, correct: st.correct, wrong: st.wrong,
+    unanswered: st.unanswered, rate: st.rate, score: st.score,
+    used: fmtTime((s.finishedAt || Date.now()) - s.startedAt),
+    date: dateStamp(Date.now())
+  };
+}
+function exportPng() {
+  const s = S.session;
+  if (!s) { toast('没有可导出的成绩'); return; }
+  if (typeof html2canvas !== 'function') { toast('分享图组件没加载，请检查 vendor/html2canvas.min.js'); return; }
+  const rec = shareRecord();
+  const holder = document.createElement('div');
+  holder.innerHTML = shareCardHtml(rec);
+  document.body.appendChild(holder);
+  const drop = () => { if (holder.remove) holder.remove(); };
+  const done = url => {
+    drop();
+    shareBodyEl.innerHTML =
+      '<div class="modal-header">' +
+        '<h5 class="modal-title"><i class="bi bi-image me-2"></i>分享图已生成</h5>' +
+        '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>' +
+      '</div>' +
+      '<div class="modal-body"><div class="share-wrap">' +
+        '<img alt="答题成绩分享图" src="' + url + '"></div></div>' +
+      '<div class="modal-footer">' +
+        '<button class="btn btn-outline-secondary" data-bs-dismiss="modal">关闭</button>' +
+        '<a class="btn btn-primary" data-act="share-dl" download="popipa-' + rec.rate + '分-' +
+          esc(rec.date) + '.png" href="' + url + '">' +
+          '<i class="bi bi-download me-1"></i>下载 PNG</a>' +
+      '</div>';
+    bootstrap.Modal.getOrCreateInstance(shareModalEl).show();
+  };
+  const fail = () => { drop(); toast('生成分享图失败，请重试'); };
+  try {
+    /* backgroundColor 交给卡片自己的 --bs-body-bg，深色模式下也是深底 */
+    const p = html2canvas(holder.firstChild, { scale: 2, backgroundColor: null, logging: false });
+    if (p && typeof p.then === 'function') p.then(cv => done(cv.toDataURL('image/png'))).catch(fail);
+    else done(p.toDataURL('image/png'));
+  } catch (e) { fail(); }
 }
 
 /* ---- 6.8 计时器 ---- */
@@ -949,6 +1045,9 @@ document.addEventListener('click', function (e) {
     case 'submit': submitCurrent(); break;
     case 'redo': redoCurrent(); break;
     case 'fav': toggleFav(); break;
+    case 'qmap-toggle': S.qmapOpen = !S.qmapOpen; render(); break;
+    case 'share-png': exportPng(); break;
+    case 'share-dl': bootstrap.Modal.getOrCreateInstance(shareModalEl).hide(); break;
     case 'prev': step(-1); break;
     case 'next': step(1); break;
     case 'jump': jump(Number(el.dataset.i)); break;

@@ -24,8 +24,9 @@ const mkEl = id => {
       contains: c => classes.has(c),
       toggle: (c, on) => { (on === undefined ? !classes.has(c) : on) ? classes.add(c) : classes.delete(c); }
     },
-    addEventListener() {}, focus() {}, select() {}, matches: () => false, closest: () => null,
-    setAttribute() {}
+    addEventListener() {}, focus() {}, select() {}, matches: () => false,
+    closest() { return this; },   /* 事件委托靠它找到 [data-act]，桩里返回自己就够 */
+    setAttribute() {}, remove() {}, appendChild() {}
   };
 };
 /* 假 bootstrap.Modal：真组件靠 .show 类 + hidden.bs.modal 事件，这里只模仿类切换 */
@@ -36,11 +37,15 @@ function FakeModal(el) {
 }
 FakeModal.getOrCreateInstance = el => (el.__m || (el.__m = new FakeModal(el)));
 const storage = {};
+const handlers = { click: [] };
 const sandbox = {
   console, Math, JSON, Date, Number, String, Array, Object, Boolean, RegExp, Error, isNaN,
   document: {
     getElementById: id => (els[id] || (els[id] = mkEl(id))),
-    addEventListener() {}, activeElement: null, documentElement: { dataset: {} }
+    createElement: () => mkEl('tmp'),
+    body: mkEl('body'),
+    addEventListener: (t, fn) => { if (t === 'click') handlers.click.push(fn); },
+    activeElement: null, documentElement: { dataset: {} }
   },
   localStorage: {
     getItem: k => (k in storage ? storage[k] : null),
@@ -59,6 +64,10 @@ globalThis.__hook = { S, stats, isCorrect, hasAnswer, startSession, pickKey, sub
   store, KEY, userOf, users, wrongIds, sanitizeSession, historyOf, loadProgress, lastName,
   applyTheme, theme, toggleTheme, navTargetScroll,
   getAuto: () => autoJump, askShown: () => askModalEl.classList.contains('show'),
+  exportPng, shareCardHtml, shareRecord, dateStamp,
+  getToast: () => toastEl.textContent,
+  shareHtml: () => shareBodyEl.innerHTML,
+  shareShown: () => shareModalEl.classList.contains('show'),
   dialogHtml: () => dialogEl.innerHTML };`, sandbox);
 const H = sandbox.__hook;
 
@@ -66,6 +75,13 @@ let pass = 0, fail = 0;
 const ok = (name, cond) => cond ? (pass++, console.log('  \u2713 ' + name))
                                 : (fail++, console.log('  \u2717 ' + name));
 const section = t => console.log('\n' + t);
+/* 真的走一遍 app.js 注册的事件委托 */
+const fire = (act, data) => {
+  const el = mkEl('clicked');
+  el.dataset = Object.assign({ act }, data || {});
+  handlers.click.forEach(fn => fn({ target: el }));
+  return el;
+};
 
 section('1. 登录与选题');
 els['nick'].value = '小明';
@@ -277,6 +293,55 @@ H.render();
 ok('不再有「本机记录」', els['app'].innerHTML.indexOf('本机') === -1);
 ok('回填了上次登录的昵称', els['app'].innerHTML.indexOf('value="小明"') >= 0);
 ok('主题按钮不在登陆页消失', els['themeBtn'].innerHTML.indexOf('bi-') >= 0);
+
+
+/* ===================== 本轮三项 ===================== */
+
+section('18. 答题卡右侧的展开按钮');
+H.S.user = '小明'; H.S.view = 'setup'; H.S.bankId = 'web';
+H.S.chapters = H.bankById('web').chapters.map(c => c.id);
+H.S.wrongOnly = false;
+H.startSession();
+ok('新一局默认收起', H.S.qmapOpen === false);
+ok('答题卡容器旁边有展开按钮', els['app'].innerHTML.indexOf('data-act="qmap-toggle"') >= 0 &&
+   els['app'].innerHTML.indexOf('qmap-wrap') >= 0);
+fire('qmap-toggle');
+ok('点一下展开成多行网格', H.S.qmapOpen === true && els['app'].innerHTML.indexOf('qmap open') >= 0);
+fire('qmap-toggle');
+ok('再点一下收起', H.S.qmapOpen === false && els['app'].innerHTML.indexOf('qmap open') === -1);
+
+section('19. 答对绿色与选项字母方块一致');
+const cssSrc = fs.readFileSync(path.join(root, 'app.css'), 'utf8');
+ok('.qmap b.ok 与 .opt.ok .k 用的是同一个实心 success 绿',
+   /\.qmap b\.ok\{[^}]*background:var\(--bs-success\)[^}]*color:var\(--bs-white\)/.test(cssSrc) &&
+   /\.opt\.ok \.k\{[^}]*background:var\(--bs-success\)/.test(cssSrc));
+ok('展开态是多行网格（flex-wrap）', /\.qmap\.open\{[^}]*flex-wrap:wrap/.test(cssSrc));
+
+section('20. 导出 PNG 分享图');
+H.startSession();
+H.jump(0);
+H.QMAP[H.S.session.order[0]].answer.forEach(k => H.pickKey(k));
+H.submitCurrent(false);
+H.finish();
+const rec = H.shareRecord();
+ok('分享卡数据齐全（总题/答对/答错/未答/正确率）',
+   rec.total === H.S.session.order.length && typeof rec.rate === 'number' &&
+   rec.correct + rec.wrong === rec.total - rec.unanswered);
+const card = H.shareCardHtml(rec);
+ok('分享卡里有品牌与四项统计', card.indexOf('popipa') >= 0 && card.indexOf('总题数') >= 0 &&
+   card.indexOf('答对') >= 0 && card.indexOf('答错') >= 0 && card.indexOf('未答') >= 0);
+let threwPng = null;
+try { H.exportPng(); } catch (e) { threwPng = e; }
+ok('html2canvas 缺失时不出异常', threwPng === null);
+ok('并给出可读提示', H.getToast().indexOf('分享图') >= 0);
+/* 装上假 html2canvas，验证成功路径（同步 thenable，方便断言） */
+sandbox.html2canvas = () => ({
+  then(cb) { cb({ toDataURL: () => 'data:image/png;base64,AAA' }); return { catch() {} }; }
+});
+H.exportPng();
+ok('生成后弹出预览 Modal', H.shareShown() === true);
+ok('预览里是 PNG dataURL', H.shareHtml().indexOf('data:image/png;base64') >= 0);
+ok('预览里有下载按钮', H.shareHtml().indexOf('download="popipa-') >= 0);
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);
