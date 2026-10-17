@@ -1340,7 +1340,7 @@ function shareCardHtml(rec) {
         '</div>' +
       '</div>' +
       '<div class="small text-body-secondary mt-3 pt-3 border-top">' +
-        esc(rec.user) + '。📢U咩哇帕瓦📢</div>' +
+        esc(rec.user) + ' · 📢U咩哇帕瓦📢</div>' +
     '</div>';
 }
 function dateStamp(ms) {

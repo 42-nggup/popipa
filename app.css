@@ -281,3 +281,47 @@ h1 .sub{display:block;font-size:14px;font-weight:400;color:var(--bs-secondary-co
   .round-table tbody td:nth-child(4){grid-column:1/-1}
   .round-sum td{grid-column:1/-1}
 }
+
+/* ---------- 14. 动画（全部 CSS 驱动，尊重减少动态效果偏好） ---------- */
+@media (prefers-reduced-motion: no-preference){
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes popIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+  @keyframes qcur{0%{transform:scale(.88)}60%{transform:scale(1.07)}100%{transform:scale(1)}}
+
+  /* 页面/区块入场 */
+  .hero,.login-box{animation:rise .32s ease-out both}
+  .logo-big{animation:popIn .45s ease-out both}
+  .banks-head,.setup-head{animation:fadeIn .25s ease-out both}
+  .bank-card{animation:rise .3s ease-out both}
+  .bank-card:nth-child(2){animation-delay:.04s}
+  .bank-card:nth-child(3){animation-delay:.08s}
+  .bank-card:nth-child(4){animation-delay:.12s}
+  .setup-grid,.score-hero,.grid,.rounds{animation:rise .3s ease-out both}
+  .qcard{animation:fadeIn .2s ease-out}
+  .ring{animation:popIn .45s ease-out both}
+  .round-card,.rev{animation:fadeIn .22s ease-out both}
+
+  /* 交互反馈 */
+  .btn{transition:transform .12s ease,box-shadow .15s ease,background-color .15s ease,
+       border-color .15s ease,color .15s ease}
+  .btn:active{transform:scale(.97)}
+  .chip{transition:transform .12s ease,background-color .15s ease,border-color .15s ease,color .15s ease}
+  .chip:active{transform:scale(.95)}
+  .opt{transition:transform .12s ease,background-color .15s ease,border-color .15s ease}
+  .opt:active{transform:scale(.995)}
+  .qmap b{transition:transform .12s ease,background-color .15s ease,border-color .15s ease,color .15s ease}
+  .qmap b:active{transform:scale(.92)}
+  /* 当前题换位时轻微弹一下（只有类名变化才会重放） */
+  .qmap b.cur{animation:qcur .26s ease-out}
+  .progress-bar{transition:width .35s ease}
+  /* 颜色过渡放在组件自己的 transform 过渡之前，避免把 hover 抬升的过渡覆盖掉 */
+  body,.navbar,.popipa-toast{transition:background-color .22s ease,color .22s ease,border-color .22s ease}
+  .card{transition:background-color .22s ease,color .22s ease,border-color .22s ease}
+  .bank-card{transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,
+             background-color .22s ease,color .22s ease}
+}
+/* 系统开启“减少动态效果”时全部关掉 */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+}

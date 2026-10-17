@@ -697,8 +697,8 @@ ok('逐轮记录里这道题算已作答',
 
 section('40. 分享图落款');
 const card40 = H.shareCardHtml(H.shareRecord());
-ok('落款是「用户名。📢U咩哇帕瓦📢」',
-   card40.indexOf('小明。📢U咩哇帕瓦📢') >= 0);
+ok('落款是「用户名 · 📢U咩哇帕瓦📢」（居中点分隔）',
+   card40.indexOf('小明 · 📢U咩哇帕瓦📢') >= 0);
 ok('旧落款已移除', card40.indexOf('刷题吧') === -1);
 
 section('41. 组卷页按题型筛选');
@@ -722,6 +722,19 @@ ok('题量与单选筛选一致', H.S.session.order.length === singles41);
 H.S.view = 'setup'; H.render();
 fire('toggle-type', { type: 'single' });
 ok('点题型可取消选中', H.S.types.indexOf('single') === -1);
+
+
+section('42. 页面动画');
+ok('有入场动画关键帧', /@keyframes rise/.test(cssSrc) && /@keyframes popIn/.test(cssSrc));
+ok('题库卡、组卷页、结果页有入场动画',
+   /\.bank-card\{animation:rise/.test(cssSrc) &&
+   /\.setup-grid,.score-hero,.grid,.rounds\{animation:rise/.test(cssSrc));
+ok('按钮/选项/答题卡有按压反馈', /\.btn:active\{transform:scale/.test(cssSrc) &&
+   /\.opt:active\{transform:scale/.test(cssSrc) &&
+   /\.qmap b:active\{transform:scale/.test(cssSrc));
+ok('当前题换位有轻弹动画', /\.qmap b\.cur\{animation:qcur/.test(cssSrc));
+ok('尊重“减少动态效果”偏好',
+   /@media \(prefers-reduced-motion: reduce\)\{[\s\S]*animation:none !important/.test(cssSrc));
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);
