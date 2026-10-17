@@ -328,6 +328,17 @@ function syncWrong(user, session) {
 }
 
 /* ---- 收藏：存在每用户表里，跨场次保留（答对答错都不掉）---- */
+/* 收藏集/错题集里再按当前选中的章节与题型过滤 */
+function collectionIds(bankId) {
+  const base = S.wrongOnly ? wrongIds(S.user, bankId)
+    : S.favOnly ? favIds(S.user, bankId) : null;
+  if (!base) return null;
+  const types = selectedTypes();
+  return base.filter(id => {
+    const pos = QPOS[id], q = QMAP[id];
+    return pos && q && S.chapters.indexOf(pos.chapterId) >= 0 && types.indexOf(q.type) >= 0;
+  });
+}
 function favIds(user, bankId) {
   const f = userOf(user).fav;
   return Object.keys(f).filter(id => QMAP[id] && (!bankId || QPOS[id].bankId === bankId));
@@ -544,8 +555,6 @@ function renderBanks() {
           '<div class="flex-grow-1 min-w-0">' +
             '<div class="d-flex align-items-center gap-2">' +
               '<h2 class="h6 fw-bold mb-0 text-truncate">' + esc(bank.name) + '</h2>' +
-              (last ? '<span class="badge rounded-pill ' + rateBadge(last.rate) + ' ms-auto flex-shrink-0">' +
-                '上次 ' + last.rate + '%</span>' : '') +
             '</div>' +
             '<div class="small text-body-secondary text-truncate">' + esc(bank.desc) + '</div>' +
           '</div>' +
@@ -556,13 +565,13 @@ function renderBanks() {
           '<span><i class="bi bi-ui-checks"></i>单选 ' + counts.single + ' · 多选 ' + counts.multiple +
             ' · 判断 ' + counts.judge + (counts.fill ? ' · 填空 ' + counts.fill : '') + '</span>' +
         '</div>' +
-        (st ? '<div class="bank-progress">' +
-          '<div class="d-flex justify-content-between small text-body-secondary">' +
-            '<span><i class="bi bi-play-circle me-1"></i>上次答到第 ' + st.answered + ' 题</span>' +
-            '<span>' + pct + '%</span></div>' +
-          '<div class="progress mt-1" style="height:5px" role="progressbar" aria-label="上次进度">' +
-            '<div class="progress-bar" style="width:' + pct + '%"></div></div>' +
-        '</div>' : '') +
+        (st
+          ? '<div class="bank-status"><span class="small text-body-secondary">' +
+              '<i class="bi bi-play-circle me-1"></i>答到第 ' + st.answered + ' 题 · ' + pct + '%</span></div>'
+          : last
+            ? '<div class="bank-status"><span class="badge rounded-pill ' + rateBadge(last.rate) + '">' +
+                '上次 ' + last.rate + '%</span></div>'
+            : '') +
         '<div class="d-flex flex-wrap align-items-center gap-1 mt-3">' +
           '<button class="btn btn-sm btn-outline-danger" data-act="pick-bank" data-id="' + bank.id +
             '" data-scope="wrong"' + (wrong ? '' : ' disabled') +
@@ -675,8 +684,7 @@ function pickBank(id, scope) {
 /* ---- 6.3 组卷面板 ---- */
 /* ---- 6.3 组卷面板 ---- */
 function setupPicked(bank) {
-  if (S.wrongOnly) return wrongIds(S.user, bank.id).length;
-  if (S.favOnly) return favIds(S.user, bank.id).length;
+  if (S.wrongOnly || S.favOnly) return collectionIds(bank.id).length;
   const types = selectedTypes();
   return bank.chapters.filter(ch => S.chapters.indexOf(ch.id) >= 0)
     .reduce((n, ch) => n + ch.questions.filter(q =>
@@ -710,7 +718,6 @@ function refreshSetup() {
       const on = S.chapters.indexOf(b.dataset.id) >= 0;
       b.classList.toggle('on', on);
       b.setAttribute('aria-checked', on ? 'true' : 'false');
-      b.disabled = S.wrongOnly || S.favOnly;
     });
   }
   const typeBox = byId('typeChips');
@@ -720,7 +727,6 @@ function refreshSetup() {
       const on = types.indexOf(b.dataset.type) >= 0;
       b.classList.toggle('on', on);
       b.setAttribute('aria-checked', on ? 'true' : 'false');
-      b.disabled = S.wrongOnly || S.favOnly;
     });
   }
   const seg = byId('modeSeg');
@@ -730,8 +736,8 @@ function refreshSetup() {
     });
   }
   const hint = byId('chapterHint');
-  if (hint) hint.textContent = S.wrongOnly ? '正在只练错题集，章节不生效'
-    : S.favOnly ? '正在只练收藏集，章节不生效'
+  if (hint) hint.textContent = (S.wrongOnly || S.favOnly)
+    ? '只练' + (S.wrongOnly ? '错题集' : '收藏集') + '，仍可再筛章节'
     : '只选中的章节会进入本次练习';
 }
 function renderSetup() {
@@ -748,15 +754,14 @@ function renderSetup() {
       sum + ch.questions.filter(q => q.type === t && q.answer.length).length, 0);
     return '<button class="chip' + (on ? ' on' : '') + '" data-act="toggle-type" data-type="' + t + '"' +
       ' role="switch" aria-checked="' + (on ? 'true' : 'false') + '"' +
-      (S.wrongOnly || S.favOnly ? ' disabled' : '') + '>' + TYPE_LABEL[t].text +
+      '>' + TYPE_LABEL[t].text +
       '<span class="n">' + n + '</span></button>';
   }).join('');
   const chips = bank.chapters.map(ch => {
     const on = S.chapters.indexOf(ch.id) >= 0;
     return '<button class="chip' + (on ? ' on' : '') + '" data-act="toggle-chapter" data-id="' + ch.id + '"' +
       ' role="switch" aria-checked="' + (on ? 'true' : 'false') + '"' +
-      (S.wrongOnly || S.favOnly ? ' disabled' : '') + '>' +
-      esc(ch.name) + '<span class="n">' + ch.questions.length + '</span></button>';
+      '>' + esc(ch.name) + '<span class="n">' + ch.questions.length + '</span></button>';
   }).join('');
   app.innerHTML =
     '<div class="setup-head">' +
@@ -771,7 +776,7 @@ function renderSetup() {
       '<div class="card setup-main shadow-sm"><div class="card-body p-4">' +
         '<section>' +
           '<h2 class="h6 fw-bold"><i class="bi bi-funnel me-1"></i>练习范围</h2>' +
-          '<p class="hint">错题集会攒着答错的题、答对后自动移出；只练错题/收藏时不看章节与题型。</p>' +
+          '<p class="hint">错题集会攒着答错的题、答对后自动移出；只练错题/收藏时，仍可按章节和题型再筛。</p>' +
           '<div class="chips" id="rangeChips">' +
             '<button class="chip' + (!collection ? ' on' : '') + '" data-act="wrong-only" data-scope="chapters"' +
               ' role="switch" aria-checked="' + (!collection ? 'true' : 'false') + '">按章节练</button>' +
@@ -790,9 +795,7 @@ function renderSetup() {
               '<div class="d-flex align-items-baseline gap-2 flex-wrap">' +
                 '<h2 class="h6 fw-bold mb-0"><i class="bi bi-list-check me-1"></i>章节</h2>' +
                 '<span class="small text-body-secondary" id="chapterHint">' +
-                  (S.wrongOnly ? '正在只练错题集，章节不生效'
-                    : S.favOnly ? '正在只练收藏集，章节不生效'
-                    : '只选中的章节会进入本次练习') + '</span>' +
+                  ((S.wrongOnly || S.favOnly ? '只练' + (S.wrongOnly ? '错题集' : '收藏集') + '，仍可再筛章节' : '只选中的章节会进入本次练习')) + '</span>' +
               '</div>' +
               '<div class="chips mt-2" id="chapterChips">' + chips + '</div>' +
             '</section>' +
@@ -846,12 +849,9 @@ function startSession() {
   const bank = bankById(S.bankId);
   if (!bank) { S.view = 'banks'; return render(); }
   let ids = [];
-  if (S.wrongOnly) {
-    ids = wrongIds(S.user, bank.id);
-    if (!ids.length) { toast('错题集是空的，先按章节练一练'); return; }
-  } else if (S.favOnly) {
-    ids = favIds(S.user, bank.id);
-    if (!ids.length) { toast('收藏集是空的，先刷几道题吧'); return; }
+  if (S.wrongOnly || S.favOnly) {
+    ids = collectionIds(bank.id);
+    if (!ids.length) { toast('这个范围里没有题，换个章节或题型试试'); return; }
   } else {
     const types = selectedTypes();
     bank.chapters.forEach(ch => {

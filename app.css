@@ -80,7 +80,7 @@ body{
 .bank-meta{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;
            font-size:12.5px;color:var(--bs-secondary-color)}
 .bank-meta i{margin-right:4px}
-.bank-progress{margin-top:12px}
+.bank-status{margin-top:10px;display:flex;align-items:center;gap:8px;min-height:20px}
 
 /* ---------- 6. 章节 chips（保留自定义，未换 btn-check） ---------- */
 .chips{display:flex;flex-wrap:wrap;gap:8px}

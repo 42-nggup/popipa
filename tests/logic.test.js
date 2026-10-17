@@ -561,7 +561,9 @@ ok('每张卡都能进入题库',
    (bh.match(/class="card bank-card"/g) || []).length === H.BANKS.length &&
    (bh.match(/data-act="pick-bank"/g) || []).length >= H.BANKS.length);
 ok('卡片上有题数/章节/开始练习', bh.indexOf('开始练习') >= 0 && bh.indexOf(' 章') >= 0);
-ok('有历史轮次时卡片显示上次成绩', /上次 \d+%/.test(bh));
+ok('卡片状态合并成一行', /class="bank-status"/.test(bh));
+ok('未完成进度优先显示答到第 N 题', /答到第 \d+ 题 · \d+%/.test(bh));
+ok('不再有独立的 .bank-progress', bh.indexOf('bank-progress') < 0);
 
 section('33. rounds 回看：原地展开的逐题表格');
 const r33 = H.roundsOf('小明')[0];
@@ -795,6 +797,26 @@ H.pickBank('java', 'fav');
 ok('空收藏集时退回按章节练', H.S.favOnly === false && H.S.wrongOnly === false);
 
 
+/* 收藏集内仍可按章节 + 题型再筛 */
+const singles44 = H.bankQuestionIds(H.bankById('web')).filter(id => H.QMAP[id].type === 'single');
+H.toggleFavId('小明', singles44[0]);
+H.pickBank('web', 'fav');
+const chapOf44 = id => id.replace(/-q\d+$/, '');
+const ch44 = chapOf44(singles44[0]);
+H.S.types = ['single'];
+H.S.chapters = [ch44];
+H.render();
+const setup44 = els['app'].innerHTML;
+ok('收藏集内章节/题型没有被禁用',
+   !/data-act="toggle-chapter"[^>]*disabled/.test(setup44) &&
+   !/data-act="toggle-type"[^>]*disabled/.test(setup44));
+H.startSession();
+const expect44 = H.favIds('小明', 'web').filter(id =>
+  chapOf44(id) === ch44 && H.QMAP[id].type === 'single');
+ok('收藏集内可按章节 + 题型再筛', expect44.length > 0 &&
+   H.S.session.order.length === expect44.length &&
+   H.S.session.order.every(id => expect44.indexOf(id) >= 0));
+
 section('45. 题库描述与实际题数一致');
 const TYPE_NAME45 = { single: '单选题', multiple: '多选题', judge: '判断题', fill: '填空题' };
 for (const bank of H.BANKS) {
@@ -805,6 +827,24 @@ for (const bank of H.BANKS) {
   const expected = bank.chapters.length + ' 个章节 · ' + parts.join(' + ');
   ok(bank.id + ' 的 desc 与实际题数一致', bank.desc === expected);
 }
+
+
+section('46. 卡片状态行：未完成优先，否则上次成绩');
+const u46 = '状态行用户';
+H.S.user = u46; H.S.view = 'banks'; H.render();
+ok('没有任何记录时不显示状态行', !/class="bank-status"/.test(els['app'].innerHTML));
+H.pickBank('java');
+H.startSession();
+H.S.view = 'banks'; H.render();
+const st46a = els['app'].innerHTML;
+ok('有未完成进度时显示「答到第 N 题 · x%」',
+   /class="bank-status"[^>]*>[\s\S]{0,200}答到第 \d+ 题 · \d+%/.test(st46a));
+ok('合并后不再有独立进度条', st46a.indexOf('bank-progress') < 0);
+H.finish();
+H.S.view = 'banks'; H.render();
+const st46b = els['app'].innerHTML;
+ok('进度清掉后显示「上次 xx%」',
+   /class="bank-status"[^>]*>[\s\S]{0,200}上次 \d+%/.test(st46b));
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);
