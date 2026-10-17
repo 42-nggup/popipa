@@ -31,6 +31,8 @@ body{
 .brand-logo{width:26px;height:26px;border-radius:.5rem;display:grid;place-items:center;font-size:14px;
             background:linear-gradient(135deg,var(--bs-primary),var(--bs-primary-border-subtle));
             color:var(--bs-white)}
+/* Bootstrap 的 .d-flex 带 !important，会盖掉 [hidden]，这里强制生效 */
+#whoBox[hidden]{display:none !important}
 .avatar{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:var(--bs-white);
         font-size:12px;font-weight:700;background:linear-gradient(135deg,var(--bs-primary),var(--bs-primary-border-subtle))}
 

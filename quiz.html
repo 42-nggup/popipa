@@ -25,14 +25,16 @@ try{
     <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="#" data-act="back-banks">
       <span class="brand-logo">pi</span><span>popipa</span>
     </a>
-    <div class="d-flex align-items-center gap-3 ms-auto" id="whoBox">
+    <div class="d-flex align-items-center gap-3 ms-auto">
       <button class="btn btn-sm btn-outline-secondary theme-btn" id="themeBtn" data-act="theme"
               title="切换深色 / 浅色" aria-label="切换深色 / 浅色"></button>
-      <span class="avatar" id="avatar">?</span>
-      <span class="small text-body-secondary" id="whoName"></span>
-      <button class="btn btn-sm btn-outline-secondary" data-act="logout">
-        <i class="bi bi-box-arrow-right"></i><span class="d-none d-sm-inline ms-1">退出</span>
-      </button>
+      <div class="d-flex align-items-center gap-3" id="whoBox">
+        <span class="avatar" id="avatar">?</span>
+        <span class="small text-body-secondary" id="whoName"></span>
+        <button class="btn btn-sm btn-outline-secondary" data-act="logout">
+          <i class="bi bi-box-arrow-right"></i><span class="d-none d-sm-inline ms-1">退出</span>
+        </button>
+      </div>
     </div>
   </div>
 </header>

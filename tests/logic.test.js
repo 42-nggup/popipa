@@ -66,7 +66,7 @@ globalThis.__hook = { S, stats, isCorrect, hasAnswer, startSession, pickKey, sub
   store, KEY, userOf, users, userTable, migrateUsers, roundsOf, pushRound,
   favIds, isFav, toggleFavId, toggleFav,
   wrongIds, sanitizeSession, historyOf, loadProgress, lastName,
-  applyTheme, theme, toggleTheme, navTargetScroll, scrollNavToCurrent, toggleQmap, restoreQmapScroll,
+  applyTheme, theme, toggleTheme, navTargetScroll, scrollNavToCurrent, toggleQmap, restoreQmapScroll, pageMode,
   getAuto: () => autoJump,
   exportPng, shareCardHtml, shareRecord, dateStamp,
   getToast: () => toastEl.textContent,
@@ -585,8 +585,8 @@ ok('展开状态在重绘后保留', els['app'].innerHTML.indexOf('collapse show
 
 
 section('34. 主题开关进 navbar / 组件定向更新');
-ok('主题开关在 navbar 的用户区里',
-   /id="whoBox"[\s\S]*id="themeBtn"/.test(htmlSrc));
+ok('主题开关在 navbar 里（用户区之外，登录页也可见）',
+   /id="themeBtn"[\s\S]{0,400}id="whoBox"/.test(htmlSrc));
 ok('不再有独立浮动的主题按钮', htmlSrc.indexOf('class="theme-btn" id="themeBtn"') === -1);
 H.S.user = null; H.S.view = 'login';
 H.render();
@@ -658,12 +658,24 @@ ok('三页共用 navbar（品牌 + 主题开关）',
    [idxHtml, bankHtml, quizHtml].every(h =>
      h.indexOf('navbar-brand') >= 0 && h.indexOf('id="themeBtn"') >= 0));
 ok('登录页初始隐藏用户区', /id="whoBox" hidden/.test(idxHtml));
+ok('主题开关在用户区之外，登录页也可见',
+   /id="themeBtn"[\s\S]{0,400}id="whoBox"/.test(idxHtml));
+ok('用户区隐藏不会被 Bootstrap 的 .d-flex 盖掉',
+   /#whoBox\[hidden\]\{display:none !important\}/.test(cssSrc));
 ok('分享图组件只在做题页加载',
    quizHtml.indexOf('html2canvas') >= 0 &&
    bankHtml.indexOf('html2canvas') === -1 && idxHtml.indexOf('html2canvas') === -1);
 ok('分享预览 Modal 只在做题页',
    quizHtml.indexOf('id="shareModal"') >= 0 &&
    bankHtml.indexOf('shareModal') === -1 && idxHtml.indexOf('shareModal') === -1);
+
+
+section('38. 页面模式与本地服务器');
+ok('HTTP 下走真实三页跳转', H.pageMode('http:') === 'pages');
+ok('HTTPS 下也走真实跳转', H.pageMode('https:') === 'pages');
+ok('file:// 下退回单页视图切换（跨页存储被隔离）', H.pageMode('file:') === 'spa');
+const serverSrc = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
+ok('仓库自带零依赖静态服务器', /createServer/.test(serverSrc) && /\.listen\(/.test(serverSrc));
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

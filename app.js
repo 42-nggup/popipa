@@ -22,9 +22,12 @@
    index.html = 登录页；banks.html = 主界面 + 选题页；quiz.html = 做题页（含结果）。
    同一份 app.js 在三个页面复用，靠 body[data-page] 决定启动视图。 */
 const PAGE = (document.body && document.body.dataset && document.body.dataset.page) || 'login';
-/* 浏览器里真的跳页；测试环境没有 location，退回页内渲染，方便断言逻辑 */
+/* file:// 下浏览器按文件隔离 localStorage（登录态传不过去），所以退回单页内切换；
+   HTTP 下 localStorage 同源共享，才走真正的三页跳转。 */
+function pageMode(protocol) { return protocol === 'file:' ? 'spa' : 'pages'; }
+const FILE_MODE = pageMode(typeof location !== 'undefined' && location ? location.protocol : '') === 'spa';
 function goPage(url, view) {
-  if (typeof location !== 'undefined' && location && typeof location.href === 'string') {
+  if (!FILE_MODE && typeof location !== 'undefined' && location && typeof location.href === 'string') {
     location.href = url;
     return;
   }
@@ -1372,14 +1375,10 @@ document.addEventListener('click', function (e) {
     case 'wrong-only': S.wrongOnly = el.dataset.on === '1'; refreshSetup(); break;
     case 'theme': toggleTheme(); break;
     case 'back-banks':
-      if (PAGE === 'quiz') {
-        if (S.view === 'quiz' && !confirm('返回会保存当前进度，确定离开吗？')) return;
-        S.session = null;
-        goPage('banks.html', 'banks');
-        break;
-      }
-      /* banks 页：从组卷面板退回题库列表 */
-      S.view = 'banks'; S.session = null; render(); break;
+      if (S.view === 'quiz' && !confirm('返回会保存当前进度，确定离开吗？')) return;
+      S.session = null;
+      if (PAGE === 'quiz' && !FILE_MODE) { goPage('banks.html', 'banks'); break; }
+      S.view = 'banks'; render(); break;
     case 'start': startSession(); break;
     case 'resume': resumeSession(); break;
     case 'pick': pickKey(el.dataset.key); break;
@@ -1456,7 +1455,11 @@ function boot() {
   migrateUsers();        /* 旧用户表里的业务字段搬进每用户自己的表 */
   applyTheme(theme());   /* 页面一加载就把主题定下来，避免闪一下浅色 */
   if (PAGE === 'login') { S.view = 'login'; render(); return; }
-  if (!S.user) { goPage('index.html', 'login'); return; }
+  if (!S.user) {
+    if (FILE_MODE) { try { location.replace('index.html'); } catch (e) {} return; }
+    goPage('index.html', 'login');
+    return;
+  }
   if (PAGE === 'banks') { S.view = 'banks'; render(); return; }
   if (PAGE === 'quiz') {
     /* 做题页靠 ?bank= 找到这局没答完的进度；没有就回主界面 */

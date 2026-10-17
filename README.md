@@ -6,8 +6,17 @@
 
 ## 运行
 
-直接用浏览器打开 `index.html` 即可（`file://` 也能跑，不依赖服务器）。
-页面之间用普通链接跳转，登录态和每用户数据都在 localStorage 里：
+推荐用本地服务器打开（多页面之间共享 localStorage）：
+
+```bash
+node server.js          # 默认 8000 端口
+# 打开 http://localhost:8000/
+```
+
+也可以直接双击 `index.html`。但浏览器在 `file://` 下会**按文件隔离
+localStorage**（登录态传不到下一个 HTML），所以此时 `app.js` 会自动退回
+“单页内视图切换”：功能完整，只是地址栏不会变成 `banks.html` / `quiz.html`。
+想要真正的三页跳转，请用 `node server.js` 或任意静态服务器。
 
 ```
 index.html  登录页
@@ -15,8 +24,8 @@ banks.html  主界面（题库列表）+ 选题页（组卷面板，同页切换
 quiz.html   做题页（答题 + 交卷结果，同页切换）
 ```
 
-浏览器地址栏需要带上 `?bank=<题库 id>` 才能直接打开做题页；
-正常流程从主界面点「开始答题」进入，会自动带上。
+HTTP 模式下做题页地址需要带 `?bank=<题库 id>`（从主界面点「开始答题」
+会自动带上）；直接手输不带参数会回到主界面。
 测试：
 
 ```bash
@@ -28,6 +37,7 @@ node tests/logic.test.js
 ```
 index.html          登录页
 banks.html          主界面 + 选题页（顶栏、#app、Toast）
+server.js           零依赖静态服务器（多页面模式用，node server.js）
 quiz.html           做题页（顶栏、#app、分享预览 Modal、Toast）
 app.css             自定义样式（颜色全部走 Bootstrap 变量，圆角用 --bs-border-radius*）
 app.js              全部逻辑（页面路由 / 渲染 / 判分 / 存储 / 事件），三个页面共用
@@ -40,7 +50,8 @@ vendor/             Bootstrap、Bootstrap Icons、html2canvas
 
 `app.js` 用 `<body data-page="...">` 判断当前页；三个页面共用同一份逻辑和样式，
 跳转由 `goPage()` 统一处理（登录 → `banks.html`，开始答题 → `quiz.html?bank=…`，
-返回题库 → `banks.html`，退出登录 → `index.html`）。
+返回题库 → `banks.html`，退出登录 → `index.html`）。`pageMode()` 决定模式：
+`http(s)` 走真实跳转，`file:` 退回页内切换。
 
 ## 存储模型
 
