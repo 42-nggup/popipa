@@ -9,7 +9,7 @@
      data/java.json   单个题库
      data/banks.json  合并后的题库数组（前端/接口可直接用）
      data/parse-report.md  本次解析发现的所有问题与处理方式
-     demo.data.js     由 JSON 生成的 window.BANKS（供 file:// 直接打开用）
+     app.data.js     由 JSON 生成的 window.BANKS（供 file:// 直接打开用）
    ========================================================= */
 'use strict';
 const fs = require('fs');
@@ -230,7 +230,7 @@ banks.forEach(b => fs.writeFileSync(path.join(OUT, b.id + '.json'), json(b)));
 fs.writeFileSync(path.join(OUT, 'banks.json'), json(banks));
 
 /* 供 file:// 双击打开使用（fetch 本地 json 会被浏览器拦截，所以生成一份 JS 镜像） */
-fs.writeFileSync(path.join(ROOT, 'demo.data.js'),
+fs.writeFileSync(path.join(ROOT, 'app.data.js'),
   '/* 自动生成，请勿手改：由 scripts/parse-banks.js 从 data/raw/*.md 生成 */\n' +
   'window.BANKS = ' + JSON.stringify(banks, null, 2) + ';\n');
 
@@ -284,5 +284,5 @@ fs.writeFileSync(path.join(OUT, 'parse-report.md'), L.join('\n') + '\n');
 console.log('解析完成：');
 report.files.forEach(f => console.log('  ' + f.file + ' → ' + f.bankId + '.json：解析 ' +
   f.parsed + ' 保留 ' + f.kept + ' 剔除 ' + f.dropped + ' 修正 ' + f.fixed));
-console.log('  合计保留 ' + totalKept + ' 题，已写出 data/{web,java,banks}.json 与 demo.data.js');
+console.log('  合计保留 ' + totalKept + ' 题，已写出 data/{web,java,banks}.json 与 app.data.js');
 if (report.drops.length) console.log('  剔除 ' + report.drops.length + ' 题，修正 ' + report.fixes.length + ' 题，详见 data/parse-report.md');

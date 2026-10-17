@@ -1,0 +1,258 @@
+/* =========================================================
+   popipa · 自定义样式
+   ---------------------------------------------------------
+   分工：Bootstrap 负责颜色、按钮、卡片、表单、Modal、Progress、
+         Accordion 等通用控件；本文件只负责两件事：
+           1. 把 Bootstrap 的圆角、字号改成我们的（变量覆盖，不逐条改组件）
+           2. Bootstrap 没有对应控件的部分（选项四态、答题卡、环形图…）
+   颜色一律引用 Bootstrap 变量或 currentColor，本文件不写死色值。
+   ========================================================= */
+
+/* ---------- 1. 覆盖 Bootstrap 变量 ---------- */
+:root{
+  /* 圆角保留我们自己的，Bootstrap 组件会自动继承 */
+  --bs-border-radius-sm:.5625rem;   /*  9px */
+  --bs-border-radius:.75rem;        /* 12px 按钮 / 输入框 */
+  --bs-border-radius-lg:1rem;       /* 16px 卡片 */
+  --bs-border-radius-xl:1rem;
+  --bs-border-radius-xxl:1.25rem;
+  --bs-body-font-size:15px;
+  --r:var(--bs-border-radius-lg);   /* 自己写的组件用这个 */
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background-image:radial-gradient(1000px 500px at 100% -10%,var(--bs-primary-bg-subtle) 0,transparent 60%),
+                   radial-gradient(900px 500px at -10% 0,var(--bs-success-bg-subtle) 0,transparent 55%);
+  background-attachment:fixed;
+}
+.app-shell{max-width:880px}
+
+/* ---------- 2. 顶栏 ---------- */
+.brand-logo{width:26px;height:26px;border-radius:.5rem;display:grid;place-items:center;font-size:14px;
+            background:linear-gradient(135deg,var(--bs-primary),var(--bs-primary-border-subtle));
+            color:var(--bs-white)}
+.avatar{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:var(--bs-white);
+        font-size:12px;font-weight:700;background:linear-gradient(135deg,var(--bs-primary),var(--bs-primary-border-subtle))}
+
+/* ---------- 3. 主题开关（#app 外面，所有页面同一位置） ---------- */
+.theme-btn{position:fixed;right:20px;bottom:20px;z-index:1030;width:44px;height:44px;border-radius:50%;
+           display:grid;place-items:center;font-size:1.15rem;
+           background:var(--bs-body-bg);color:var(--bs-body-color);
+           border:1px solid var(--bs-border-color);box-shadow:var(--bs-box-shadow);transition:.16s}
+.theme-btn:hover{color:var(--bs-primary);border-color:var(--bs-primary);transform:translateY(-2px)}
+
+/* ---------- 4. 登录页 ---------- */
+.hero{padding:3rem 0 .5rem;text-align:center}
+.logo-big{width:64px;height:64px;margin:0 auto 1.1rem;border-radius:20px;display:grid;place-items:center;
+          font-size:1.6rem;color:var(--bs-white);
+          background:linear-gradient(135deg,var(--bs-primary),var(--bs-primary-border-subtle));
+          box-shadow:0 .6rem 2rem -1rem var(--bs-primary)}
+.login-box{max-width:400px;margin:2rem auto 0}
+
+/* ---------- 5. 题库卡片 ---------- */
+.bank{cursor:pointer;transition:.18s;position:relative}
+.bank:hover{transform:translateY(-2px);border-color:var(--bs-primary);
+            box-shadow:var(--bs-box-shadow-lg)}
+.b-ico{width:42px;height:42px;border-radius:.75rem;display:grid;place-items:center;font-size:1.25rem;
+       background:var(--bs-primary-bg-subtle);color:var(--bs-primary);flex:0 0 auto}
+.b-go{position:absolute;right:1.1rem;top:50%;transform:translateY(-50%);
+      color:var(--bs-secondary-color);transition:.18s}
+.bank:hover .b-go{color:var(--bs-primary);transform:translateY(-50%) translateX(3px)}
+
+/* ---------- 6. 章节 chips（保留自定义，未换 btn-check） ---------- */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:8px 14px;border-radius:var(--bs-border-radius-pill);
+      border:1px solid var(--bs-border-color);background:var(--bs-body-bg);
+      font-size:13.5px;color:var(--bs-secondary-color);transition:.15s;user-select:none}
+.chip:hover{border-color:var(--bs-primary)}
+.chip.on{background:var(--bs-primary);border-color:var(--bs-primary);color:var(--bs-white);font-weight:600}
+.chip[disabled]{opacity:.45;cursor:not-allowed}
+
+/* ---------- 7. 答题页 ---------- */
+.stat{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--bs-secondary-color)}
+.stat b{font-variant-numeric:tabular-nums;font-size:14.5px;color:var(--bs-body-color)}
+.dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.stem{font-size:17px;font-weight:600;line-height:1.75}
+.stem strong,.opt .t strong,.rev-b strong,.ana strong{font-weight:700}
+pre.code{margin:.6rem 0;padding:.75rem .9rem;background:var(--bs-tertiary-bg);
+         color:var(--bs-body-color);border:1px solid var(--bs-border-color);
+         border-radius:var(--bs-border-radius);overflow-x:auto;font-size:12.5px;line-height:1.65;
+         font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre.code code{background:none;border:0;padding:0;color:inherit;white-space:pre}
+.stem pre.code code,.opt .t pre.code code{white-space:pre}
+
+/* 选项：Bootstrap 没有能表达"整块染色 + 左侧字母方块变色"的控件，自己写 */
+.opt{display:flex;gap:12px;align-items:flex-start;padding:13px 16px;
+     border:1px solid var(--bs-border-color);border-radius:var(--bs-border-radius);
+     margin-bottom:.6rem;cursor:pointer;transition:.15s;background:var(--bs-body-bg)}
+.opt:hover{border-color:var(--bs-primary);background:var(--bs-tertiary-bg)}
+.opt .k{flex:0 0 24px;height:24px;border-radius:.45rem;display:grid;place-items:center;
+        background:var(--bs-secondary-bg);color:var(--bs-secondary-color);font-size:13px;font-weight:700}
+.opt .t{flex:1;line-height:1.65}
+.opt.sel{border-color:var(--bs-primary);background:var(--bs-primary-bg-subtle)}
+.opt.sel .k{background:var(--bs-primary);color:var(--bs-white)}
+.opt.ok{border-color:var(--bs-success);background:var(--bs-success-bg-subtle)}
+.opt.ok .k{background:var(--bs-success);color:var(--bs-white)}
+.opt.no{border-color:var(--bs-danger);background:var(--bs-danger-bg-subtle)}
+.opt.no .k{background:var(--bs-danger);color:var(--bs-white)}
+.opt.locked{cursor:default}
+.opt.locked:hover{border-color:var(--bs-border-color);background:var(--bs-body-bg)}
+.opt.ok.locked:hover{border-color:var(--bs-success);background:var(--bs-success-bg-subtle)}
+.opt.no.locked:hover{border-color:var(--bs-danger);background:var(--bs-danger-bg-subtle)}
+
+.ana{margin-top:.6rem;padding-top:.6rem;border-top:1px dashed var(--bs-border-color);
+     font-size:13.5px;color:var(--bs-secondary-color);line-height:1.75}
+.autojump{display:flex;align-items:center;gap:.5rem;margin-top:.6rem;padding-top:.6rem;
+          border-top:1px dashed var(--bs-border-color);font-size:13px}
+
+/* 答题卡：119/219 个带状态的小方块，Bootstrap 没有对应控件。
+   注意：原来叫 .nav，与 Bootstrap 的导航组件 .nav 撞名，已改名 .qmap */
+.qmap{display:flex;gap:6px;overflow-x:auto;padding:.85rem 2px .4rem;scroll-behavior:smooth}
+.qmap b{flex:0 0 auto;width:32px;height:32px;border-radius:.55rem;display:grid;place-items:center;
+        font-size:12.5px;font-weight:600;background:var(--bs-body-bg);
+        border:1px solid var(--bs-border-color);color:var(--bs-secondary-color);
+        transition:.13s;font-variant-numeric:tabular-nums;cursor:pointer}
+.qmap b:hover{border-color:var(--bs-primary)}
+.qmap b.ok{background:var(--bs-success-bg-subtle);border-color:var(--bs-success);
+           color:var(--bs-success-text-emphasis)}
+.qmap b.no{background:var(--bs-danger);border-color:var(--bs-danger);color:var(--bs-white)}
+.qmap b.cur{background:var(--bs-primary);border-color:var(--bs-primary);color:var(--bs-white);
+            box-shadow:0 .4rem .9rem -.4rem var(--bs-primary)}
+.kbdhint{font-size:12px;color:var(--bs-secondary-color);text-align:center}
+.kbd{display:inline-block;padding:1px 6px;border:1px solid var(--bs-border-color);
+     border-bottom-width:2px;border-radius:.3rem;background:var(--bs-body-bg);font-size:11.5px;
+     font-family:ui-monospace,monospace}
+.fav{color:var(--bs-secondary-color);font-size:1.15rem;line-height:1;padding:.25rem .4rem;
+     border-radius:.5rem;border:0;background:none}
+.fav:hover{background:var(--bs-secondary-bg)}
+.fav.on{color:var(--bs-warning)}
+
+/* ---------- 8. 结果页 ---------- */
+.ring{flex:0 0 auto;width:132px;height:132px;border-radius:50%;display:grid;place-items:center}
+.ring .in{width:104px;height:104px;border-radius:50%;background:var(--bs-body-bg);
+          display:grid;place-items:center;text-align:center;
+          box-shadow:inset 0 0 0 1px var(--bs-border-color)}
+.ring .v{font-size:1.75rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.ring .u{font-size:12px;color:var(--bs-secondary-color);margin-top:3px}
+.num .v{font-size:1.5rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}
+.num .l{color:var(--bs-secondary-color);font-size:12.5px;margin-top:3px}
+.num.c-ok .v{color:var(--bs-success-text-emphasis)}
+.num.c-bad .v{color:var(--bs-danger-text-emphasis)}
+.num.c-mut .v{color:var(--bs-secondary-color)}
+.num.c-pri .v{color:var(--bs-primary-text-emphasis)}
+
+/* ---------- 9. 记录详情（Bootstrap accordion 里的内容排布） ---------- */
+.rev-list{font-size:13px}
+.rev-row{display:grid;grid-template-columns:4.2rem 7rem 7rem 1fr;gap:.5rem;padding:.4rem 0;
+         border-bottom:1px solid var(--bs-border-color-translucent)}
+.rev-row.sum{border-bottom:0;font-weight:700}
+.rev-row .c-mine{color:var(--bs-danger-text-emphasis)}
+.rev-row .c-right{color:var(--bs-success-text-emphasis)}
+.rev-row .c-ana{color:var(--bs-secondary-color)}
+@media (max-width:560px){
+  .rev-row{grid-template-columns:3.4rem 1fr;row-gap:.15rem}
+  .rev-row .c-ana{grid-column:1/-1}
+}
+
+/* ---------- 10. 自己的 Toast（按需求不换成 Bootstrap 的） ---------- */
+.popipa-toast{position:fixed;left:50%;bottom:32px;transform:translate(-50%,20px);z-index:1090;
+              background:var(--bs-dark);color:var(--bs-white);font-size:13.5px;
+              padding:11px 20px;border-radius:var(--bs-border-radius);opacity:0;
+              pointer-events:none;transition:.25s;box-shadow:var(--bs-box-shadow-lg)}
+.popipa-toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- 11. 导出分享图的预览 ---------- */
+.share-wrap{overflow:auto;max-height:60vh;text-align:center}
+.share-wrap img{max-width:100%;border-radius:var(--bs-border-radius);border:1px solid var(--bs-border-color)}
+
+/* ---------- 12. 自定义组件：Bootstrap 没有同款的补齐（迁移时漏掉的部分） ---------- */
+h1 .sub{display:block;font-size:14px;font-weight:400;color:var(--bs-secondary-color);margin-top:6px}
+
+/* 题库卡内部 */
+.b-top{display:flex;align-items:center;gap:12px}
+.b-name{font-weight:700}
+.b-desc{font-size:13px;color:var(--bs-secondary-color)}
+.b-stat{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:12.5px;color:var(--bs-secondary-color)}
+.b-stat b{color:var(--bs-body-color);font-variant-numeric:tabular-nums}
+.resume{font-size:12px;padding:2px 8px;border-radius:var(--bs-border-radius-pill);
+        background:var(--bs-secondary-bg);color:var(--bs-secondary-color)}
+
+/* 题型徽章（单选/多选/判断/填空） */
+.badge{font-weight:600;background:var(--bs-secondary-bg);color:var(--bs-secondary-color)}
+.badge.m{background:var(--bs-primary-bg-subtle);color:var(--bs-primary-text-emphasis)}
+.badge.j{background:var(--bs-warning-bg-subtle);color:var(--bs-warning-text-emphasis)}
+.badge.f{background:var(--bs-info-bg-subtle);color:var(--bs-info-text-emphasis)}
+
+/* 答题页顶部统计条与题卡 */
+.qbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:20px 0 10px;font-size:13px}
+.qcard{margin-top:4px;padding:22px}
+.qhead{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.qno{font-size:12.5px;color:var(--bs-secondary-color)}
+
+/* 模式切换（顺序 / 随机） */
+.seg{display:inline-flex;gap:4px;padding:4px;border-radius:var(--bs-border-radius);background:var(--bs-secondary-bg)}
+.seg button{padding:6px 14px;border:0;background:none;border-radius:var(--bs-border-radius-sm);
+            font-size:13px;color:var(--bs-secondary-color)}
+.seg button.on{background:var(--bs-body-bg);color:var(--bs-primary-text-emphasis);font-weight:600;
+               box-shadow:var(--bs-box-shadow-sm)}
+
+/* 结果页 */
+.score-hero{display:flex;align-items:center;gap:28px;flex-wrap:wrap;margin-top:20px;padding:24px}
+.hero-txt{flex:1;min-width:200px}
+.hero-txt h2{font-size:20px;margin:0 0 6px;font-weight:700}
+.hero-txt p{color:var(--bs-secondary-color);margin:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-top:14px}
+.num{padding:14px 10px;text-align:center}
+
+/* 复习手风琴（结果页逐题展开） */
+.rev{overflow:hidden;margin-bottom:8px}
+.rev-h{display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:13.5px}
+.rev-h:hover{background:var(--bs-tertiary-bg)}
+.rev-h .ix{color:var(--bs-secondary-color);font-variant-numeric:tabular-nums;flex:0 0 auto}
+.rev-h .st{font-size:12px;padding:1px 8px;border-radius:var(--bs-border-radius-pill);flex:0 0 auto}
+.rev-h .st.y{background:var(--bs-success-bg-subtle);color:var(--bs-success-text-emphasis)}
+.rev-h .st.n{background:var(--bs-danger-bg-subtle);color:var(--bs-danger-text-emphasis)}
+.rev-h .st.s{background:var(--bs-secondary-bg);color:var(--bs-secondary-color)}
+.rev-h .sm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rev-h .cx{flex:0 0 auto;color:var(--bs-secondary-color);transition:transform .18s}
+.rev.open .rev-h .cx{transform:rotate(180deg)}
+.rev-b{display:none;padding:2px 14px 14px;font-size:13.5px}
+.rev.open .rev-b{display:block}
+.rev-b .q{font-weight:600;margin-bottom:8px;line-height:1.7}
+.rev-b .line{padding:4px 0;color:var(--bs-secondary-color)}
+.rev-b .line b{color:var(--bs-body-color)}
+
+/* 成绩历史 */
+.hist{margin-top:28px}
+.hist h3{font-size:14px;font-weight:600;color:var(--bs-secondary-color);margin:0 0 10px}
+.rec{display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:6px;font-size:13.5px;
+     background:var(--bs-body-bg);border:1px solid var(--bs-border-color);border-radius:var(--bs-border-radius)}
+.rec .r-name{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rec .r-rate{font-weight:700;font-variant-numeric:tabular-nums}
+.rec .good{color:var(--bs-success-text-emphasis)}
+.rec .mid{color:var(--bs-warning-text-emphasis)}
+.rec .bad{color:var(--bs-danger-text-emphasis)}
+
+/* 空状态 / 提示 */
+.empty{padding:36px 16px;text-align:center;color:var(--bs-secondary-color);font-size:14px}
+.empty .e-ico{font-size:30px;margin-bottom:8px}
+.hint{font-size:13px;color:var(--bs-secondary-color);margin:0 0 10px}
+
+/* 弹窗里的「不再提醒」开关 */
+.memory{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;font-size:13px;
+        border:1px dashed var(--bs-border-color);border-radius:var(--bs-border-radius-pill);
+        background:none;color:var(--bs-secondary-color)}
+.memory:hover{border-color:var(--bs-primary);color:var(--bs-primary-text-emphasis)}
+.memory i{width:15px;height:15px;display:grid;place-items:center;font-size:11px;
+          border:1px solid var(--bs-secondary-color);border-radius:.3rem;font-style:normal}
+.memory.on{border-style:solid;border-color:var(--bs-primary);background:var(--bs-primary-bg-subtle);
+           color:var(--bs-primary-text-emphasis)}
+.memory.on i{background:var(--bs-primary);border-color:var(--bs-primary);color:var(--bs-white)}
+
+/* ---------- 13. 移动端 ---------- */
+@media (max-width:560px){
+  .hero{padding:2rem 0 .25rem}
+  .theme-btn{right:14px;bottom:14px;width:40px;height:40px;font-size:1rem}
+  .score-hero{padding:18px;gap:18px}
+  .qbar{gap:6px 12px}
+}

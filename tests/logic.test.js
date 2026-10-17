@@ -1,6 +1,6 @@
 /* =========================================================
    逻辑自测（Node 运行，不需要浏览器）：node tests/logic.test.js
-   用极简 DOM 桩把 demo.js 跑起来，重点验证题面里的底线：
+   用极简 DOM 桩把 app.js 跑起来，重点验证题面里的底线：
    "同一道题重复点几次提交，成绩不能跟着变。"
    ========================================================= */
 const fs = require('fs');
@@ -8,18 +8,33 @@ const path = require('path');
 const vm = require('vm');
 
 const root = path.join(__dirname, '..');
-const dataSrc = fs.readFileSync(path.join(root, 'demo.data.js'), 'utf8');
-const logicSrc = fs.readFileSync(path.join(root, 'demo.js'), 'utf8');
+const dataSrc = fs.readFileSync(path.join(root, 'app.data.js'), 'utf8');
+const logicSrc = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
 
 /* ---- 极简 DOM 桩 ---- */
 const els = {};
-const mkEl = id => ({
-  id, hidden: false, textContent: '', innerHTML: '', value: '', disabled: false,
-  dataset: {}, style: {},
-  classList: { add() {}, remove() {}, contains: () => false },
-  addEventListener() {}, focus() {}, select() {}, matches: () => false, closest: () => null,
-  setAttribute() {}
-});
+const mkEl = id => {
+  const classes = new Set();
+  return {
+    id, hidden: false, textContent: '', innerHTML: '', value: '', disabled: false,
+    dataset: {}, style: {},
+    classList: {
+      add: (...c) => c.forEach(x => classes.add(x)),
+      remove: (...c) => c.forEach(x => classes.delete(x)),
+      contains: c => classes.has(c),
+      toggle: (c, on) => { (on === undefined ? !classes.has(c) : on) ? classes.add(c) : classes.delete(c); }
+    },
+    addEventListener() {}, focus() {}, select() {}, matches: () => false, closest: () => null,
+    setAttribute() {}
+  };
+};
+/* 假 bootstrap.Modal：真组件靠 .show 类 + hidden.bs.modal 事件，这里只模仿类切换 */
+function FakeModal(el) {
+  this.el = el;
+  this.show = () => el.classList.add('show');
+  this.hide = () => el.classList.remove('show');
+}
+FakeModal.getOrCreateInstance = el => (el.__m || (el.__m = new FakeModal(el)));
 const storage = {};
 const sandbox = {
   console, Math, JSON, Date, Number, String, Array, Object, Boolean, RegExp, Error, isNaN,
@@ -32,6 +47,7 @@ const sandbox = {
     setItem: (k, v) => { storage[k] = String(v); },
     removeItem: k => { delete storage[k]; }
   },
+  bootstrap: { Modal: FakeModal },
   setTimeout, clearTimeout, setInterval: () => 0, clearInterval() {}, confirm: () => true
 };
 sandbox.window = sandbox;                 // demo.data.js 里用 window.BANKS
@@ -42,7 +58,8 @@ globalThis.__hook = { S, stats, isCorrect, hasAnswer, startSession, pickKey, sub
   tickAuto, QMAP, bankById, bankQuestionIds, LETTERS, render,
   store, KEY, userOf, users, wrongIds, sanitizeSession, historyOf, loadProgress, lastName,
   applyTheme, theme, toggleTheme, navTargetScroll,
-  getAuto: () => autoJump, maskHidden: () => maskEl.hidden, dialogHtml: () => dialogEl.innerHTML };`, sandbox);
+  getAuto: () => autoJump, askShown: () => askModalEl.classList.contains('show'),
+  dialogHtml: () => dialogEl.innerHTML };`, sandbox);
 const H = sandbox.__hook;
 
 let pass = 0, fail = 0;
@@ -141,10 +158,10 @@ const mIdx2 = ord.findIndex((id, i) => i > sIdx && H.QMAP[id].type === 'multiple
 H.jump(mIdx2);
 H.pickKey(H.QMAP[ord[mIdx2]].answer[0]);
 H.closeDialog();
-ok('多选：弹窗默认是关的', H.maskHidden() === true);
+ok('多选：弹窗默认是关的', H.askShown() === false);
 H.step(1);
 ok('多选：不自动提交、停在原题', H.S.session.submitted[ord[mIdx2]] !== true && H.S.session.idx === mIdx2);
-ok('多选：弹出询问框且带「不再提醒」', H.maskHidden() === false && H.dialogHtml().indexOf('不再提醒') >= 0);
+ok('多选：弹出询问框且带「不再提醒」', H.askShown() === true && H.dialogHtml().indexOf('不再提醒') >= 0);
 H.closeDialog(); H.go(1);
 ok('选「不提交，继续」后进入下一题', H.S.session.idx === mIdx2 + 1 && !H.S.session.submitted[ord[mIdx2]]);
 
@@ -154,7 +171,7 @@ H.pickKey(H.QMAP[ord[mIdx3]].answer[0]);
 H.S.noPrompt = true;                        /* 相当于在提示框上勾了「不再提醒」 */
 H.step(1);
 ok('开启「不再提醒」后：多选也直接提交', H.S.session.submitted[ord[mIdx3]] === true && H.S.session.idx === mIdx3 + 1);
-ok('开启后：不再弹询问框', H.maskHidden() === true);
+ok('开启后：不再弹询问框', H.askShown() === false);
 H.S.noPrompt = false;
 
 section('12. 提交后 3 秒 / 10 秒自动跳转');
@@ -167,7 +184,7 @@ H.pickKey(H.QMAP[ord2[0]].answer[0]);
 H.submitCurrent();
 let auto = H.getAuto();
 ok('答对：3 秒后跳转', !!auto && auto.sec === 3 && auto.target === 1 && auto.qid === ord2[0]);
-ok('倒计时期间页面显示剩余秒数', H.maskHidden() === true && H.S.session.submitted[ord2[0]] === true);
+ok('倒计时期间页面显示剩余秒数', H.askShown() === false && H.S.session.submitted[ord2[0]] === true);
 
 const wIdx = ord2.findIndex((id, i) => i > 0 && wrongKeyOf(H.QMAP[id]));
 const wKey = wrongKeyOf(H.QMAP[ord2[wIdx]]);
@@ -202,7 +219,7 @@ H.applyTheme('dark');
 ok('主题也按用户存', H.userOf('小明').theme === 'dark');
 H.toggleTheme();
 ok('切换主题只改这一个用户', H.userOf('小明').theme === 'light' && H.theme() === 'light');
-ok('主题写到了 html 上', sandbox.document.documentElement.dataset.theme === 'light');
+ok('主题写到 data-bs-theme 上（Bootstrap 认的属性）', sandbox.document.documentElement.dataset.bsTheme === 'light');
 
 section('14. 错题本：答错记下 / 答对移出');
 H.S.user = '小明'; H.S.view = 'setup'; H.S.bankId = 'web';
@@ -259,7 +276,7 @@ H.S.user = null; H.S.view = 'login';
 H.render();
 ok('不再有「本机记录」', els['app'].innerHTML.indexOf('本机') === -1);
 ok('回填了上次登录的昵称', els['app'].innerHTML.indexOf('value="小明"') >= 0);
-ok('主题按钮不在登陆页消失', els['themeBtn'].textContent !== '');
+ok('主题按钮不在登陆页消失', els['themeBtn'].innerHTML.indexOf('bi-') >= 0);
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

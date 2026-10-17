@@ -21,8 +21,9 @@
 const app = document.getElementById('app');
 const topbar = document.getElementById('top');
 const toastEl = document.getElementById('toast');
-const maskEl = document.getElementById('mask');
+const askModalEl = document.getElementById('askModal');
 const dialogEl = document.getElementById('dialog');
+const askModal = () => bootstrap.Modal.getOrCreateInstance(askModalEl);
 
 const TYPE_LABEL = {
   single: { text: '单选题', cls: '' },
@@ -155,6 +156,19 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
   del(k) { try { localStorage.removeItem(k); } catch (e) {} }
 };
+/* 轻量化：清掉已经被取代的本机键。老版的进度是 popipa:progress:<用户>:<题库>，
+   旧版"本机记录"是 popipa:records——现在都收进用户表了，留着只会占地方。 */
+function clearLegacy() {
+  const kill = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.indexOf('popipa:progress:') === 0 || k === 'popipa:records')) kill.push(k);
+    }
+    kill.forEach(k => localStorage.removeItem(k));
+  } catch (e) { /* 隐私模式下 localStorage 不可用，忽略 */ }
+  return kill;
+}
 
 /* ---- 用户表 ---- */
 function blankUser(name) {
@@ -270,7 +284,7 @@ function theme() {
 }
 function applyTheme(t) {
   S.theme = t === 'dark' ? 'dark' : 'light';
-  document.documentElement.dataset.theme = S.theme;
+  document.documentElement.dataset.bsTheme = S.theme;   /* Bootstrap 认这个属性 */
   store.set(KEY.theme, S.theme);          /* 本机默认值，登录页也用它 */
   if (S.user) { const u = userOf(S.user); u.theme = S.theme; saveUser(S.user, u); }
   renderThemeBtn();
@@ -329,7 +343,7 @@ function renderThemeBtn() {
   if (!btn) return;
   const dark = S.theme === 'dark';
   const tip = dark ? '切换到浅色' : '切换到深色';
-  btn.textContent = dark ? '☀' : '☾';
+  btn.innerHTML = '<i class="bi ' + (dark ? 'bi-sun' : 'bi-moon-stars') + '"></i>';
   btn.title = tip;
   btn.setAttribute('aria-label', tip);
 }
@@ -353,18 +367,21 @@ function renderLogin() {
   const last = lastName();          /* 只用来回填昵称，不再列出"本机记录" */
   app.innerHTML =
     '<div class="hero">' +
-      '<div class="logo-big">pi</div>' +
-      '<h1>popipa</h1>' +
-      '<p>挑一套题库，答完立刻知道对错，随时看得见自己的进度。</p>' +
+      '<div class="logo-big"><i class="bi bi-lightning-charge-fill"></i></div>' +
+      '<h1 class="fw-bold">popipa</h1>' +
+      '<p class="text-body-secondary">挑一套题库，答完立刻知道对错，随时看得见自己的进度。</p>' +
     '</div>' +
-    '<div class="card login-box">' +
-      '<div class="field">' +
-        '<label for="nick">你的昵称</label>' +
-        '<input class="input" id="nick" maxlength="16" placeholder="例如：小明" autocomplete="off"' +
-          (last ? ' value="' + esc(last) + '"' : '') + '>' +
-        '<div class="err" id="nickErr">请输入 1~16 个字符的昵称</div>' +
+    '<div class="card login-box shadow-sm">' +
+      '<div class="card-body p-4">' +
+        '<div class="mb-3 text-start">' +
+          '<label class="form-label small fw-semibold" for="nick">你的昵称</label>' +
+          '<input class="form-control" id="nick" maxlength="16" placeholder="例如：小明" autocomplete="off"' +
+            (last ? ' value="' + esc(last) + '"' : '') + '>' +
+          '<div class="invalid-feedback" id="nickErr">请输入 1~16 个字符的昵称</div>' +
+        '</div>' +
+        '<button class="btn btn-primary w-100" data-act="login">' +
+          '<i class="bi bi-box-arrow-in-right me-1"></i>开始刷题</button>' +
       '</div>' +
-      '<button class="btn pri" style="width:100%" data-act="login">开始刷题</button>' +
     '</div>';
   const nick = document.getElementById('nick');
   if (nick) { nick.focus(); if (nick.select) nick.select(); }
@@ -373,8 +390,10 @@ function doLogin() {
   const nick = document.getElementById('nick');
   const err = document.getElementById('nickErr');
   const v = (nick.value || '').trim();
-  if (!v || v.length > 16) { err.classList.add('show'); nick.focus(); return; }
-  err.classList.remove('show');
+  if (!v || v.length > 16) {
+    err.classList.add('d-block'); nick.classList.add('is-invalid'); nick.focus(); return;
+  }
+  err.classList.remove('d-block'); nick.classList.remove('is-invalid');
   S.user = v;
   rememberLogin(v);            /* 记下"最近一次谁登录了" */
   applyTheme(theme());         /* 换成这个用户自己的主题 */
@@ -402,11 +421,11 @@ function renderBanks() {
         '<span><b>' + bank.chapters.length + '</b> 个章节</span>' +
         '<span>单选 ' + counts.single + ' · 多选 ' + counts.multiple +
               ' · 判断 ' + counts.judge + ' · 填空 ' + counts.fill + '</span>' +
-        (legacy ? '<span class="resume" style="color:var(--warn-tx)">' + legacy + ' 题答案缺失（已容错）</span>' : '') +
-        (wrong ? '<span class="resume" style="color:var(--bad-tx);background:var(--bad-l)">错题 ' + wrong + ' 道</span>' : '') +
+        (legacy ? '<span class="resume" style="color:var(--bs-warning-text-emphasis)">' + legacy + ' 题答案缺失（已容错）</span>' : '') +
+        (wrong ? '<span class="resume" style="color:var(--bs-danger-text-emphasis);background:var(--bs-danger-bg-subtle)">错题 ' + wrong + ' 道</span>' : '') +
         (st ? '<span class="resume">上次答到第 ' + (st.answered) + ' 题，继续？</span>' : '') +
       '</div>' +
-      '<span class="b-go">›</span></div>';
+      '<span class="b-go"><i class="bi bi-chevron-right"></i></span></div>';
   }).join('');
   app.innerHTML =
     '<h1>选择题库<span class="sub">共 ' + (BANKS || []).length + ' 个题库，' +
@@ -415,8 +434,8 @@ function renderBanks() {
     (recs.length ? '<div class="hist"><h3>我的成绩历史</h3>' + recs.map(r => {
       const cls = r.rate >= 80 ? 'good' : r.rate >= 60 ? 'mid' : 'bad';
       return '<div class="rec"><span class="r-name">' + esc(r.bankName) + '</span>' +
-        '<span class="muted">' + esc(String(r.at || '').slice(5, 16).replace('T', ' ')) + '</span>' +
-        '<span class="muted">' + r.correct + '/' + r.total + '</span>' +
+        '<span class="text-body-secondary">' + esc(String(r.at || '').slice(5, 16).replace('T', ' ')) + '</span>' +
+        '<span class="text-body-secondary">' + r.correct + '/' + r.total + '</span>' +
         '<span class="r-rate ' + cls + '">' + r.rate + '%</span></div>';
     }).join('') + '</div>' : '');
 }
@@ -467,12 +486,12 @@ function renderSetup() {
         '单选题 / 判断题则直接提交。这个开关可以改回来。</p>' +
       '<div class="chips">' +
         '<button class="chip ' + (S.noPrompt ? 'on' : '') + '" data-act="toggle-noprompt">' +
-          (S.noPrompt ? '✓ ' : '') + '不再提醒，直接提交</button>' +
+          (S.noPrompt ? '<i class="bi bi-check-lg me-1"></i>' : '') + '不再提醒，直接提交</button>' +
       '</div>' +
-      '<div class="row mt"><span class="grow muted">本次将出 <b>' + picked + '</b> 道题</span>' +
-        '<button class="btn" data-act="back-banks">返回</button>' +
-        (prog ? '<button class="btn ghost" data-act="resume">继续上次</button>' : '') +
-        '<button class="btn pri" data-act="start" ' + (picked ? '' : 'disabled') + '>开始答题</button>' +
+      '<div class="d-flex flex-wrap align-items-center gap-2 mt-3"><span class="flex-grow-1 text-body-secondary">本次将出 <b>' + picked + '</b> 道题</span>' +
+        '<button class="btn btn-outline-secondary" data-act="back-banks">返回</button>' +
+        (prog ? '<button class="btn btn-outline-secondary" data-act="resume">继续上次</button>' : '') +
+        '<button class="btn btn-primary" data-act="start" ' + (picked ? '' : 'disabled') + '>开始答题</button>' +
       '</div>' +
     '</div>';
 }
@@ -554,13 +573,13 @@ function renderQuiz() {
   let tip = '';
   if (done) {
     const counting = autoJump && autoJump.qid === qid;   // 只有刚提交、且还有下一题时才有倒计时
-    tip = '<div class="tip ' + (ok ? 'ok' : 'no') + '">' +
-      '<div class="tt">' + (ok ? '✓ 答对了' : '✕ 答错了') + '</div>' +
+    tip = '<div class="alert ' + (ok ? 'alert-success' : 'alert-danger') + ' mt-3">' +
+      '<div class="fw-bold">' + (ok ? '<i class="bi bi-check-circle-fill me-1"></i>答对了' : '<i class="bi bi-x-circle-fill me-1"></i>答错了') + '</div>' +
       (ok ? '' : '<div>正确答案：' + esc(answerText(q).replace(/\s+/g, ' ').trim()) + '</div>') +
-      '<div class="an">你的答案：' + esc(pickedText(q, picked)) + '</div>' +
+      '<div class="small">你的答案：' + esc(pickedText(q, picked)) + '</div>' +
       (q.analysis ? '<div class="ana">解析：' + fmt(q.analysis) + '</div>' : '') +
-      (counting ? '<div class="autojump">⏳ <b id="autojump">' + autoJump.sec + '</b> 秒后自动进入下一题' +
-        '<button class="btn sm ghost" data-act="cancel-auto">取消跳转</button></div>' : '') +
+      (counting ? '<div class="autojump"><i class="bi bi-hourglass-split me-1"></i><b id="autojump">' + autoJump.sec + '</b> 秒后自动进入下一题' +
+        '<button class="btn btn-sm btn-outline-secondary" data-act="cancel-auto">取消跳转</button></div>' : '') +
       '</div>';
   }
 
@@ -578,34 +597,35 @@ function renderQuiz() {
   app.innerHTML =
     '<div class="qbar">' +
       '<span class="stat">第 <b>' + (s.idx + 1) + '</b> / ' + s.order.length + ' 题</span>' +
-      '<span class="stat"><i class="dot" style="background:var(--dot-idle)"></i>已答 <b>' + st.answered + '</b></span>' +
-      '<span class="stat"><i class="dot" style="background:var(--ok)"></i>答对 <b>' + st.correct + '</b></span>' +
-      '<span class="stat"><i class="dot" style="background:var(--bad)"></i>答错 <b>' + st.wrong + '</b></span>' +
+      '<span class="stat"><i class="dot" style="background:var(--bs-secondary-bg)"></i>已答 <b>' + st.answered + '</b></span>' +
+      '<span class="stat"><i class="dot" style="background:var(--bs-success)"></i>答对 <b>' + st.correct + '</b></span>' +
+      '<span class="stat"><i class="dot" style="background:var(--bs-danger)"></i>答错 <b>' + st.wrong + '</b></span>' +
       '<span class="stat">正确率 <b>' + st.rate + '%</b></span>' +
-      '<span class="stat" style="margin-left:auto">⏱ <b id="elapsed">0 秒</b></span>' +
+      '<span class="stat" style="margin-left:auto"><i class="bi bi-stopwatch me-1"></i><b id="elapsed">0 秒</b></span>' +
     '</div>' +
-    '<div class="bar"><i style="width:' + (st.answered / st.total * 100) + '%"></i></div>' +
+    '<div class="progress mb-3" style="height:6px" role="progressbar" aria-label="答题进度">' +
+      '<div class="progress-bar" style="width:' + (st.answered / st.total * 100) + '%"></div></div>' +
     '<div class="card qcard">' +
       '<div class="qhead">' +
         '<span class="badge ' + t.cls + '">' + t.text + '</span>' +
         '<span class="qno">' + esc(QPOS[qid].chapterName) + '</span>' +
         '<button class="fav ' + (s.fav[qid] ? 'on' : '') + '" data-act="fav" title="收藏本题">' +
-          (s.fav[qid] ? '★' : '☆') + '</button>' +
+          (s.fav[qid] ? '<i class="bi bi-star-fill"></i>' : '<i class="bi bi-star"></i>') + '</button>' +
       '</div>' +
       '<h2 class="stem">' + fmt(q.stem) + '</h2>' +
       body + tip +
-      '<div class="acts">' +
+      '<div class="d-flex flex-wrap gap-2 mt-3">' +
         (done
-          ? '<button class="btn ghost" data-act="redo">重做本题</button>'
-          : '<button class="btn pri grow" data-act="submit">提交答案</button>') +
-        '<button class="btn" data-act="prev" ' + (isFirst ? 'disabled' : '') + '>上一题</button>' +
+          ? '<button class="btn btn-outline-secondary" data-act="redo">重做本题</button>'
+          : '<button class="btn btn-primary flex-grow-1" data-act="submit">提交答案</button>') +
+        '<button class="btn btn-outline-secondary" data-act="prev" ' + (isFirst ? 'disabled' : '') + '>上一题</button>' +
         (isLast
-          ? '<button class="btn pri" data-act="finish">交卷看结果</button>'
-          : '<button class="btn" data-act="next">下一题</button>') +
-        '<button class="btn ghost" data-act="finish">交卷</button>' +
+          ? '<button class="btn btn-primary" data-act="finish">交卷看结果</button>'
+          : '<button class="btn btn-outline-secondary" data-act="next">下一题</button>') +
+        '<button class="btn btn-outline-secondary" data-act="finish">交卷</button>' +
       '</div>' +
     '</div>' +
-    '<div class="nav" id="nav">' + nav + '</div>' +
+    '<div class="qmap" id="qmap">' + nav + '</div>' +
     '<div class="kbdhint">快捷键：<span class="kbd">←</span> <span class="kbd">→</span> 切题 · ' +
       '<span class="kbd">1</span>~<span class="kbd">4</span> 选项 · ' +
       '<span class="kbd">Enter</span> 提交 · <span class="kbd">F</span> 收藏</div>';
@@ -623,7 +643,7 @@ function navTargetScroll(curLeft, boxW, totalW) {
   return Math.max(0, Math.min(max, curLeft - boxW * NAV_ANCHOR));
 }
 function scrollNavToCurrent() {
-  const box = document.getElementById('nav');
+  const box = document.getElementById('qmap');
   if (!box || !box.querySelector || !box.getBoundingClientRect) return;
   const cur = box.querySelector('.cur');
   if (!cur || !cur.getBoundingClientRect) return;
@@ -714,19 +734,28 @@ function leaveCurrent() {
 function askUnsubmitted() {
   const q = QMAP[S.session.order[S.session.idx]];
   dialogEl.innerHTML =
-    '<h3>这道题还没提交</h3>' +
-    '<p>你已经选了答案，但还没点「提交答案」。' + esc(TYPE_LABEL[q.type].text) +
-      '的答案可能不止一个，所以我没敢自作主张。</p>' +
-    '<button class="memory' + (S.noPrompt ? ' on' : '') + '" data-act="toggle-noprompt">' +
-      '<i>' + (S.noPrompt ? '✓' : '') + '</i>不再提醒，以后直接提交</button>' +
-    '<div class="dlg-acts">' +
-      '<button class="btn pri" data-act="dlg-submit">提交并继续</button>' +
-      '<button class="btn" data-act="dlg-skip">不提交，继续</button>' +
-      '<button class="btn ghost" data-act="dlg-cancel">留在此题</button>' +
+    '<div class="modal-header">' +
+      '<h5 class="modal-title">这道题还没提交</h5>' +
+      '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>' +
+    '</div>' +
+    '<div class="modal-body">' +
+      '<p>你已经选了答案，但还没点「提交答案」。' + esc(TYPE_LABEL[q.type].text) +
+        '的答案可能不止一个，所以我没敢自作主张。</p>' +
+      '<button class="memory' + (S.noPrompt ? ' on' : '') + '" data-act="toggle-noprompt"' +
+        ' role="switch" aria-checked="' + (S.noPrompt ? 'true' : 'false') + '">' +
+        '<i class="bi ' + (S.noPrompt ? 'bi-check-lg' : '') + '"></i>不再提醒，以后直接提交</button>' +
+    '</div>' +
+    '<div class="modal-footer">' +
+      '<button class="btn btn-outline-secondary" data-act="dlg-cancel">留在此题</button>' +
+      '<button class="btn btn-outline-primary" data-act="dlg-skip">不提交，继续</button>' +
+      '<button class="btn btn-primary" data-act="dlg-submit">提交并继续</button>' +
     '</div>';
-  maskEl.hidden = false;
+  askModal().show();
 }
-function closeDialog() { maskEl.hidden = true; }
+/* Modal 的显示/隐藏是异步的（要等淡入淡出），所以收尾放在 hidden 事件里，
+   保证下次 show() 之前内容已经清干净。*/
+function closeDialog() { askModal().hide(); }
+askModalEl.addEventListener('hidden.bs.modal', function () { dialogEl.innerHTML = ''; });
 
 /* ---- 6.6.2 规则二：提交后自动进入下一题（答对 3 秒，答错 10 秒）----
    计时器只存内存，任何一次切题 / 重做都会取消它；最后一题不自动跳，免得误触交卷 */
@@ -772,9 +801,9 @@ function renderResult() {
   if (!s) { S.view = 'banks'; return render(); }
   const st = stats(s);
   const used = (s.finishedAt || Date.now()) - s.startedAt;
-  const tone = st.rate >= 80 ? 'ok' : st.rate >= 60 ? 'warn' : 'bad';
-  const color = 'var(--' + tone + ')';          /* 环形图用实心色 */
-  const toneText = 'var(--' + tone + '-tx)';    /* 数字用文字色，深色下才够亮 */
+  const tone = st.rate >= 80 ? 'success' : st.rate >= 60 ? 'warning' : 'danger';
+  const color = 'var(--bs-' + tone + ')';          /* 环形图用实心色 */
+  const toneText = 'var(--bs-' + tone + '-text-emphasis)';    /* 数字用文字色，深色下才够亮 */
   const deg = Math.round(st.rate * 3.6);
   const verdict = st.rate >= 80 ? '很稳，继续保持！' : st.rate >= 60 ? '及格线以上，再刷一遍更稳。' : '基础还需巩固，建议专攻错题。';
 
@@ -784,8 +813,8 @@ function renderResult() {
     ['unanswered', '未作答 ' + st.unanswered],
     ['fav', '收藏 ' + st.fav]
   ].map(([k, label]) =>
-    '<button class="tab ' + (S.reviewTab === k ? 'on' : '') + '" data-act="tab" data-tab="' + k + '">' +
-    label + '</button>').join('');
+    '<li class="nav-item"><button class="nav-link ' + (S.reviewTab === k ? 'active' : '') + '" data-act="tab" data-tab="' + k + '">' +
+    label + '</button></li>').join('');
 
   const ids = s.order.filter(qid => {
     if (S.reviewTab === 'wrong') return s.submitted[qid] && !isCorrect(QMAP[qid], s.answers[qid]);
@@ -807,33 +836,33 @@ function renderResult() {
         '<span class="ix">第 ' + n + ' 题</span>' +
         '<span class="st ' + stCls + '">' + stTxt + '</span>' +
         '<span class="sm">' + esc(q.stem) + '</span>' +
-        (s.fav[qid] ? '<span class="fa">★</span>' : '') +
-        '<span class="cx">⌄</span>' +
+        (s.fav[qid] ? '<i class="bi bi-star-fill"></i>' : '') +
+        '<i class="bi bi-chevron-down cx"></i>' +
       '</div>' +
       '<div class="rev-b">' +
         '<div class="q">' + fmt(q.stem) + '</div>' +
         '<div class="line">题型：' + TYPE_LABEL[q.type].text + '　章节：' + esc(QPOS[qid].chapterName) + '</div>' +
         '<div class="line">你的答案：<b>' + esc(pickedText(q, s.answers[qid])) + '</b></div>' +
-        '<div class="line">正确答案：<b style="color:var(--ok-tx)">' +
+        '<div class="line">正确答案：<b style="color:var(--bs-success-text-emphasis)">' +
           esc(answerText(q).replace(/\s+/g, ' ').trim()) + '</b></div>' +
         (q.analysis ? '<div class="line" style="margin-top:6px">解析：' + fmt(q.analysis) + '</div>' : '') +
       '</div></div>';
-  }).join('') : '<div class="card empty"><div class="e-ico">🎉</div>这个分类下没有题目</div>';
+  }).join('') : '<div class="card empty"><div class="e-ico"><i class="bi bi-emoji-smile"></i></div>这个分类下没有题目</div>';
 
   app.innerHTML =
     '<h1>答题结果<span class="sub">' + esc(s.bankName) + ' · ' + esc(s.mode === 'random' ? '随机顺序' : '顺序作答') + '</span></h1>' +
     '<div class="card score-hero">' +
-      '<div class="ring" style="background:conic-gradient(' + color + ' ' + deg + 'deg,var(--track) ' + deg + 'deg)">' +
+      '<div class="ring" style="background:conic-gradient(' + color + ' ' + deg + 'deg,var(--bs-secondary-bg) ' + deg + 'deg)">' +
         '<div class="in"><div><div class="v" style="color:' + toneText + '">' + st.rate + '%</div>' +
         '<div class="u">正确率</div></div></div>' +
       '</div>' +
       '<div class="hero-txt">' +
         '<h2>得分 ' + st.score + ' 分</h2>' +
         '<p>' + verdict + '　用时 ' + fmtTime(used) + '</p>' +
-        '<div class="row mt">' +
-          '<button class="btn pri" data-act="retry-wrong">重做错题</button>' +
-          '<button class="btn" data-act="again">再刷一遍</button>' +
-          '<button class="btn ghost" data-act="back-banks">返回题库</button>' +
+        '<div class="d-flex flex-wrap align-items-center gap-2 mt-3">' +
+          '<button class="btn btn-primary" data-act="retry-wrong">重做错题</button>' +
+          '<button class="btn btn-outline-secondary" data-act="again">再刷一遍</button>' +
+          '<button class="btn btn-outline-secondary" data-act="back-banks">返回题库</button>' +
         '</div>' +
       '</div>' +
     '</div>' +
@@ -845,7 +874,7 @@ function renderResult() {
       '<div class="card num c-mut"><div class="v">' + st.unanswered + '</div><div class="l">未作答</div></div>' +
       '<div class="card num"><div class="v">' + st.fav + '</div><div class="l">收藏</div></div>' +
     '</div>' +
-    '<div class="tabs">' + tabs + '</div>' +
+    '<ul class="nav nav-pills gap-1 my-4">' + tabs + '</ul>' +
     list;
 }
 function retryWrong() {
@@ -976,5 +1005,6 @@ document.addEventListener('keydown', function (e) {
 });
 
 /* ============ 8. 启动 ============ */
+clearLegacy();         /* 清掉被取代的本机键，保持轻量 */
 applyTheme(theme());   /* 页面一加载就把主题定下来，避免闪一下浅色 */
 render();
