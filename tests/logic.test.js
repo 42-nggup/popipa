@@ -62,6 +62,7 @@ globalThis.__hook = { S, stats, isCorrect, hasAnswer, startSession, pickKey, sub
   jump, go, step, finish, pickBank, doLogin, retryWrong,
   tickAuto, QMAP, bankById, bankQuestionIds, LETTERS, render,
   store, KEY, userOf, users, userTable, migrateUsers, roundsOf, pushRound,
+  favIds, isFav, toggleFavId, toggleFav,
   wrongIds, sanitizeSession, historyOf, loadProgress, lastName,
   applyTheme, theme, toggleTheme, navTargetScroll,
   getAuto: () => autoJump,
@@ -421,6 +422,26 @@ ok('主题/进度/错题/收藏/成绩都搬进了每用户表',
    tOld.theme === 'dark' && !!tOld.books.web && tOld.wrong.q1 === 1 &&
    tOld.fav.q2 === 2 && tOld.history.length === 1);
 ok('再跑一次迁移不会重复搬', H.migrateUsers() === false);
+
+
+section('24. 收藏写进每用户表，跨场次保留');
+H.S.user = '小明'; H.S.view = 'setup'; H.S.bankId = 'web';
+H.S.chapters = H.bankById('web').chapters.map(c => c.id);
+H.S.wrongOnly = false;
+H.startSession();
+const favQid = H.S.session.order[0];
+H.jump(0);
+H.toggleFav();
+ok('收藏写进了每用户表', H.isFav('小明', favQid) === true &&
+   H.userTable('小明').fav[favQid] > 0);
+ok('按题库统计收藏数', H.favIds('小明', 'web').indexOf(favQid) >= 0);
+H.startSession();                                  /* 重开一局 */
+H.jump(H.S.session.order.indexOf(favQid));
+H.render();
+ok('重开一局后星星还在', els['app'].innerHTML.indexOf('bi-star-fill') >= 0);
+ok('stats() 的收藏数按用户表算', H.stats(H.S.session).fav === 1);
+H.toggleFav();
+ok('再点一次取消收藏', H.isFav('小明', favQid) === false);
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

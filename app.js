@@ -111,15 +111,15 @@ function pickedText(q, picked) {
 
 /* ============ 3. 统计（推导，不累加） ============ */
 function stats(s) {
-  let answered = 0, correct = 0, wrong = 0, fav = 0;
+  let answered = 0, correct = 0, wrong = 0;
   s.order.forEach(id => {
-    if (s.fav[id]) fav++;
     if (s.submitted[id]) {
       answered++;
       if (isCorrect(QMAP[id], s.answers[id])) correct++; else wrong++;
     }
   });
   const total = s.order.length;
+  const fav = favCountIn(s.order);      /* 收藏是用户级的，不跟场次走 */
   return {
     total, answered, correct, wrong, fav,
     unanswered: total - answered,
@@ -308,6 +308,22 @@ function syncWrong(user, session) {
     else u.wrong[id] = now;
   });
   saveUser(user, u);
+}
+
+/* ---- 收藏：存在每用户表里，跨场次保留（答对答错都不掉）---- */
+function favIds(user, bankId) {
+  const f = userOf(user).fav;
+  return Object.keys(f).filter(id => QMAP[id] && (!bankId || QPOS[id].bankId === bankId));
+}
+function isFav(user, qid) { return !!userOf(user).fav[qid]; }
+function toggleFavId(user, qid) {
+  const u = userOf(user);
+  if (u.fav[qid]) delete u.fav[qid]; else u.fav[qid] = Date.now();
+  saveUser(user, u);
+  return !!u.fav[qid];
+}
+function favCountIn(order) {
+  return S.user ? order.filter(id => isFav(S.user, id)).length : 0;
 }
 
 /* ---- 逐轮记录：每轮交卷时落一份快照（逐题作答 + 用时 + 汇总）----
@@ -673,8 +689,9 @@ function renderQuiz() {
       '<div class="qhead">' +
         '<span class="badge ' + t.cls + '">' + t.text + '</span>' +
         '<span class="qno">' + esc(QPOS[qid].chapterName) + '</span>' +
-        '<button class="fav ' + (s.fav[qid] ? 'on' : '') + '" data-act="fav" title="收藏本题">' +
-          (s.fav[qid] ? '<i class="bi bi-star-fill"></i>' : '<i class="bi bi-star"></i>') + '</button>' +
+        '<button class="fav ' + (isFav(S.user, qid) ? 'on' : '') + '" data-act="fav" title="收藏本题"' +
+          ' aria-pressed="' + (isFav(S.user, qid) ? 'true' : 'false') + '">' +
+          (isFav(S.user, qid) ? '<i class="bi bi-star-fill"></i>' : '<i class="bi bi-star"></i>') + '</button>' +
       '</div>' +
       '<h2 class="stem">' + fmt(q.stem) + '</h2>' +
       body + tip +
@@ -760,9 +777,11 @@ function redoCurrent() {
 }
 function toggleFav() {
   const s = S.session, qid = s.order[s.idx];
-  if (s.fav[qid]) delete s.fav[qid]; else s.fav[qid] = true;
+  const on = toggleFavId(S.user, qid);   /* 收藏记在每用户表，跨场次保留 */
+  if (on) s.fav[qid] = true; else delete s.fav[qid];
   saveProgress();
   render();
+  toast(on ? '已加入收藏' : '已取消收藏');
 }
 function go(delta) {
   const s = S.session;
@@ -865,7 +884,7 @@ function renderResult() {
   const ids = s.order.filter(qid => {
     if (S.reviewTab === 'wrong') return s.submitted[qid] && !isCorrect(QMAP[qid], s.answers[qid]);
     if (S.reviewTab === 'unanswered') return !s.submitted[qid];
-    if (S.reviewTab === 'fav') return !!s.fav[qid];
+    if (S.reviewTab === 'fav') return isFav(S.user, qid);
     return true;
   });
 
@@ -882,7 +901,7 @@ function renderResult() {
         '<span class="ix">第 ' + n + ' 题</span>' +
         '<span class="st ' + stCls + '">' + stTxt + '</span>' +
         '<span class="sm">' + esc(q.stem) + '</span>' +
-        (s.fav[qid] ? '<i class="bi bi-star-fill"></i>' : '') +
+        (isFav(S.user, qid) ? '<i class="bi bi-star-fill"></i>' : '') +
         '<i class="bi bi-chevron-down cx"></i>' +
       '</div>' +
       '<div class="rev-b">' +
