@@ -65,7 +65,7 @@ globalThis.__hook = { S, stats, isCorrect, hasAnswer, startSession, pickKey, sub
   store, KEY, userOf, users, userTable, migrateUsers, roundsOf, pushRound,
   favIds, isFav, toggleFavId, toggleFav,
   wrongIds, sanitizeSession, historyOf, loadProgress, lastName,
-  applyTheme, theme, toggleTheme, navTargetScroll, scrollNavToCurrent,
+  applyTheme, theme, toggleTheme, navTargetScroll, scrollNavToCurrent, toggleQmap, restoreQmapScroll,
   getAuto: () => autoJump,
   exportPng, shareCardHtml, shareRecord, dateStamp,
   getToast: () => toastEl.textContent,
@@ -502,6 +502,7 @@ ok('按钮不再写死高度', /\.qmap-expand\{[^}]*height:auto/.test(cssSrc));
 ok('按钮与 grid 内容框等高，底部留出滚动条位置',
    /\.qmap-wrap\{[^}]*padding:\.85rem 0 0/.test(cssSrc) &&
    /\.qmap\{[^}]*padding:0 2px 10px/.test(cssSrc));
+ok('展开键不随滚动条区域一起下延', /\.qmap-expand\{[^}]*margin-bottom:10px/.test(cssSrc));
 
 
 section('29. 最后一题只留一个交卷按钮');
@@ -601,6 +602,48 @@ H.startSession();
 const beforeHtml = els['app'].innerHTML;
 H.toggleFav();
 ok('收藏不触发整页重绘', els['app'].innerHTML === beforeHtml);
+
+
+section('35. 组卷页重构 + 定向刷新');
+H.S.user = '小明';
+H.pickBank('web');
+H.render();
+const sh = els['app'].innerHTML;
+ok('双栏布局：主面板 + 侧栏摘要',
+   sh.indexOf('setup-grid') >= 0 && sh.indexOf('setup-side') >= 0);
+ok('侧栏有题数与开始按钮',
+   sh.indexOf('id="setupCount"') >= 0 && sh.indexOf('id="setupStart"') >= 0);
+ok('章节 chip 带 aria 状态', /role="switch" aria-checked=/.test(sh));
+
+const before35 = els['app'].innerHTML;
+const ch35 = H.bankById('web').chapters[0].id;
+const wasOn35 = H.S.chapters.indexOf(ch35) >= 0;
+fire('toggle-chapter', { id: ch35 });
+ok('章节切换是定向更新（不重绘整页）',
+   els['app'].innerHTML === before35 &&
+   (H.S.chapters.indexOf(ch35) >= 0) !== wasOn35);
+fire('mode', { mode: 'random' });
+ok('出题顺序也是定向更新', els['app'].innerHTML === before35 && H.S.mode === 'random');
+H.S.mode = 'order';
+
+
+section('36. qmap 关闭时先归位，不从最左侧滑');
+const qmBox = mkEl('qmap');
+qmBox.scrollLeft = 0;                 /* 展开时横向位置是 0 */
+const qmBtn = mkEl('qmap-expand');
+const qmWrap = mkEl('qmap-wrap');
+qmWrap.querySelector = () => qmBtn;
+const realQS = sandbox.document.querySelector;
+const realGE = sandbox.document.getElementById;
+sandbox.document.querySelector = () => qmWrap;
+sandbox.document.getElementById = id => (id === 'qmap' ? qmBox : (els[id] || (els[id] = mkEl(id))));
+H.S.qmapOpen = true;
+H.S.qmapScroll = 480;                 /* 展开前记住的横向位置 */
+H.toggleQmap();
+ok('关闭时先瞬间回到上次位置，再定位当前题', qmBox.scrollLeft === 480);
+ok('状态已切回收起', H.S.qmapOpen === false);
+sandbox.document.querySelector = realQS;
+sandbox.document.getElementById = realGE;
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

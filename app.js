@@ -644,46 +644,128 @@ function pickBank(id) {
 }
 
 /* ---- 6.3 组卷面板 ---- */
+/* ---- 6.3 组卷面板 ---- */
+function setupPicked(bank) {
+  return S.wrongOnly ? wrongIds(S.user, bank.id).length
+    : bank.chapters.filter(ch => S.chapters.indexOf(ch.id) >= 0)
+        .reduce((n, ch) => n + ch.questions.filter(q => q.answer.length).length, 0);
+}
+/* 组卷页的开关都是定向刷新：只改相关类名/数字，不重绘整页 */
+function refreshSetup() {
+  const bank = bankById(S.bankId);
+  if (!bank) return;
+  const picked = setupPicked(bank);
+  const byId = id => document.getElementById(id);
+  const count = byId('setupCount');
+  if (count) count.textContent = picked;
+  const sel = byId('setupChapters');
+  if (sel) sel.textContent = S.chapters.length;
+  const startBtn = byId('setupStart');
+  if (startBtn) startBtn.disabled = !picked;
+
+  const range = byId('rangeChips');
+  if (range && range.children) {
+    Array.prototype.forEach.call(range.children, b => {
+      const on = b.dataset.on === (S.wrongOnly ? '1' : '0');
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+  }
+  const chapters = byId('chapterChips');
+  if (chapters && chapters.children) {
+    Array.prototype.forEach.call(chapters.children, b => {
+      const on = S.chapters.indexOf(b.dataset.id) >= 0;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+      b.disabled = S.wrongOnly;
+    });
+  }
+  const seg = byId('modeSeg');
+  if (seg && seg.children) {
+    Array.prototype.forEach.call(seg.children, b => {
+      b.classList.toggle('on', b.dataset.mode === S.mode);
+    });
+  }
+  const hint = byId('chapterHint');
+  if (hint) hint.textContent = S.wrongOnly ? '正在只练错题，章节不生效' : '只选中的章节会进入本次练习';
+}
 function renderSetup() {
   const bank = bankById(S.bankId);
   if (!bank) { S.view = 'banks'; return render(); }
-  const chips = bank.chapters.map(ch =>
-    '<button class="chip ' + (S.chapters.indexOf(ch.id) >= 0 ? 'on' : '') +
-    '" data-act="toggle-chapter" data-id="' + ch.id + '"' + (S.wrongOnly ? ' disabled' : '') + '>' +
-    esc(ch.name) + '<span class="n">' + ch.questions.length + '</span></button>').join('');
-  const picked = S.wrongOnly ? wrongIds(S.user, bank.id).length
-    : bank.chapters.filter(ch => S.chapters.indexOf(ch.id) >= 0)
-        .reduce((n, ch) => n + ch.questions.filter(q => q.answer.length).length, 0);
   const wCount = wrongIds(S.user, bank.id).length;
+  const favCount = favIds(S.user, bank.id).length;
   const prog = loadProgress(S.user, bank.id);
+  const prev = prog ? stats(prog).answered : 0;
+  const chips = bank.chapters.map(ch => {
+    const on = S.chapters.indexOf(ch.id) >= 0;
+    return '<button class="chip' + (on ? ' on' : '') + '" data-act="toggle-chapter" data-id="' + ch.id + '"' +
+      ' role="switch" aria-checked="' + (on ? 'true' : 'false') + '"' +
+      (S.wrongOnly ? ' disabled' : '') + '>' +
+      esc(ch.name) + '<span class="n">' + ch.questions.length + '</span></button>';
+  }).join('');
   app.innerHTML =
-    '<h1>' + esc(bank.name) + '<span class="sub">选择章节与出题顺序，然后开始</span></h1>' +
-    '<div class="card panel">' +
-      '<h3>练习范围</h3><p class="hint">错题本会一直攒着你答错的题，答对后自动移出；' +
-        '只练错题时不看章节。</p>' +
-      '<div class="chips">' +
-        '<button class="chip ' + (!S.wrongOnly ? 'on' : '') + '" data-act="wrong-only" data-on="0">按章节练</button>' +
-        '<button class="chip ' + (S.wrongOnly ? 'on' : '') + '" data-act="wrong-only" data-on="1" ' +
-          (wCount ? '' : 'disabled') + '>只练错题（' + wCount + ' 道）</button>' +
+    '<div class="setup-head">' +
+      '<button class="btn btn-sm btn-outline-secondary" data-act="back-banks">' +
+        '<i class="bi bi-arrow-left me-1"></i>题库</button>' +
+      '<div class="ms-2 min-w-0">' +
+        '<h1 class="h4 fw-bold mb-0 text-truncate">' + esc(bank.name) + '</h1>' +
+        '<p class="small text-body-secondary mb-0">选择章节与出题顺序，然后开始</p>' +
       '</div>' +
-      '<div class="hr"></div>' +
-      '<h3>章节</h3><p class="hint">' + (S.wrongOnly ? '正在只练错题，章节不生效；' : '') +
-        '点一下可取消 / 选中，只有选中的章节会进入本次练习。</p>' +
-      '<div class="chips">' + chips + '</div>' +
-      '<div class="hr"></div>' +
-      '<h3>出题顺序</h3><p class="hint">顺序即按题库原顺序；随机适合反复刷。</p>' +
-      '<div class="seg">' +
-        '<button class="' + (S.mode === 'order' ? 'on' : '') + '" data-act="mode" data-mode="order">顺序</button>' +
-        '<button class="' + (S.mode === 'random' ? 'on' : '') + '" data-act="mode" data-mode="random">随机</button>' +
-      '</div>' +
-      '<div class="d-flex flex-wrap align-items-center gap-2 mt-3"><span class="flex-grow-1 text-body-secondary">本次将出 <b>' + picked + '</b> 道题</span>' +
-        '<button class="btn btn-outline-secondary" data-act="back-banks">返回</button>' +
-        (prog ? '<button class="btn btn-outline-secondary" data-act="resume">继续上次</button>' : '') +
-        '<button class="btn btn-primary" data-act="start" ' + (picked ? '' : 'disabled') + '>开始答题</button>' +
-      '</div>' +
+    '</div>' +
+    '<div class="setup-grid">' +
+      '<div class="card setup-main shadow-sm"><div class="card-body p-4">' +
+        '<section>' +
+          '<h2 class="h6 fw-bold"><i class="bi bi-funnel me-1"></i>练习范围</h2>' +
+          '<p class="hint">错题本会一直攒着答错的题，答对后自动移出；只练错题时不看章节。</p>' +
+          '<div class="chips" id="rangeChips">' +
+            '<button class="chip' + (!S.wrongOnly ? ' on' : '') + '" data-act="wrong-only" data-on="0"' +
+              ' role="switch" aria-checked="' + (!S.wrongOnly ? 'true' : 'false') + '">按章节练</button>' +
+            '<button class="chip' + (S.wrongOnly ? ' on' : '') + '" data-act="wrong-only" data-on="1"' +
+              ' role="switch" aria-checked="' + (S.wrongOnly ? 'true' : 'false') + '"' +
+              (wCount ? '' : ' disabled') + '>只练错题（' + wCount + ' 道）</button>' +
+          '</div>' +
+        '</section>' +
+        '<hr class="my-4">' +
+        '<section>' +
+          '<div class="d-flex align-items-baseline gap-2 flex-wrap">' +
+            '<h2 class="h6 fw-bold mb-0"><i class="bi bi-list-check me-1"></i>章节</h2>' +
+            '<span class="small text-body-secondary" id="chapterHint">' +
+              (S.wrongOnly ? '正在只练错题，章节不生效' : '只选中的章节会进入本次练习') + '</span>' +
+          '</div>' +
+          '<div class="chips mt-2" id="chapterChips">' + chips + '</div>' +
+        '</section>' +
+        '<hr class="my-4">' +
+        '<section>' +
+          '<h2 class="h6 fw-bold"><i class="bi bi-shuffle me-1"></i>出题顺序</h2>' +
+          '<p class="hint">顺序即按题库原顺序；随机适合反复刷。</p>' +
+          '<div class="seg" id="modeSeg">' +
+            '<button class="' + (S.mode === 'order' ? 'on' : '') + '" data-act="mode" data-mode="order">' +
+              '<i class="bi bi-list-ol me-1"></i>顺序</button>' +
+            '<button class="' + (S.mode === 'random' ? 'on' : '') + '" data-act="mode" data-mode="random">' +
+              '<i class="bi bi-shuffle me-1"></i>随机</button>' +
+          '</div>' +
+        '</section>' +
+      '</div></div>' +
+      '<aside class="card setup-side shadow-sm"><div class="card-body p-4">' +
+        '<div class="setup-sum-label">本次将出</div>' +
+        '<div class="setup-sum"><b id="setupCount">' + setupPicked(bank) + '</b> 道题</div>' +
+        '<ul class="setup-facts">' +
+          '<li><i class="bi bi-list-check"></i>已选章节 <b id="setupChapters">' + S.chapters.length + '</b> / ' +
+            bank.chapters.length + '</li>' +
+          '<li><i class="bi bi-journal-bookmark"></i>错题本 <b>' + wCount + '</b> 道</li>' +
+          '<li><i class="bi bi-star"></i>收藏 <b>' + favCount + '</b> 道</li>' +
+          (prog ? '<li><i class="bi bi-play-circle"></i>上次答到第 <b>' + prev + '</b> 题</li>' : '') +
+        '</ul>' +
+        '<button class="btn btn-primary w-100" data-act="start" id="setupStart"' +
+          (setupPicked(bank) ? '' : ' disabled') + '>' +
+          '<i class="bi bi-play-fill me-1"></i>开始答题</button>' +
+        (prog ? '<button class="btn btn-outline-secondary w-100 mt-2" data-act="resume">' +
+          '<i class="bi bi-play-fill me-1"></i>继续上次</button>' : '') +
+        '<button class="btn btn-outline-secondary w-100 mt-2" data-act="back-banks">' +
+          '<i class="bi bi-arrow-left me-1"></i>返回题库</button>' +
+      '</div></aside>' +
     '</div>';
 }
-
 
 /* ---- 6.4 组卷 / 开始练习 ---- */
 function startSession() {
@@ -947,6 +1029,9 @@ function toggleFav() {
 }
 /* 答题卡展开/收起：只切 class 和箭头，不重绘整页 */
 function toggleQmap() {
+  const box0 = document.getElementById('qmap');
+  /* 收起状态下先把当前横向位置记住，这样展开再关闭时能回到原处 */
+  if (box0 && !S.qmapOpen && typeof box0.scrollLeft === 'number') S.qmapScroll = box0.scrollLeft;
   S.qmapOpen = !S.qmapOpen;
   const wrap = document.querySelector('.qmap-wrap');
   const box = document.getElementById('qmap');
@@ -960,6 +1045,8 @@ function toggleQmap() {
   btn.setAttribute('aria-label', tip);
   const icon = btn.querySelector('i');
   if (icon) icon.className = 'bi ' + (S.qmapOpen ? 'bi-chevron-up' : 'bi-chevron-down');
+  /* 展开态是网格、没有横向滚动；关闭时先瞬间回到上次位置，再从这里滑向当前题 */
+  if (!S.qmapOpen) restoreQmapScroll();
   scrollNavToCurrent();
 }
 function go(delta) {
@@ -1270,10 +1357,10 @@ document.addEventListener('click', function (e) {
     case 'toggle-chapter': {
       const id = el.dataset.id, i = S.chapters.indexOf(id);
       if (i >= 0) S.chapters.splice(i, 1); else S.chapters.push(id);
-      render(); break;
+      refreshSetup(); break;
     }
-    case 'mode': S.mode = el.dataset.mode; render(); break;
-    case 'wrong-only': S.wrongOnly = el.dataset.on === '1'; render(); break;
+    case 'mode': S.mode = el.dataset.mode; refreshSetup(); break;
+    case 'wrong-only': S.wrongOnly = el.dataset.on === '1'; refreshSetup(); break;
     case 'theme': toggleTheme(); break;
     case 'back-banks':
       if (S.view === 'quiz' && !confirm('返回会保存当前进度，确定离开吗？')) return;
