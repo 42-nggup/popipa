@@ -940,6 +940,8 @@ ok('主页有侧边栏与欢迎语',
 ok('主页有每日目标与五项统计',
    homeHtml.indexOf('每日目标') >= 0 && homeHtml.indexOf('总写题数') >= 0 &&
    homeHtml.indexOf('总正确率') >= 0 && homeHtml.indexOf('总写题时间') >= 0);
+ok('侧边栏有开始练习（banks.html）入口',
+   /href="banks.html"[^>]*data-act="nav"/.test(homeHtml));
 ok('侧边栏有每日热身与两个集合入口',
    homeHtml.indexOf('每日热身') >= 0 && homeHtml.indexOf('错题本') >= 0 &&
    homeHtml.indexOf('收藏集') >= 0);

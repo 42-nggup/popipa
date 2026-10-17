@@ -1952,6 +1952,7 @@ function sideBar(active) {
     '<div class="side-brand"><span class="brand-logo">pi</span><span>popipa</span></div>' +
     '<nav class="side-nav">' +
       item('home', 'home', 'home.html', 'bi-house-door', '学习概览') +
+      item('banks', 'banks', 'banks.html', 'bi-play-circle', '开始练习') +
       item('summary', 'summary', 'summary.html', 'bi-diagram-3', '题库汇总') +
       item('stats', 'stats', 'stats.html', 'bi-graph-up-arrow', '学习报告') +
       item('wrong', 'collection', 'collection.html?type=wrong', 'bi-journal-bookmark', '错题本', wrongN, ' data-type="wrong"') +
