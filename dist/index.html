@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN" data-bs-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>popipa · 登录</title>
+<!-- 主题必须在样式表之前定下来，否则深色用户会先闪一下白屏 -->
+<script>
+try{
+  var t = JSON.parse(localStorage.getItem('popipa:theme'));
+  if (t !== 'dark' && t !== 'light') {
+    t = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  document.documentElement.dataset.bsTheme = t;
+}catch(e){}
+</script>
+<link rel="stylesheet" href="vendor/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons.min.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body class="d-flex flex-column min-vh-100" data-page="login">
+
+<header class="navbar navbar-expand sticky-top bg-body-tertiary border-bottom" id="top" hidden>
+  <div class="container app-shell">
+    <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="#" data-act="home">
+      <span class="brand-logo">pi</span><span>popipa</span>
+    </a>
+    <div class="d-flex align-items-center gap-3 ms-auto">
+      <button class="btn btn-sm btn-outline-secondary theme-btn" id="themeBtn" data-act="theme"
+              title="切换深色 / 浅色" aria-label="切换深色 / 浅色"></button>
+      <div class="d-flex align-items-center gap-3" id="whoBox" hidden>
+        <span class="avatar" id="avatar">?</span>
+        <span class="small text-body-secondary" id="whoName"></span>
+        <button class="btn btn-sm btn-outline-secondary" data-act="logout">
+          <i class="bi bi-box-arrow-right"></i><span class="d-none d-sm-inline ms-1">退出</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="container app-shell flex-grow-1 pb-5" id="app"><!-- 由 app.js 渲染登录页 --></main>
+
+<!-- 数据收集同意（file:// 单页模式也会在主页面用到） -->
+<div class="modal fade" id="consentModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-shield-check me-2"></i>数据收集</h5>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">是否同意把你在本机的答题数据（每轮题数、正确率、用时）用于「学习报告」里的统计与排行榜？</p>
+        <p class="small text-body-secondary mb-0">数据只保存在本机浏览器，不会上传到服务器；不同意也不会影响刷题。</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-act="consent-no">不同意</button>
+        <button class="btn btn-primary" data-act="consent-yes">同意</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast popipa-toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- 数据与逻辑分离：先数据，后逻辑 -->
+<script src="vendor/bootstrap.bundle.min.js"></script>
+<script src="app.data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
