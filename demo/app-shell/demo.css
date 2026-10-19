@@ -24,6 +24,21 @@ body[data-layout="focus"] .home-wrap {
   animation: demo-page-in .34s cubic-bezier(.16, 1, .3, 1) .08s both;
 }
 
+/* 答题态切换时，侧栏单独向左滑出 / 从左侧滑入。
+   只在进入 / 离开 focus 布局时给 #side 加 .vt-sidebar，
+   普通页面切换不会让侧栏参与过渡。 */
+.vt-sidebar {
+  view-transition-name: sidebar;
+}
+
+::view-transition-old(sidebar) {
+  animation: demo-side-out .16s cubic-bezier(.4, 0, 1, 1) both;
+}
+
+::view-transition-new(sidebar) {
+  animation: demo-side-in .34s cubic-bezier(.16, 1, .3, 1) .04s both;
+}
+
 @keyframes demo-page-out {
   from {
     opacity: 1;
@@ -46,6 +61,28 @@ body[data-layout="focus"] .home-wrap {
   }
 }
 
+@keyframes demo-side-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes demo-side-in {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 /* 不支持 View Transition 时的降级：只有新内容从下方进入 */
 .page-enter {
   animation: demo-page-in .34s cubic-bezier(.16, 1, .3, 1) both;
@@ -54,6 +91,8 @@ body[data-layout="focus"] .home-wrap {
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(app-content),
   ::view-transition-new(app-content),
+  ::view-transition-old(sidebar),
+  ::view-transition-new(sidebar),
   .page-enter {
     animation: none !important;
   }

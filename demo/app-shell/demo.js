@@ -275,25 +275,32 @@ function render(route, options) {
   const noAnimate = !!(options && options.noAnimate);
   const update = () => commit(target);
 
-  /* 只在普通 App Shell 视图之间做页面动效。
-     进入 / 离开答题态是 focus 布局，侧栏要隐藏 / 出现，不做滑动。 */
   const fromLayout = currentRoute && ROUTES[currentRoute] ? ROUTES[currentRoute].layout : null;
   const toLayout = ROUTES[target].layout;
-  const animate = changed && !noAnimate && fromLayout === 'app' && toLayout === 'app';
+  const layoutChanging = fromLayout !== toLayout;
+  const animate = changed && !noAnimate;
 
   if (animate && !transitionActive &&
       typeof document.startViewTransition === 'function' && !reducedMotion()) {
     transitionActive = true;
+    /* 只有进入 / 离开答题态时才让侧栏参与过渡；
+       普通页面切换侧栏保持不动。 */
+    if (layoutChanging) side.classList.add('vt-sidebar');
     try {
       const vt = document.startViewTransition(update);
+      const cleanup = () => {
+        transitionActive = false;
+        side.classList.remove('vt-sidebar');
+      };
       if (vt && vt.finished && vt.finished.finally) {
-        vt.finished.finally(() => { transitionActive = false; });
+        vt.finished.finally(cleanup);
       } else {
-        setTimeout(() => { transitionActive = false; }, 500);
+        setTimeout(cleanup, 500);
       }
       return;
     } catch (e) {
       transitionActive = false;
+      side.classList.remove('vt-sidebar');
     }
   }
 
