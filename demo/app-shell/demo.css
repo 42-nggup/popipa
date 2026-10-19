@@ -11,9 +11,33 @@ body[data-layout="focus"] .home-wrap {
   view-transition-name: app-content;
 }
 
+/* 顶栏也进入 View Transition 层，并压在主内容 / 侧栏上面。
+   否则主内容向上滑出时，快照会盖住 fixed 顶栏。 */
+#top {
+  view-transition-name: topbar;
+}
+
 ::view-transition-old(root),
-::view-transition-new(root) {
+::view-transition-new(root),
+::view-transition-old(topbar),
+::view-transition-new(topbar) {
   animation: none;
+}
+
+::view-transition-group(topbar) {
+  z-index: 100;
+}
+
+::view-transition-group(sidebar) {
+  z-index: 20;
+}
+
+::view-transition-group(app-content) {
+  z-index: 10;
+}
+
+::view-transition-group(root) {
+  z-index: 0;
 }
 
 ::view-transition-old(app-content) {
