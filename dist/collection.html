@@ -1,51 +1,68 @@
 <!doctype html>
-<html lang="zh-CN" data-bs-theme="light">
+<html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>popipa · 错题本 / 收藏集</title>
-<!-- 主题必须在样式表之前定下来，否则深色用户会先闪一下白屏 -->
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <script>
 try{
   var t = JSON.parse(localStorage.getItem('popipa:theme'));
   if (t !== 'dark' && t !== 'light') {
     t = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
   }
-  document.documentElement.dataset.bsTheme = t;
+  document.documentElement.dataset.theme = t;
 }catch(e){}
 </script>
-<link rel="stylesheet" href="vendor/bootstrap.min.css">
 <link rel="stylesheet" href="vendor/bootstrap-icons.min.css">
-<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="assets/app.css">
 </head>
-<body class="d-flex flex-column min-vh-100" data-page="collection">
+<body class="flex min-h-screen flex-col" data-page="collection">
 
-<header class="navbar navbar-expand sticky-top bg-body-tertiary border-bottom" id="top" hidden>
-  <div class="container app-shell">
-    <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="#" data-act="home">
+<header class="site-top" id="top" hidden>
+  <div class="app-shell site-top-inner">
+    <a class="brand" href="#" data-act="home">
       <span class="brand-logo">pi</span><span>popipa</span>
     </a>
-    <div class="d-flex align-items-center gap-3 ms-auto">
-      <button class="btn btn-sm btn-outline-secondary theme-btn" id="themeBtn" data-act="theme"
+    <div class="ml-auto flex items-center gap-2.5">
+      <button class="icon-btn" id="themeBtn" data-act="theme"
               title="切换深色 / 浅色" aria-label="切换深色 / 浅色"></button>
-      <div class="d-flex align-items-center gap-3" id="whoBox">
+      <div class="flex items-center gap-2.5" id="whoBox">
         <span class="avatar" id="avatar">?</span>
-        <span class="small text-body-secondary" id="whoName"></span>
-        <button class="btn btn-sm btn-outline-secondary" data-act="logout">
-          <i class="bi bi-box-arrow-right"></i><span class="d-none d-sm-inline ms-1">退出</span>
+        <span class="hidden max-w-[9rem] truncate text-sm text-muted sm:inline" id="whoName"></span>
+        <button class="btn btn-ghost btn-sm" data-act="logout">
+          <i class="bi bi-box-arrow-right"></i><span class="hidden sm:inline">退出</span>
         </button>
       </div>
     </div>
   </div>
 </header>
 
-<main class="container app-shell flex-grow-1 pb-5" id="app"><!-- 由 app.js 渲染 --></main>
+<main class="app-shell flex-1 pb-12" id="app"><!-- 由 app.js 渲染 --></main>
 
+<!-- file:// 单页模式会在本文件内切视图，弹窗需要常驻 -->
+<dialog id="consentModal" class="dialog" data-static>
+  <div class="dialog-card">
+    <div class="dialog-head">
+      <h2 class="dialog-title"><i class="bi bi-shield-check mr-2 text-brand"></i>数据收集</h2>
+    </div>
+    <div class="dialog-body">
+      <p class="mb-2">是否同意把你在本机的答题数据（每轮题数、正确率、用时）用于「学习报告」里的统计与排行榜？</p>
+      <p class="mb-0 text-[13px] text-muted">数据保存在本机浏览器和本机数据文件（data/state.json），不会上传到外部网络；不同意也不会影响刷题。</p>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn btn-outline" data-act="consent-no">不同意</button>
+      <button class="btn btn-primary" data-act="consent-yes">同意</button>
+    </div>
+  </div>
+</dialog>
 
+<dialog id="shareModal" class="dialog dialog-lg">
+  <div class="dialog-card" id="shareBody"></div>
+</dialog>
 
-<div class="toast popipa-toast" id="toast" role="status" aria-live="polite"></div>
+<div class="popipa-toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="vendor/bootstrap.bundle.min.js"></script>
 <script src="app.data.js"></script>
 <script src="app.js"></script>
 </body>

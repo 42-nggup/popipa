@@ -26,7 +26,8 @@ const mkEl = id => {
     },
     addEventListener() {}, focus() {}, select() {}, matches: () => false,
     closest() { return this; },   /* 事件委托靠它找到 [data-act]，桩里返回自己就够 */
-    setAttribute() {}, remove() {}, appendChild() {}, querySelector: () => null
+    setAttribute() {}, removeAttribute() {}, hasAttribute: () => false,
+    remove() {}, appendChild() {}, querySelector: () => null
   };
 };
 /* 假 bootstrap.Modal：真组件靠 .show 类 + hidden.bs.modal 事件，这里只模仿类切换 */
@@ -37,7 +38,7 @@ function FakeModal(el) {
 }
 FakeModal.getOrCreateInstance = el => (el.__m || (el.__m = new FakeModal(el)));
 const storage = {};
-const handlers = { click: [] };
+const handlers = { click: [], submit: [], keydown: [] };
 const sandbox = {
   console, Math, JSON, Date, Number, String, Array, Object, Boolean, RegExp, Error, isNaN,
   document: {
@@ -45,7 +46,7 @@ const sandbox = {
     querySelector: () => null,          /* 组件定向更新在桩里走兜底渲染 */
     createElement: () => mkEl('tmp'),
     body: mkEl('body'),
-    addEventListener: (t, fn) => { if (t === 'click') handlers.click.push(fn); },
+    addEventListener: (t, fn) => { if (handlers[t]) handlers[t].push(fn); },
     activeElement: null, documentElement: { dataset: {} }
   },
   localStorage: {
@@ -272,7 +273,7 @@ H.applyTheme('dark');
 ok('主题也按用户存', H.userOf('小明').theme === 'dark');
 H.toggleTheme();
 ok('切换主题只改这一个用户', H.userOf('小明').theme === 'light' && H.theme() === 'light');
-ok('主题写到 data-bs-theme 上（Bootstrap 认的属性）', sandbox.document.documentElement.dataset.bsTheme === 'light');
+ok('主题写到 data-theme 上（Tailwind dark 选择器）', sandbox.document.documentElement.dataset.theme === 'light');
 
 section('14. 错题本：答错记下 / 答对移出');
 H.S.user = '小明'; H.S.view = 'setup'; H.S.bankId = 'web';
@@ -348,11 +349,12 @@ fire('qmap-toggle');
 ok('再点一下收起', H.S.qmapOpen === false && els['app'].innerHTML.indexOf('qmap open') === -1);
 
 section('19. 答对绿色与选项字母方块一致');
-const cssSrc = fs.readFileSync(path.join(root, 'app.css'), 'utf8');
+const cssSrc = fs.readFileSync(path.join(root, 'src/tailwind.css'), 'utf8');
+const builtCss = fs.readFileSync(path.join(root, 'assets/app.css'), 'utf8');
 ok('.qmap b.ok 与 .opt.ok .k 用的是同一个实心 success 绿',
-   /\.qmap b\.ok\{[^}]*background:var\(--bs-success\)[^}]*color:var\(--bs-white\)/.test(cssSrc) &&
-   /\.opt\.ok \.k\{[^}]*background:var\(--bs-success\)/.test(cssSrc));
-ok('展开态是多行网格（flex-wrap）', /\.qmap\.open\{[^}]*flex-wrap:wrap/.test(cssSrc));
+   /\.qmap b\.ok\s*\{[^}]*bg-ok[^}]*text-on-ok/.test(cssSrc) &&
+   /\.opt\.ok \.k\s*\{[^}]*bg-ok[^}]*text-on-ok/.test(cssSrc));
+ok('展开态是多行网格（flex-wrap）', /\.qmap\.open\s*\{[^}]*flex-wrap/.test(cssSrc));
 
 section('20. 导出 PNG 分享图');
 H.startSession();
@@ -506,12 +508,13 @@ ok('重绘后从上次位置继续，而不是从 0 滑过来', els['qmap'].scro
 
 section('28. 展开键与答题卡等高');
 ok('容器用 stretch 让按钮和 qmap 同高',
-   /\.qmap-wrap\{[^}]*align-items:stretch/.test(cssSrc));
-ok('按钮不再写死高度', /\.qmap-expand\{[^}]*height:auto/.test(cssSrc));
+   /\.qmap-wrap\s*\{[^}]*items-stretch/.test(cssSrc));
+ok('按钮不再写死高度', /\.qmap-expand\s*\{[^}]*min-h-8/.test(cssSrc) &&
+   !/\.qmap-expand\s*\{[^}]*height:/.test(cssSrc));
 ok('按钮与 grid 内容框等高，底部留出滚动条位置',
-   /\.qmap-wrap\{[^}]*padding:\.85rem 0 0/.test(cssSrc) &&
-   /\.qmap\{[^}]*padding:0 2px 10px/.test(cssSrc));
-ok('展开键不随滚动条区域一起下延', /\.qmap-expand\{[^}]*margin-bottom:10px/.test(cssSrc));
+   /\.qmap-wrap\s*\{[^}]*pt-3\.5/.test(cssSrc) &&
+   /\.qmap\s*\{[^}]*pb-2\.5/.test(cssSrc));
+ok('展开键不随滚动条区域一起下延', /\.qmap-expand\s*\{[^}]*mb-2\.5/.test(cssSrc));
 
 
 section('29. 最后一题只留一个交卷按钮');
@@ -547,10 +550,10 @@ H.S.qmapOpen = false;
 
 section('31. Toast 跟随主题 / 品牌可点回选题页');
 ok('Toast 背景与文字跟随主题（不再反色）',
-   /\.popipa-toast\{[^}]*background:var\(--bs-body-bg\)[^}]*color:var\(--bs-body-color\)/.test(cssSrc));
+   /\.popipa-toast\s*\{[^}]*bg-surface[^}]*text-ink/.test(cssSrc));
 const htmlSrc = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 ok('品牌名绑定了回新主页的动作',
-   /navbar-brand[^>]*data-act="home"/.test(htmlSrc));
+   /class="brand"[^>]*data-act="home"/.test(htmlSrc));
 H.S.view = 'banks';
 fire('home');
 ok('点品牌回到新主页', H.S.view === 'home');
@@ -599,7 +602,9 @@ ok('最后一行是汇总五数',
 fire('round-toggle', { round: r33.id });
 ok('点击轮次会记录展开状态', H.S.roundOpen[r33.id] === true);
 H.render();
-ok('展开状态在重绘后保留', els['app'].innerHTML.indexOf('collapse show') >= 0);
+ok('展开状态在重绘后保留',
+   els['app'].innerHTML.indexOf('round-card open') >= 0 &&
+   !/id="roundBody0"[^>]* hidden/.test(els['app'].innerHTML));
 
 
 section('34. 主题开关进 navbar / 组件定向更新');
@@ -672,20 +677,20 @@ const quizHtml = fs.readFileSync(path.join(root, 'quiz.html'), 'utf8');
 ok('index.html 是登录页', /<body[^>]*data-page="login"/.test(idxHtml));
 ok('banks.html 是主界面 + 选题页', /<body[^>]*data-page="banks"/.test(bankHtml));
 ok('quiz.html 是做题页', /<body[^>]*data-page="quiz"/.test(quizHtml));
-ok('三页共用 navbar（品牌 + 主题开关）',
+ok('三页共用顶栏（品牌 + 主题开关）',
    [idxHtml, bankHtml, quizHtml].every(h =>
-     h.indexOf('navbar-brand') >= 0 && h.indexOf('id="themeBtn"') >= 0));
+     h.indexOf('class="brand"') >= 0 && h.indexOf('id="themeBtn"') >= 0));
 ok('登录页初始隐藏用户区', /id="whoBox" hidden/.test(idxHtml));
 ok('主题开关在用户区之外，登录页也可见',
    /id="themeBtn"[\s\S]{0,400}id="whoBox"/.test(idxHtml));
-ok('用户区隐藏不会被 Bootstrap 的 .d-flex 盖掉',
-   /#whoBox\[hidden\]\{display:none !important\}/.test(cssSrc));
+ok('用户区隐藏不会被 Tailwind 的 flex 工具类盖掉',
+   /\[hidden\]\s*\{\s*display:\s*none !important/.test(cssSrc));
 ok('分享图组件只在做题页加载',
    quizHtml.indexOf('html2canvas') >= 0 &&
    bankHtml.indexOf('html2canvas') === -1 && idxHtml.indexOf('html2canvas') === -1);
-ok('分享预览 Modal 只在做题页',
+ok('分享预览 Modal 在做题页存在（file:// 单页模式其他页面也常驻）',
    quizHtml.indexOf('id="shareModal"') >= 0 &&
-   bankHtml.indexOf('shareModal') === -1 && idxHtml.indexOf('shareModal') === -1);
+   idxHtml.indexOf('id="shareModal"') >= 0);
 
 
 section('38. 页面模式与本地服务器');
@@ -743,26 +748,28 @@ ok('点题型可取消选中', H.S.types.indexOf('single') === -1);
 
 
 section('42. 页面动画');
-ok('有入场动画关键帧', /@keyframes rise/.test(cssSrc) && /@keyframes popIn/.test(cssSrc));
-ok('题库卡、组卷页、结果页有入场动画',
-   /\.bank-card\{animation:rise/.test(cssSrc) &&
-   /\.setup-grid,.score-hero,.grid,.rounds\{animation:rise/.test(cssSrc));
-ok('按钮/选项保留按压反馈', /\.btn:active\{transform:scale/.test(cssSrc) &&
-   /\.opt:active\{transform:scale/.test(cssSrc));
+ok('只有真换视图才播放 .view-enter',
+   /\.view-enter\s*\{[^}]*animate-view-in/.test(cssSrc));
+ok('同视图重绘的卡片不再重播入场动画',
+   !/\.bank-card[^}]*animation/.test(cssSrc) &&
+   !/\.setup-grid[^}]*animation/.test(cssSrc) &&
+   !/\.score-hero[^}]*animation/.test(cssSrc));
+ok('按钮/选项保留过渡反馈',
+   /\.btn\s*\{[^}]*transition/.test(cssSrc) &&
+   /\.opt\s*\{[^}]*transition/.test(cssSrc));
 ok('答题阶段不闪：题目卡与当前题都没有动画',
-   !/\.qcard\{animation/.test(cssSrc) && !/\.qmap b\.cur\{animation/.test(cssSrc) &&
+   !/\.qcard[^}]*animation/.test(cssSrc) && !/\.qmap b\.cur[^}]*animation/.test(cssSrc) &&
    !/@keyframes qcur/.test(cssSrc));
 ok('尊重“减少动态效果”偏好',
-   /@media \(prefers-reduced-motion: reduce\)\{[\s\S]*animation:none !important/.test(cssSrc));
+   /@media \(prefers-reduced-motion: reduce\)[\s\S]*animation:\s*none !important/.test(cssSrc));
 
 
 section('43. Toast 出现/消失动画');
-const toastRule = (cssSrc.match(/\.popipa-toast\{[^}]*\}/) || [''])[0];
+const toastRule = (builtCss.match(/\.popipa-toast\s*\{[^}]*\}/) || [''])[0];
 ok('Toast 的过渡包含透明度与位移',
-   /transition:[^;}]*opacity/.test(toastRule) && /transform/.test(toastRule));
-ok('通用颜色过渡没有覆盖 Toast 动画',
-   !/body,\.navbar,\.popipa-toast\{transition/.test(cssSrc));
-ok('Toast 有 .show 状态', /\.popipa-toast\.show\{opacity:1/.test(cssSrc));
+   /transition-property:[^;}]*opacity/.test(toastRule) &&
+   /transition-property:[^;}]*transform/.test(toastRule));
+ok('Toast 有 .show 状态', /\.popipa-toast\.show\s*\{[^}]*opacity:\s*1/.test(builtCss));
 
 
 section('44. 题库卡上的收藏集 / 错题集入口');
@@ -918,9 +925,9 @@ ok('refreshSetup 就地更新 chip 的 span.n',
 
 section('48. #modeSeg 滑块动画');
 ok('顺序/随机有滑块与过渡',
-   /\.seg::before\{[^}]*transition:transform/.test(cssSrc));
+   /\.seg::before\s*\{[^}]*transition:\s*transform/.test(cssSrc));
 ok('随机模式下滑块右移',
-   /\.seg\[data-mode="random"\]::before\{transform:translateX/.test(cssSrc));
+   /\.seg\[data-mode="random"\]::before\s*\{[^}]*translateX/.test(cssSrc));
 H.S.view = 'setup'; H.S.bankId = 'web'; H.S.mode = 'order'; H.render();
 const sh48 = els['app'].innerHTML;
 ok('modeSeg 初始带 data-mode', /id="modeSeg" data-mode="order"/.test(sh48));
@@ -1099,10 +1106,10 @@ ok('学习报告最下方有我的成绩历史',
 
 section('55. 暗色主题也暖色化');
 ok('暗色变量改成棕褐',
-   /:root\[data-bs-theme="dark"\]\{[^}]*--bs-body-bg:#211a14/.test(cssSrc) &&
-   /:root\[data-bs-theme="dark"\]\{[^}]*--bs-primary:#c08a55/.test(cssSrc));
-ok('暗色主按钮也是暖色',
-   /\[data-bs-theme="dark"\] \.btn-primary\{[^}]*--bs-btn-bg:#a97142/.test(cssSrc));
+   /:root\[data-theme="dark"\]\s*\{[^}]*--c-paper:\s*30 24 19/.test(cssSrc) &&
+   /:root\[data-theme="dark"\]\s*\{[^}]*--c-brand:\s*208 156 104/.test(cssSrc));
+ok('暗色主按钮沿用品牌色变量',
+   /\.btn-primary\s*\{[^}]*bg-brand[^}]*text-on-brand/.test(cssSrc));
 
 
 section('56. 题库页 / 组卷页与其他页面统一外壳');
@@ -1118,6 +1125,31 @@ ok('组卷页也有侧边栏',
    s56.indexOf('home-wrap') >= 0 && s56.indexOf('setup-grid') >= 0);
 ok('组卷页侧边栏仍高亮「开始练习」',
    /class="side-link active"[^>]*href="banks.html"/.test(s56));
+
+section('59. Tailwind 迁移 / 登录回车 / 原生弹窗');
+const tailwindSrc = fs.readFileSync(path.join(root, 'src/tailwind.css'), 'utf8');
+const allHtml = ['index.html', 'home.html', 'banks.html', 'quiz.html',
+  'summary.html', 'stats.html', 'collection.html'].map(f => fs.readFileSync(path.join(root, f), 'utf8'));
+ok('Tailwind 源文件与编译产物都在',
+   /@tailwind base/.test(tailwindSrc) && /\.btn-primary/.test(builtCss));
+ok('所有页面都加载 Tailwind 产物',
+   allHtml.every(h => h.indexOf('assets/app.css') >= 0));
+ok('所有页面都不再加载 Bootstrap CSS / JS',
+   allHtml.every(h => h.indexOf('bootstrap.min.css') < 0 && h.indexOf('bootstrap.bundle') < 0));
+ok('登录页使用 form，支持回车提交',
+   /<form[^>]*data-act="login-form"/.test(logicSrc) && /type="submit"/.test(logicSrc));
+ok('弹窗使用原生 dialog', /<dialog id="consentModal"/.test(allHtml[1]) &&
+   /<dialog id="shareModal"/.test(allHtml[3]));
+ok('app.js 不再依赖 bootstrap.Modal', logicSrc.indexOf('bootstrap.Modal') < 0);
+
+H.S.user = null; H.S.view = 'login';
+H.render();
+els['nick'].value = '回车用户';
+const loginForm = mkEl('loginForm');
+loginForm.dataset = { act: 'login-form' };
+handlers.submit.forEach(fn => fn({ target: loginForm, preventDefault() {} }));
+ok('回车提交会进入主页', H.S.view === 'home' && H.S.user === '回车用户');
+H.S.user = '小明'; H.S.view = 'banks';
 
 /* 同步层测试要等 Promise，放在最后；前面的测试仍然是同步跑完的 */
 (async () => {

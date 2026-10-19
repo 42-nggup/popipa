@@ -1,10 +1,17 @@
 # popipa 交接文档（给下一个 AI / 开发者）
 
-> 生成时间：2026-10-19 14:56 +0800
-> 工作区：`/home/nggup42/production/popipa`
-> 仓库：git，分支 `main`，最后提交 `cd43511 chore(dist): 新增自包含部署目录 dist/`
-> 状态：有**未提交**改动（见第 7 节）。交接包包含 `.git`，所以历史也能带走。
-> 配套文档：`CONVERSATION.md`（本轮对话的逐轮记录）、`README.md`（功能说明）。
+> 生成时间：2026-10-19 14:56 +0800（前端迁移后更新）
+> 工作区：`/home/42nggup/Projects/popipa`
+> 仓库：git，分支 `refactor/frontend`；迁移前可运行基线为 tag `OK-to-run`
+> 状态：前端迁移已提交，工作区应为干净状态。第 7 节是迁移前的历史快照。
+> 配套文档：`CONVERSATION.md`、`README.md`、`FRONTEND.md`、`前端重构总结.md`。
+
+> **2026-10-19 前端迁移说明**：`refactor/frontend` 分支已把前端从 Bootstrap 迁移到
+> Tailwind CSS 3.4，移除 Bootstrap CSS/JS，改用原生 `<dialog>`，并修复了登录回车、
+> 键盘可达性、同视图重绘动画等问题。迁移盘点见 `FRONTEND.md` 与 `前端重构总结.md`；
+> 下文中所有 Bootstrap / `app.css` 相关描述都按新结构理解：
+> `src/tailwind.css` → `assets/app.css`，Bootstrap Icons / html2canvas 仍在 `vendor/`。
+> 当前测试规模：**logic 273 + server 20 + e2e 29，全绿**。
 
 ---
 
@@ -27,7 +34,7 @@
 登录 → 选题库 → 组卷 → 答题 → 交卷看结果 → 错题 / 收藏 / 成绩 / 统计
 ```
 
-- 纯静态 HTML/CSS/JS，Bootstrap 5.3 已本地化到 `vendor/`。
+- 纯静态 HTML/CSS/JS，Tailwind CSS 3.4 已编译到 `assets/app.css`。
 - 题库由 `scripts/parse-banks.js` 从 `data/raw/*.md` 解析成 `app.data.js`。
 - `server.js` 是零依赖 Node 静态服务器，同时提供 `/api/state`：
   - 把浏览器 localStorage 里可共享的数据自动落盘到 `data/state.json`；
@@ -36,7 +43,7 @@
   - `node server.js`：真正的多页面（`index.html` / `home.html` / `banks.html` / `quiz.html` …），localStorage 同源共享，自动落盘。
   - 直接双击 `index.html`（`file://`）：浏览器按文件隔离 localStorage，所以 `app.js` 自动退回单页内视图切换；功能可用，但**不会落盘**。
 
-当前测试规模：**logic 267 + server 20 + e2e 29，全绿**。
+当前测试规模：**logic 273 + server 20 + e2e 29，全绿**。
 
 ---
 
@@ -87,18 +94,21 @@ quiz.html             答题页 + 交卷结果（同页切换）
 summary.html          题库汇总
 stats.html            学习报告（曲线 / 排行榜 / 成就 / 成绩历史）
 collection.html       错题本 / 收藏集（?type=wrong|fav）
-app.js                全部逻辑：路由 / 渲染 / 判分 / 存储 / 同步 / 事件（约 2800 行）
+app.js                全部逻辑：路由 / 渲染 / 判分 / 存储 / 同步 / 事件
 app.data.js           题库（自动生成，勿手改）
-app.css               自定义样式（颜色走 Bootstrap 变量）
+src/tailwind.css      Tailwind 源文件（base / components / utilities）
+tailwind.config.js    暖褐主题、字体、阴影、dark 选择器
+assets/app.css        Tailwind 编译产物（提交到仓库）
+package.json          仅开发期构建 CSS 用
 server.js             零依赖静态服务器 + /api/state 落盘
 data/                 题库源文件 / 解析产物；运行时数据 data/state.json（gitignore）
 data/state.json       真实用户数据（私人，勿删/勿提交）
-dist/                 自包含部署副本（app.js/app.css/server.js/HTML/vendor）
+dist/                 自包含部署副本（app.js/assets/server.js/HTML/vendor）
 scripts/parse-banks.js Markdown → app.data.js
 tests/logic.test.js   逻辑自测（Node + 极简 DOM 桩）
 tests/server.test.js  服务端 /api/state 落盘测试（临时端口 + 临时文件）
 tests/e2e.test.js     Firefox headless 端到端（登录 → 落盘 → 换 profile 恢复 / UI 重绘）
-vendor/               Bootstrap 5.3、Bootstrap Icons、html2canvas
+vendor/               Bootstrap Icons、html2canvas（Bootstrap CSS/JS 已移除）
 需求/                 历史需求文档（整改需求 / 第二次 / 追加）
 ```
 
@@ -179,7 +189,7 @@ localStorage key：
   - `resultListHtml()`（约 1756 行）只生成当前标签的列表。
   - `refreshResultTab()`（约 1791 行）只换 `#resultList` 和高亮，不重建分数卡。
 - 过渡：
-  - CSS `@keyframes popipa-view-in` + `.view-enter`（app.css 约 46–53 行）：**100ms** 淡入 + 2px 上移，起始透明度 0.6。
+  - CSS `@keyframes view-in` + `.view-enter`（`src/tailwind.css` 组件层）：**100ms** 淡入 + 2px 上移，起始透明度 0.6。
   - `pulseView()`（约 888 行）：只在真换视图时加 class；带序列号防止快速连续切页被旧定时器清掉；尊重 `prefers-reduced-motion`。
   - 同视图重绘（提交、切题、结果页切标签、排序、展开）不加动画。
 
@@ -225,19 +235,30 @@ localStorage key：
 
 1. 先 `git status`，确认工作区已有本轮未提交改动，不要误 `git checkout .`。
 2. 改根目录的源文件（不要只改 `dist/`）。
-3. 如果改了以下文件，同步到 `dist/`：
+3. 如果改了 `src/tailwind.css` / `tailwind.config.js` / 页面 class，先重新构建：
 
 ```bash
-cp app.js app.css server.js home.html index.html stats.html dist/
-# 如果改了其他 HTML（banks/quiz/collection/summary）也一起复制
+npm install            # 首次
+npm run build:css      # src/tailwind.css → assets/app.css
 ```
 
-`dist/` 是自包含部署副本，没有 `tests/` / `README.md`，但必须有 `app.data.js`、`vendor/`。
+4. 同步到 `dist/`：
+
+```bash
+cp index.html home.html banks.html quiz.html summary.html stats.html collection.html \
+   app.js app.data.js server.js dist/
+mkdir -p dist/assets dist/vendor/fonts
+cp assets/app.css assets/favicon.svg dist/assets/
+cp vendor/bootstrap-icons.min.css vendor/html2canvas.min.js dist/vendor/
+cp vendor/fonts/bootstrap-icons.woff2 dist/vendor/fonts/
+```
+
+`dist/` 是自包含部署副本，没有 `tests/` / `README.md` / `src/`，但必须有 `app.data.js`、`assets/app.css`、`vendor/`。
 
 ### 6.2 跑测试
 
 ```bash
-node tests/logic.test.js     # 267 项，纯 Node + DOM 桩
+node tests/logic.test.js     # 273 项，纯 Node + DOM 桩
 node tests/server.test.js    # 20 项，起真实 server.js，临时端口 + 临时数据文件
 node tests/e2e.test.js       # 29 项，真实 Firefox headless + Marionette（需要 firefox）
 ```
@@ -272,16 +293,17 @@ POPIPA_STATE="$tmp/state.json" PORT=8124 node server.js 8124
 ```bash
 git status
 # 不要 git add data/state.json（它本来就被 .gitignore 忽略）
-git add README.md app.css app.js server.js home.html index.html stats.html \
+git add README.md FRONTEND.md 前端重构总结.md package.json package-lock.json \
+        tailwind.config.js src/ assets/ app.js server.js *.html \
         dist/ tests/ .gitignore
-git commit -m "feat: persist localStorage to server + smoother view transitions"
+git commit -m "refactor(frontend): migrate to Tailwind CSS + native dialogs"
 ```
 
 是否提交、拆几个 commit 由接手者决定；不要 `git reset --hard` 丢掉未提交工作。
 
 ---
 
-## 7. 当前 git 状态（交接时）
+## 7. 当前 git 状态（交接时的历史快照；前端迁移后已变化）
 
 分支 `main`，最后提交 `cd43511`。
 
@@ -323,7 +345,7 @@ M tests/logic.test.js
 
 | 套件 | 命令 | 结果 | 覆盖 |
 |---|---|---|---|
-| logic | `node tests/logic.test.js` | **267 通过** | 判分、重复提交幂等、组卷、收藏、成绩、成就、同步快照/墓碑/hydrate、viewKey |
+| logic | `node tests/logic.test.js` | **273 通过** | 判分、重复提交幂等、组卷、收藏、成绩、成就、同步快照/墓碑/hydrate、viewKey、Tailwind/Dialog/回车登录 |
 | server | `node tests/server.test.js` | **20 通过** | GET/PUT、按 at 合并、墓碑、过滤、重启持久化、坏 JSON、`.bak` 恢复、数据文件 404 |
 | e2e | `node tests/e2e.test.js` | **29 通过** | 真实 Firefox：登录落盘；`banks ↔ setup` 侧边栏节点不重建；提交/切题骨架节点不重建；结果页切标签只换列表；换全新 profile 自动恢复 |
 
@@ -396,7 +418,7 @@ Windows：PowerShell / cmd 里 `tar -xzf ...` 也可；或用 7-Zip 解 `.tar.gz
 1. **`file://` 下 localStorage 按文件隔离**：登录态传不到 `banks.html`，`app.js` 会退回单页内切换；也不会落盘。要持久化/多页跳转就用 `node server.js`。
 2. **`localhost` vs `127.0.0.1`**：server 默认只监听 `127.0.0.1`；本机 `localhost` 可访问。局域网访问要 `HOST=0.0.0.0`，此时 `/api/state` 也会暴露，慎用。
 3. **测试不要碰真实数据**：`tests/server.test.js` 和 `tests/e2e.test.js` 都用临时 `POPIPA_STATE`；手动实验也请用临时路径。
-4. **`dist/` 容易和根目录不同步**：改完根文件记得 `cp`；`diff -q app.js dist/app.js` 可检查。
+4. **`dist/` 容易和根目录不同步**：改完根文件记得 `cp`；`diff -q app.js dist/app.js`、`diff -q assets/app.css dist/assets/app.css` 可检查。
 5. **不要用 `git checkout .` / `git reset --hard`**：本轮改动未提交。
 6. **E2E 需要 Firefox + Marionette**：没有 Firefox 会自动跳过；有 Firefox 但启动失败时看 stderr 的 profile/端口信息。
 7. **端口占用**：`node server.js 8080` 换端口；测试用随机端口。
@@ -428,7 +450,7 @@ Windows：PowerShell / cmd 里 `tar -xzf ...` 也可；或用 7-Zip 解 `.tar.gz
 | `server.js` 96 `saveState()` | 原子写 + `.bak` |
 | `server.js` 112 `mergeKeys()` | 按 `at` 合并 |
 | `server.js` 178 `/api/state` | GET / PUT |
-| `app.css` 46–53 | `.view-enter` 100ms 过渡 |
+| `src/tailwind.css` 组件层 | `.view-enter` 100ms 过渡 |
 | `tests/e2e.test.js` 238 / 267 / 446 | E2E 三段：落盘 / 页面内重绘 / 换浏览器恢复 |
 
 ---

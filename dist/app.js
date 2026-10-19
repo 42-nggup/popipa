@@ -40,10 +40,10 @@ const shareModalEl = document.getElementById('shareModal');
 const shareBodyEl = document.getElementById('shareBody');
 
 const TYPE_LABEL = {
-  single: { text: '单选题', cls: '' },
-  multiple: { text: '多选题', cls: 'm' },
-  judge: { text: '判断题', cls: 'j' },
-  fill: { text: '填空题', cls: 'f' }
+  single: { text: '单选题', cls: 'badge-brand' },
+  multiple: { text: '多选题', cls: 'badge-info' },
+  judge: { text: '判断题', cls: 'badge-warn' },
+  fill: { text: '填空题', cls: 'badge-muted' }
 };
 const QTYPE_LIST = ['single', 'multiple', 'judge', 'fill'];
 const WARMUP_ID = 'warmup';   /* 每日热身：跨题库的临时 session */
@@ -74,6 +74,40 @@ function toast(msg) {
   toastEl.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
+}
+
+/* 原生 <dialog>：不再依赖 Bootstrap JS。
+   data-static 的弹窗（数据收集）不允许点遮罩 / Esc 关闭，必须明确选择。 */
+function openModal(target) {
+  const el = typeof target === 'string' ? document.getElementById(target) : target;
+  if (!el) return;
+  if (typeof el.showModal === 'function') {
+    if (!el.open) el.showModal();
+  } else {
+    el.setAttribute('open', '');
+    el.classList.add('show');
+  }
+}
+function closeModal(target) {
+  const el = typeof target === 'string' ? document.getElementById(target) : target;
+  if (!el) return;
+  if (typeof el.close === 'function') {
+    if (el.open) el.close();
+  } else {
+    if (el.removeAttribute) el.removeAttribute('open');
+    el.classList.remove('show');
+  }
+}
+function initDialogs() {
+  if (!document.querySelectorAll) return;
+  Array.prototype.forEach.call(document.querySelectorAll('dialog'), dlg => {
+    dlg.addEventListener('click', e => {
+      if (e.target === dlg && !dlg.hasAttribute('data-static')) closeModal(dlg);
+    });
+    dlg.addEventListener('cancel', e => {
+      if (dlg.hasAttribute('data-static')) e.preventDefault();
+    });
+  });
 }
 function fmtTime(ms) {
   if (ms == null || ms < 0) ms = 0;
@@ -723,7 +757,7 @@ function theme() {
 }
 function applyTheme(t) {
   S.theme = t === 'dark' ? 'dark' : 'light';
-  document.documentElement.dataset.bsTheme = S.theme;   /* Bootstrap 认这个属性 */
+  document.documentElement.dataset.theme = S.theme;     /* Tailwind dark 选择器 */
   store.set(KEY.theme, S.theme);          /* 本机默认值，登录页也用它 */
   if (S.user) {
     const u = userOf(S.user);
@@ -907,40 +941,49 @@ function pulseView(el) {
 }
 
 /* ---- 6.1 登录主页 ---- */
+let loginBusy = false;
 function renderLogin() {
-  topbar.hidden = false;                       /* 登录页也保留顶栏：主题开关在 navbar 里 */
+  loginBusy = false;
+  topbar.hidden = false;                       /* 登录页也保留顶栏：主题开关在顶栏里 */
   document.getElementById('whoBox').hidden = true;
   const last = lastName();          /* 只用来回填昵称，不再列出"本机记录" */
   app.innerHTML =
-    '<div class="hero">' +
+    '<section class="login-hero">' +
       '<div class="logo-big"><i class="bi bi-lightning-charge-fill"></i></div>' +
-      '<div class="eyebrow">POPIPA · PRACTICE</div>' +
-      '<h1 class="fw-bold">popipa</h1>' +
-      '<p class="text-body-secondary">挑一套题库，答完立刻知道对错，随时看得见自己的进度。</p>' +
-    '</div>' +
-    '<div class="card login-box shadow-sm">' +
-      '<div class="card-body p-4">' +
-        '<div class="mb-3 text-start">' +
-          '<label class="form-label small fw-semibold" for="nick">你的昵称</label>' +
-          '<input class="form-control" id="nick" maxlength="16" placeholder="例如：小明" autocomplete="off"' +
-            (last ? ' value="' + esc(last) + '"' : '') + '>' +
-          '<div class="invalid-feedback" id="nickErr">请输入 1~16 个字符的昵称</div>' +
-        '</div>' +
-        '<button class="btn btn-primary w-100" data-act="login">' +
-          '<i class="bi bi-box-arrow-in-right me-1"></i>开始刷题</button>' +
+      '<p class="eyebrow">POPIPA · PRACTICE</p>' +
+      '<h1 class="login-title">popipa</h1>' +
+      '<p class="login-sub">挑一套题库，答完立刻知道对错，随时看得见自己的进度。</p>' +
+    '</section>' +
+    '<form class="card login-box" data-act="login-form" novalidate>' +
+      '<div class="card-body p-5 sm:p-6">' +
+        '<label class="form-label" for="nick">你的昵称</label>' +
+        '<input class="form-input" id="nick" maxlength="16" placeholder="例如：小明" autocomplete="nickname"' +
+          ' aria-describedby="nickErr"' + (last ? ' value="' + esc(last) + '"' : '') + '>' +
+        '<p class="form-error" id="nickErr" hidden>请输入 1~16 个字符的昵称</p>' +
+        '<button class="btn btn-primary btn-lg mt-4 w-full" type="submit" data-act="login">' +
+          '<i class="bi bi-box-arrow-in-right"></i>开始刷题</button>' +
       '</div>' +
-    '</div>';
+    '</form>';
   const nick = document.getElementById('nick');
   if (nick) { nick.focus(); if (nick.select) nick.select(); }
 }
 function doLogin() {
+  if (loginBusy) return;   /* 防止 form submit 与按钮 click 重复触发 */
   const nick = document.getElementById('nick');
   const err = document.getElementById('nickErr');
+  if (!nick) return;
   const v = (nick.value || '').trim();
   if (!v || v.length > 16) {
-    err.classList.add('d-block'); nick.classList.add('is-invalid'); nick.focus(); return;
+    if (err) err.hidden = false;
+    nick.classList.add('is-invalid');
+    nick.setAttribute('aria-invalid', 'true');
+    nick.focus();
+    return;
   }
-  err.classList.remove('d-block'); nick.classList.remove('is-invalid');
+  if (err) err.hidden = true;
+  nick.classList.remove('is-invalid');
+  if (nick.removeAttribute) nick.removeAttribute('aria-invalid');
+  loginBusy = true;
   S.user = v;
   rememberLogin(v);            /* 记下"最近一次谁登录了" */
   applyTheme(theme());         /* 换成这个用户自己的主题 */
@@ -949,7 +992,7 @@ function doLogin() {
 
 /* ---- 6.2 选题界面 ---- */
 function rateBadge(rate) {
-  return rate >= 80 ? 'text-bg-success' : rate >= 60 ? 'text-bg-warning' : 'text-bg-danger';
+  return rate >= 80 ? 'badge-ok' : rate >= 60 ? 'badge-warn' : 'badge-bad';
 }
 
 /* ---- 6.2 选题界面 ---- */
@@ -969,15 +1012,14 @@ function renderBanks() {
     bank.chapters.forEach(ch => ch.questions.forEach(q => counts[q.type]++));
     const st = prog ? stats(prog) : null;
     const pct = st ? Math.round(st.answered / st.total * 100) : 0;
-    return '<div class="card bank-card" data-act="pick-bank" data-id="' + bank.id + '">' +
-      '<div class="card-body p-3 p-sm-4">' +
-        '<div class="d-flex align-items-start gap-3">' +
+    return '<article class="card bank-card" data-act="pick-bank" data-id="' + bank.id +
+      '" tabindex="0" role="button" aria-label="开始练习 ' + esc(bank.name) + '">' +
+      '<div class="card-body p-4">' +
+        '<div class="flex items-start gap-3">' +
           '<span class="bank-ico"><i class="bi ' + bankIcon(bank.id) + '"></i></span>' +
-          '<div class="flex-grow-1 min-w-0">' +
-            '<div class="d-flex align-items-center gap-2">' +
-              '<h2 class="h6 fw-bold mb-0 text-truncate">' + esc(bank.name) + '</h2>' +
-            '</div>' +
-            '<div class="small text-body-secondary text-truncate">' + esc(bank.desc) + '</div>' +
+          '<div class="min-w-0 flex-1">' +
+            '<h2 class="bank-title">' + esc(bank.name) + '</h2>' +
+            '<p class="bank-desc">' + esc(bank.desc) + '</p>' +
           '</div>' +
         '</div>' +
         '<div class="bank-meta">' +
@@ -987,35 +1029,35 @@ function renderBanks() {
             ' · 判断 ' + counts.judge + (counts.fill ? ' · 填空 ' + counts.fill : '') + '</span>' +
         '</div>' +
         (st
-          ? '<div class="bank-status"><span class="small text-body-secondary">' +
-              '<i class="bi bi-play-circle me-1"></i>答到第 ' + st.answered + ' 题 · ' + pct + '%</span></div>'
+          ? '<div class="bank-status"><span class="text-[12px] text-muted">' +
+              '<i class="bi bi-play-circle mr-1"></i>答到第 ' + st.answered + ' 题 · ' + pct + '%</span></div>'
           : last
-            ? '<div class="bank-status"><span class="badge rounded-pill ' + rateBadge(last.rate) + '">' +
+            ? '<div class="bank-status"><span class="badge ' + rateBadge(last.rate) + '">' +
                 '上次 ' + last.rate + '%</span></div>'
             : '') +
-        '<div class="d-flex flex-wrap align-items-center gap-1 mt-3">' +
-          '<button class="btn btn-sm btn-outline-danger" data-act="pick-bank" data-id="' + bank.id +
+        '<div class="mt-4 flex flex-wrap items-center gap-2">' +
+          '<button type="button" class="btn btn-sm btn-danger-outline" data-act="pick-bank" data-id="' + bank.id +
             '" data-scope="wrong"' + (wrong ? '' : ' disabled') +
             ' title="' + (wrong ? '只练这本题库的错题集' : '错题集是空的') + '">' +
-            '<i class="bi bi-journal-bookmark me-1"></i>错题集 ' + wrong + '</button>' +
-          '<button class="btn btn-sm btn-outline-warning" data-act="pick-bank" data-id="' + bank.id +
+            '<i class="bi bi-journal-bookmark"></i>错题集 ' + wrong + '</button>' +
+          '<button type="button" class="btn btn-sm btn-warn-outline" data-act="pick-bank" data-id="' + bank.id +
             '" data-scope="fav"' + (fav ? '' : ' disabled') +
             ' title="' + (fav ? '只练这本题库的收藏' : '收藏是空的') + '">' +
-            '<i class="bi bi-star me-1"></i>收藏 ' + fav + '</button>' +
-          (legacy ? '<span class="badge rounded-pill text-bg-secondary">' +
-            '<i class="bi bi-exclamation-triangle me-1"></i>' + legacy + ' 题缺答案</span>' : '') +
-          '<span class="btn btn-sm btn-primary ms-auto">开始练习<i class="bi bi-arrow-right ms-1"></i></span>' +
+            '<i class="bi bi-star"></i>收藏 ' + fav + '</button>' +
+          (legacy ? '<span class="badge badge-muted">' +
+            '<i class="bi bi-exclamation-triangle"></i>' + legacy + ' 题缺答案</span>' : '') +
+          '<span class="btn btn-sm btn-primary ml-auto">开始练习<i class="bi bi-arrow-right"></i></span>' +
         '</div>' +
-      '</div></div>';
+      '</div></article>';
   }).join('');
   const main =
     '<div class="banks-head">' +
-      '<div><div class="eyebrow">QUESTION LIBRARY</div>' +
-      '<h1 class="h3 fw-bold mb-1">选择题库</h1>' +
-      '<p class="text-body-secondary mb-0">共 ' + list.length + ' 个题库 · ' + totalQ + ' 道题</p></div>' +
-      '<div class="d-flex align-items-center gap-2">' +
-        (rounds.length ? '<span class="badge rounded-pill text-bg-secondary">' +
-          '<i class="bi bi-clock-history me-1"></i>已记录 ' + rounds.length + ' 轮</span>' : '') +
+      '<div><p class="eyebrow">QUESTION LIBRARY</p>' +
+      '<h1 class="page-title">选择题库</h1>' +
+      '<p class="mt-1 text-muted">共 ' + list.length + ' 个题库 · ' + totalQ + ' 道题</p></div>' +
+      '<div class="flex items-center gap-2">' +
+        (rounds.length ? '<span class="badge badge-muted">' +
+          '<i class="bi bi-clock-history"></i>已记录 ' + rounds.length + ' 轮</span>' : '') +
       '</div>' +
     '</div>' +
     '<div class="bank-grid">' + cards + '</div>' +
@@ -1039,21 +1081,21 @@ function renderRoundBody(r) {
     if (!q) return '';
     const ok = isCorrect(q, r.answers[qid]);
     return '<tr>' +
-      '<td class="text-body-secondary">' + (r.order.indexOf(qid) + 1) + '</td>' +
-      '<td class="' + (ok ? '' : 'text-danger') + '">' + esc(pickedText(q, r.answers[qid])) +
-        ' <i class="bi ' + (ok ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger') + '"></i></td>' +
-      '<td class="text-success">' + esc(answerText(q).replace(/\s+/g, ' ').trim()) + '</td>' +
-      '<td class="text-body-secondary">' + (q.analysis ? fmt(q.analysis) : '—') + '</td>' +
+      '<td class="text-muted">' + (r.order.indexOf(qid) + 1) + '</td>' +
+      '<td class="' + (ok ? '' : 'c-mine') + '">' + esc(pickedText(q, r.answers[qid])) +
+        ' <i class="bi ' + (ok ? 'bi-check-circle-fill text-ok' : 'bi-x-circle-fill text-bad') + '"></i></td>' +
+      '<td class="c-right">' + esc(answerText(q).replace(/\s+/g, ' ').trim()) + '</td>' +
+      '<td class="c-ana">' + (q.analysis ? fmt(q.analysis) : '—') + '</td>' +
       '</tr>';
   }).join('');
   const sum = '<tr class="round-sum"><td colspan="4">' +
-    '总题数 <b>' + r.total + '</b>　答错 <b class="text-danger">' + r.wrong + '</b>　' +
-    '答对 <b class="text-success">' + r.correct + '</b>　未答 <b>' + r.unanswered + '</b>　' +
+    '总题数 <b>' + r.total + '</b>　答错 <b class="text-bad">' + r.wrong + '</b>　' +
+    '答对 <b class="text-ok">' + r.correct + '</b>　未答 <b>' + r.unanswered + '</b>　' +
     '正确率 <b>' + r.rate + '%</b></td></tr>';
-  return '<div class="table-responsive"><table class="table table-sm align-middle round-table mb-0">' +
-    '<thead><tr><th style="width:4.5rem">题号</th><th style="width:9rem">用户答案</th>' +
-    '<th style="width:9rem">正确答案</th><th>解析</th></tr></thead>' +
-    '<tbody>' + (rows || '<tr><td colspan="4" class="text-body-secondary">这一轮没有作答记录</td></tr>') +
+  return '<div class="table-wrap"><table class="data-table round-table">' +
+    '<thead><tr><th class="w-[4.5rem]">题号</th><th class="w-[9rem]">用户答案</th>' +
+    '<th class="w-[9rem]">正确答案</th><th>解析</th></tr></thead>' +
+    '<tbody>' + (rows || '<tr><td colspan="4" class="text-muted">这一轮没有作答记录</td></tr>') +
     sum + '</tbody></table></div>';
 }
 function renderRounds() {
@@ -1061,32 +1103,30 @@ function renderRounds() {
   if (!list.length) return '';
   const cards = list.map((r, i) => {
     const open = !!S.roundOpen[r.id];
-    return '<div class="card round-card shadow-sm mb-2">' +
-      '<div class="card-body py-2 d-flex flex-wrap align-items-center gap-2 gap-sm-3 round-head"' +
-        ' data-act="round-toggle" data-round="' + esc(r.id) + '" data-bs-toggle="collapse"' +
-        ' data-bs-target="#roundBody' + i + '" role="button"' +
+    return '<article class="card round-card' + (open ? ' open' : '') + '">' +
+      '<button type="button" class="round-head"' +
+        ' data-act="round-toggle" data-round="' + esc(r.id) + '"' +
         ' aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="roundBody' + i + '">' +
-        '<span class="badge rounded-pill text-bg-secondary">' + esc(r.bankName) + '</span>' +
-        '<span class="small text-body-secondary"><i class="bi bi-clock me-1"></i>' +
+        '<span class="badge badge-muted">' + esc(r.bankName) + '</span>' +
+        '<span class="text-[12px] text-muted"><i class="bi bi-clock mr-1"></i>' +
           fmtWhen(r.finishedAt || r.startedAt) + '</span>' +
-        '<span class="small text-body-secondary">得分 ' + r.score + '</span>' +
-        '<span class="small text-body-secondary">用时 ' + fmtTime((r.seconds || 0) * 1000) + '</span>' +
-        '<span class="ms-auto d-flex align-items-center gap-2">' +
-          '<b class="' + (r.rate >= 80 ? 'text-success' : r.rate >= 60 ? 'text-warning' : 'text-danger') + '">' +
+        '<span class="text-[12px] text-muted">得分 ' + r.score + '</span>' +
+        '<span class="text-[12px] text-muted">用时 ' + fmtTime((r.seconds || 0) * 1000) + '</span>' +
+        '<span class="ml-auto flex items-center gap-2">' +
+          '<b class="' + (r.rate >= 80 ? 'text-ok' : r.rate >= 60 ? 'text-warn' : 'text-bad') + '">' +
             r.rate + '%</b>' +
-          '<i class="bi ' + (open ? 'bi-chevron-up' : 'bi-chevron-down') +
-            ' text-body-secondary round-cx"></i>' +
+          '<i class="bi bi-chevron-down text-muted round-cx"></i>' +
         '</span>' +
+      '</button>' +
+      '<div class="round-body" id="roundBody' + i + '"' + (open ? '' : ' hidden') + '>' +
+        renderRoundBody(r) +
       '</div>' +
-      '<div class="collapse' + (open ? ' show' : '') + '" id="roundBody' + i + '">' +
-        '<div class="card-body pt-0">' + renderRoundBody(r) + '</div>' +
-      '</div>' +
-    '</div>';
+    '</article>';
   }).join('');
   return '<section class="rounds">' +
-    '<div class="d-flex align-items-baseline gap-2 mb-2 flex-wrap">' +
-      '<h2 class="h6 fw-bold mb-0"><i class="bi bi-clock-history me-1"></i>我的成绩历史</h2>' +
-      '<span class="small text-body-secondary">共 ' + list.length + ' 轮，点开看逐题记录</span>' +
+    '<div class="mb-2 flex flex-wrap items-baseline gap-2">' +
+      '<h2 class="m-0 text-[15px] font-bold"><i class="bi bi-clock-history mr-1"></i>我的成绩历史</h2>' +
+      '<span class="text-[12px] text-muted">共 ' + list.length + ' 轮，点开看逐题记录</span>' +
     '</div>' + cards + '</section>';
 }
 
@@ -1198,65 +1238,61 @@ function renderSetup() {
   }).join('');
   const main =
     '<div class="setup-head">' +
-      '<button class="btn btn-sm btn-outline-secondary" data-act="back-banks">' +
-        '<i class="bi bi-arrow-left me-1"></i>题库</button>' +
-      '<div class="ms-2 min-w-0">' +
-        '<div class="eyebrow">SETUP</div>' +
-        '<h1 class="h4 fw-bold mb-0 text-truncate">' + esc(bank.name) + '</h1>' +
-        '<p class="small text-body-secondary mb-0">选择章节与出题顺序，然后开始</p>' +
+      '<button class="btn btn-sm btn-outline" data-act="back-banks">' +
+        '<i class="bi bi-arrow-left"></i>题库</button>' +
+      '<div class="ml-2 min-w-0">' +
+        '<p class="eyebrow">SETUP</p>' +
+        '<h1 class="page-title truncate">' + esc(bank.name) + '</h1>' +
+        '<p class="m-0 text-[13px] text-muted">选择章节与出题顺序，然后开始</p>' +
       '</div>' +
     '</div>' +
     '<div class="setup-grid">' +
-      '<div class="card setup-main shadow-sm"><div class="card-body p-4">' +
+      '<div class="card"><div class="card-body p-5">' +
         '<section>' +
-          '<h2 class="h6 fw-bold"><i class="bi bi-funnel me-1"></i>练习范围</h2>' +
-          '<p class="hint">错题集会攒着答错的题、答对后自动移出；只练错题/收藏时，仍可按章节和题型再筛。</p>' +
+          '<h2 class="text-[15px] font-bold"><i class="bi bi-funnel mr-1"></i>练习范围</h2>' +
+          '<p class="hint mt-1">错题集会攒着答错的题、答对后自动移出；只练错题 / 收藏时，仍可按章节和题型再筛。</p>' +
           '<div class="chips" id="rangeChips">' +
-            '<button class="chip' + (!collection ? ' on' : '') + '" data-act="wrong-only" data-scope="chapters"' +
+            '<button type="button" class="chip' + (!collection ? ' on' : '') + '" data-act="wrong-only" data-scope="chapters"' +
               ' role="switch" aria-checked="' + (!collection ? 'true' : 'false') + '">按章节练</button>' +
-            '<button class="chip' + (S.wrongOnly ? ' on' : '') + '" data-act="wrong-only" data-scope="wrong"' +
+            '<button type="button" class="chip' + (S.wrongOnly ? ' on' : '') + '" data-act="wrong-only" data-scope="wrong"' +
               ' role="switch" aria-checked="' + (S.wrongOnly ? 'true' : 'false') + '"' +
               (wCount ? '' : ' disabled') + '>只练错题集（' + wCount + ' 道）</button>' +
-            '<button class="chip' + (S.favOnly ? ' on' : '') + '" data-act="wrong-only" data-scope="fav"' +
+            '<button type="button" class="chip' + (S.favOnly ? ' on' : '') + '" data-act="wrong-only" data-scope="fav"' +
               ' role="switch" aria-checked="' + (S.favOnly ? 'true' : 'false') + '"' +
               (favCount ? '' : ' disabled') + '>只练收藏集（' + favCount + ' 道）</button>' +
           '</div>' +
         '</section>' +
-        '<hr class="my-4">' +
-        '<div class="row g-4">' +
-          '<div class="col-md-6">' +
-            '<section>' +
-              '<div class="d-flex align-items-baseline gap-2 flex-wrap">' +
-                '<h2 class="h6 fw-bold mb-0"><i class="bi bi-list-check me-1"></i>章节</h2>' +
-                '<span class="small text-body-secondary" id="chapterHint">' +
-                  ((S.wrongOnly || S.favOnly ? '只练' + (S.wrongOnly ? '错题集' : '收藏集') + '，仍可再筛章节' : '只选中的章节会进入本次练习')) + '</span>' +
-              '</div>' +
-              '<div class="chips mt-2" id="chapterChips">' + chips + '</div>' +
-            '</section>' +
-          '</div>' +
-          '<div class="col-md-6">' +
-            '<section>' +
-              '<div class="d-flex align-items-baseline gap-2 flex-wrap">' +
-                '<h2 class="h6 fw-bold mb-0"><i class="bi bi-ui-checks me-1"></i>题型</h2>' +
-                '<span class="small text-body-secondary">只选中的题型会进入本次练习</span>' +
-              '</div>' +
-              '<div class="chips mt-2" id="typeChips">' + typeChips + '</div>' +
-            '</section>' +
-          '</div>' +
+        '<hr class="my-6 border-t border-line">' +
+        '<div class="grid gap-5 md:grid-cols-2">' +
+          '<section>' +
+            '<div class="flex flex-wrap items-baseline gap-2">' +
+              '<h2 class="m-0 text-[15px] font-bold"><i class="bi bi-list-check mr-1"></i>章节</h2>' +
+              '<span class="text-[12px] text-muted" id="chapterHint">' +
+                ((S.wrongOnly || S.favOnly ? '只练' + (S.wrongOnly ? '错题集' : '收藏集') + '，仍可再筛章节' : '只选中的章节会进入本次练习')) + '</span>' +
+            '</div>' +
+            '<div class="chips mt-3" id="chapterChips">' + chips + '</div>' +
+          '</section>' +
+          '<section>' +
+            '<div class="flex flex-wrap items-baseline gap-2">' +
+              '<h2 class="m-0 text-[15px] font-bold"><i class="bi bi-ui-checks mr-1"></i>题型</h2>' +
+              '<span class="text-[12px] text-muted">只选中的题型会进入本次练习</span>' +
+            '</div>' +
+            '<div class="chips mt-3" id="typeChips">' + typeChips + '</div>' +
+          '</section>' +
         '</div>' +
-        '<hr class="my-4">' +
+        '<hr class="my-6 border-t border-line">' +
         '<section>' +
-          '<h2 class="h6 fw-bold"><i class="bi bi-shuffle me-1"></i>出题顺序</h2>' +
-          '<p class="hint">顺序即按题库原顺序；随机适合反复刷。</p>' +
+          '<h2 class="text-[15px] font-bold"><i class="bi bi-shuffle mr-1"></i>出题顺序</h2>' +
+          '<p class="hint mt-1">顺序即按题库原顺序；随机适合反复刷。</p>' +
           '<div class="seg" id="modeSeg" data-mode="' + S.mode + '">' +
-            '<button class="' + (S.mode === 'order' ? 'on' : '') + '" data-act="mode" data-mode="order">' +
-              '<i class="bi bi-list-ol me-1"></i>顺序</button>' +
-            '<button class="' + (S.mode === 'random' ? 'on' : '') + '" data-act="mode" data-mode="random">' +
-              '<i class="bi bi-shuffle me-1"></i>随机</button>' +
+            '<button type="button" class="' + (S.mode === 'order' ? 'on' : '') + '" data-act="mode" data-mode="order">' +
+              '<i class="bi bi-list-ol mr-1"></i>顺序</button>' +
+            '<button type="button" class="' + (S.mode === 'random' ? 'on' : '') + '" data-act="mode" data-mode="random">' +
+              '<i class="bi bi-shuffle mr-1"></i>随机</button>' +
           '</div>' +
         '</section>' +
       '</div></div>' +
-      '<aside class="card setup-side shadow-sm"><div class="card-body p-4">' +
+      '<aside class="card setup-side"><div class="card-body p-5">' +
         '<div class="setup-sum-label">本次将出</div>' +
         '<div class="setup-sum"><b id="setupCount">' + setupPicked(bank) + '</b> 道题</div>' +
         '<ul class="setup-facts">' +
@@ -1266,13 +1302,13 @@ function renderSetup() {
           '<li><i class="bi bi-star"></i>收藏 <b>' + favCount + '</b> 道</li>' +
           (prog ? '<li><i class="bi bi-play-circle"></i>上次答到第 <b>' + prev + '</b> 题</li>' : '') +
         '</ul>' +
-        '<button class="btn btn-primary w-100" data-act="start" id="setupStart"' +
+        '<button class="btn btn-primary w-full" data-act="start" id="setupStart"' +
           (setupPicked(bank) ? '' : ' disabled') + '>' +
-          '<i class="bi bi-play-fill me-1"></i>开始答题</button>' +
-        (prog ? '<button class="btn btn-outline-secondary w-100 mt-2" data-act="resume">' +
-          '<i class="bi bi-play-fill me-1"></i>继续上次</button>' : '') +
-        '<button class="btn btn-outline-secondary w-100 mt-2" data-act="back-banks">' +
-          '<i class="bi bi-arrow-left me-1"></i>返回题库</button>' +
+          '<i class="bi bi-play-fill"></i>开始答题</button>' +
+        (prog ? '<button class="btn btn-outline mt-2 w-full" data-act="resume">' +
+          '<i class="bi bi-play-fill"></i>继续上次</button>' : '') +
+        '<button class="btn btn-outline mt-2 w-full" data-act="back-banks">' +
+          '<i class="bi bi-arrow-left"></i>返回题库</button>' +
       '</div></aside>' +
     '</div>';
   pageShell('banks', main);
@@ -1330,15 +1366,17 @@ function resumeSession() {
 function quizBarHtml(s, st) {
   st = st || stats(s);
   return '<span class="stat">第 <b>' + (s.idx + 1) + '</b> / ' + s.order.length + ' 题</span>' +
-    '<span class="stat"><i class="dot" style="background:var(--bs-secondary-bg)"></i>已答 <b>' + st.answered + '</b></span>' +
-    '<span class="stat"><i class="dot" style="background:var(--bs-success)"></i>答对 <b>' + st.correct + '</b></span>' +
-    '<span class="stat"><i class="dot" style="background:var(--bs-danger)"></i>答错 <b>' + st.wrong + '</b></span>' +
+    '<span class="stat"><i class="dot dot-muted"></i>已答 <b>' + st.answered + '</b></span>' +
+    '<span class="stat"><i class="dot dot-ok"></i>答对 <b>' + st.correct + '</b></span>' +
+    '<span class="stat"><i class="dot dot-bad"></i>答错 <b>' + st.wrong + '</b></span>' +
     '<span class="stat">正确率 <b>' + st.rate + '%</b></span>' +
-    '<span class="stat" style="margin-left:auto"><i class="bi bi-stopwatch me-1"></i><b id="elapsed">0 秒</b></span>';
+    '<span class="stat ml-auto"><i class="bi bi-stopwatch mr-1"></i><b id="elapsed">0 秒</b></span>';
 }
 function quizProgressHtml(st) {
-  return '<div class="progress mb-3" style="height:6px" role="progressbar" aria-label="答题进度" id="quizProgress">' +
-    '<div class="progress-bar" style="width:' + (st.total ? st.answered / st.total * 100 : 0) + '%"></div></div>';
+  const pct = st.total ? Math.round(st.answered / st.total * 100) : 0;
+  return '<div class="progress" role="progressbar" aria-label="答题进度" aria-valuemin="0"' +
+    ' aria-valuemax="100" aria-valuenow="' + pct + '" id="quizProgress">' +
+    '<div class="progress-bar" style="width:' + pct + '%"></div></div>';
 }
 /* 判题反馈（答题页与结果页共用 answerText / pickedText） */
 function quizTipHtml(q, s, qid) {
@@ -1346,27 +1384,27 @@ function quizTipHtml(q, s, qid) {
   const picked = s.answers[qid];
   const ok = isCorrect(q, picked);
   const counting = autoJump && autoJump.qid === qid;   // 只有刚提交、且还有下一题时才有倒计时
-  return '<div class="alert ' + (ok ? 'alert-success' : 'alert-danger') + ' mt-3">' +
-    '<div class="fw-bold">' + (ok ? '<i class="bi bi-check-circle-fill me-1"></i>答对了' : '<i class="bi bi-x-circle-fill me-1"></i>答错了') + '</div>' +
+  return '<div class="alert ' + (ok ? 'alert-ok' : 'alert-bad') + ' mt-4" role="status">' +
+    '<div class="font-bold">' + (ok ? '<i class="bi bi-check-circle-fill mr-1 text-ok"></i>答对了' : '<i class="bi bi-x-circle-fill mr-1 text-bad"></i>答错了') + '</div>' +
     (ok ? '' : '<div>正确答案：' + esc(answerText(q).replace(/\s+/g, ' ').trim()) + '</div>') +
-    '<div class="small">你的答案：' + esc(pickedText(q, picked)) + '</div>' +
+    '<div class="text-[13px]">你的答案：' + esc(pickedText(q, picked)) + '</div>' +
     (q.analysis ? '<div class="ana">解析：' + fmt(q.analysis) + '</div>' : '') +
-    (counting ? '<div class="autojump"><i class="bi bi-hourglass-split me-1"></i><b id="autojump">' + autoJump.sec + '</b> 秒后自动进入下一题' +
-      '<button class="btn btn-sm btn-outline-secondary" data-act="cancel-auto">取消跳转</button></div>' : '') +
+    (counting ? '<div class="autojump"><i class="bi bi-hourglass-split mr-1"></i><b id="autojump">' + autoJump.sec + '</b> 秒后自动进入下一题' +
+      '<button class="btn btn-sm btn-outline" data-act="cancel-auto">取消跳转</button></div>' : '') +
     '</div>';
 }
 function quizActionsHtml(s, done) {
   const isLast = s.idx === s.order.length - 1;
   const isFirst = s.idx === 0;
   return (done
-    ? '<button class="btn btn-outline-secondary" data-act="redo">重做本题</button>'
-    : '<button class="btn btn-primary flex-grow-1" data-act="submit">提交答案</button>') +
-    '<button class="btn btn-outline-secondary" data-act="prev" ' + (isFirst ? 'disabled' : '') + '>上一题</button>' +
+    ? '<button class="btn btn-outline" data-act="redo">重做本题</button>'
+    : '<button class="btn btn-primary flex-1" data-act="submit">提交答案</button>') +
+    '<button class="btn btn-outline" data-act="prev" ' + (isFirst ? 'disabled' : '') + '>上一题</button>' +
     (isLast
       /* 最后一题没有下一题：只留一个「交卷」，放在下一题的位置；不再重复放两个交卷按钮 */
       ? '<button class="btn btn-primary" data-act="finish">交卷</button>'
-      : '<button class="btn btn-outline-secondary" data-act="next">下一题</button>' +
-        '<button class="btn btn-outline-secondary" data-act="finish">交卷</button>');
+      : '<button class="btn btn-outline" data-act="next">下一题</button>' +
+        '<button class="btn btn-outline" data-act="finish">交卷</button>');
 }
 function quizCardHtml(s) {
   const qid = s.order[s.idx];
@@ -1400,13 +1438,13 @@ function quizCardHtml(s) {
   return '<div class="qhead">' +
       '<span class="badge ' + t.cls + '">' + t.text + '</span>' +
       '<span class="qno">' + esc(QPOS[qid].chapterName) + '</span>' +
-      '<button class="fav ' + (isFav(S.user, qid) ? 'on' : '') + '" data-act="fav" title="收藏本题"' +
+      '<button type="button" class="fav ' + (isFav(S.user, qid) ? 'on' : '') + '" data-act="fav" title="收藏本题"' +
         ' aria-pressed="' + (isFav(S.user, qid) ? 'true' : 'false') + '">' +
         (isFav(S.user, qid) ? '<i class="bi bi-star-fill"></i>' : '<i class="bi bi-star"></i>') + '</button>' +
     '</div>' +
     '<h2 class="stem">' + fmt(q.stem) + '</h2>' +
     body + quizTipHtml(q, s, qid) +
-    '<div class="q-actions d-flex flex-wrap gap-2 mt-3">' + quizActionsHtml(s, done) + '</div>';
+    '<div class="q-actions">' + quizActionsHtml(s, done) + '</div>';
 }
 function quizMapHtml(s) {
   return s.order.map((id, i) => {
@@ -1435,8 +1473,10 @@ function patchQuizBar(st) {
   const bar = document.getElementById('quizBar');
   if (bar) bar.innerHTML = quizBarHtml(s, st);
   const prog = document.getElementById('quizProgress');
+  const pct = st.total ? Math.round(st.answered / st.total * 100) : 0;
   const p = prog && prog.querySelector ? prog.querySelector('.progress-bar') : null;
-  if (p && p.style) p.style.width = (st.total ? st.answered / st.total * 100 : 0) + '%';
+  if (p && p.style) p.style.width = pct + '%';
+  if (prog && prog.setAttribute) prog.setAttribute('aria-valuenow', String(pct));
 }
 function patchQuizMap() {
   const s = S.session;
@@ -1769,23 +1809,24 @@ function resultListHtml(s) {
     const stCls = !done ? 's' : ok ? 'y' : 'n';
     const stTxt = !done ? '未答' : ok ? '正确' : '错误';
     const open = !!S.reviewOpen[qid];
-    return '<div class="card rev' + (open ? ' open' : '') + '">' +
-      '<div class="rev-h" data-act="toggle-rev" data-qid="' + qid + '">' +
+    return '<article class="rev' + (open ? ' open' : '') + '">' +
+      '<button type="button" class="rev-h" data-act="toggle-rev" data-qid="' + qid + '"' +
+        ' aria-expanded="' + (open ? 'true' : 'false') + '">' +
         '<span class="ix">第 ' + n + ' 题</span>' +
         '<span class="st ' + stCls + '">' + stTxt + '</span>' +
         '<span class="sm">' + esc(q.stem) + '</span>' +
-        (isFav(S.user, qid) ? '<i class="bi bi-star-fill"></i>' : '') +
+        (isFav(S.user, qid) ? '<i class="bi bi-star-fill text-warn"></i>' : '') +
         '<i class="bi bi-chevron-down cx"></i>' +
-      '</div>' +
+      '</button>' +
       '<div class="rev-b">' +
         '<div class="q">' + fmt(q.stem) + '</div>' +
         '<div class="line">题型：' + TYPE_LABEL[q.type].text + '　章节：' + esc(QPOS[qid].chapterName) + '</div>' +
         '<div class="line">你的答案：<b>' + esc(pickedText(q, s.answers[qid])) + '</b></div>' +
-        '<div class="line">正确答案：<b style="color:var(--bs-success-text-emphasis)">' +
+        '<div class="line">正确答案：<b class="text-ok">' +
           esc(answerText(q).replace(/\s+/g, ' ').trim()) + '</b></div>' +
-        (q.analysis ? '<div class="line" style="margin-top:6px">解析：' + fmt(q.analysis) + '</div>' : '') +
-      '</div></div>';
-  }).join('') : '<div class="card empty"><div class="e-ico"><i class="bi bi-emoji-smile"></i></div>这个分类下没有题目</div>';
+        (q.analysis ? '<div class="line mt-1.5">解析：' + fmt(q.analysis) + '</div>' : '') +
+      '</div></article>';
+  }).join('') : '<div class="empty"><div class="e-ico"><i class="bi bi-emoji-smile"></i></div>这个分类下没有题目</div>';
 }
 /* 结果页切标签：只换列表 + 高亮，不重绘头部和分数卡 */
 function refreshResultTab() {
@@ -1795,7 +1836,9 @@ function refreshResultTab() {
   const list = document.getElementById('resultList');
   if (!tabs || !list || !tabs.querySelectorAll) return false;
   Array.prototype.forEach.call(tabs.querySelectorAll('[data-act="tab"]'), b => {
-    if (b.classList) b.classList.toggle('active', b.dataset.tab === S.reviewTab);
+    const on = b.dataset.tab === S.reviewTab;
+    if (b.classList) b.classList.toggle('active', on);
+    if (b.setAttribute) b.setAttribute('aria-selected', on ? 'true' : 'false');
   });
   list.innerHTML = resultListHtml(s);
   return true;
@@ -1805,9 +1848,9 @@ function renderResult() {
   if (!s) { S.view = 'banks'; return render(); }
   const st = stats(s);
   const used = (s.finishedAt || Date.now()) - s.startedAt;
-  const tone = st.rate >= 80 ? 'success' : st.rate >= 60 ? 'warning' : 'danger';
-  const color = 'var(--bs-' + tone + ')';          /* 环形图用实心色 */
-  const toneText = 'var(--bs-' + tone + '-text-emphasis)';    /* 数字用文字色，深色下才够亮 */
+  const tone = st.rate >= 80 ? 'ok' : st.rate >= 60 ? 'warn' : 'bad';
+  const color = 'rgb(var(--c-' + tone + '))';          /* 环形图用实心色 */
+  const toneText = 'rgb(var(--c-' + tone + '))';       /* 数字用文字色，深色下也够亮 */
   const deg = Math.round(st.rate * 3.6);
   const verdict = st.rate >= 80 ? '很稳，继续保持！' : st.rate >= 60 ? '及格线以上，再刷一遍更稳。' : '基础还需巩固，建议专攻错题。';
 
@@ -1817,42 +1860,43 @@ function renderResult() {
     ['unanswered', '未作答 ' + st.unanswered],
     ['fav', '收藏 ' + st.fav]
   ].map(([k, label]) =>
-    '<li class="nav-item"><button class="nav-link ' + (S.reviewTab === k ? 'active' : '') + '" data-act="tab" data-tab="' + k + '">' +
-    label + '</button></li>').join('');
+    '<button type="button" class="tab' + (S.reviewTab === k ? ' active' : '') + '" data-act="tab" data-tab="' + k + '"' +
+    ' role="tab" aria-selected="' + (S.reviewTab === k ? 'true' : 'false') + '">' +
+    label + '</button>').join('');
 
   const list = resultListHtml(s);
 
   app.innerHTML =
-    '<h1>答题结果<span class="sub">' + esc(s.bankName) + ' · ' + esc(s.mode === 'random' ? '随机顺序' : '顺序作答') + '</span></h1>' +
+    '<h1 class="page-title mt-6">答题结果<span class="sub">' + esc(s.bankName) + ' · ' + esc(s.mode === 'random' ? '随机顺序' : '顺序作答') + '</span></h1>' +
     '<div class="card score-hero">' +
-      '<div class="ring" style="background:conic-gradient(' + color + ' ' + deg + 'deg,var(--bs-secondary-bg) ' + deg + 'deg)">' +
+      '<div class="ring" style="background:conic-gradient(' + color + ' ' + deg + 'deg,rgb(var(--c-raise)) ' + deg + 'deg)">' +
         '<div class="in"><div><div class="v" style="color:' + toneText + '">' + st.rate + '%</div>' +
         '<div class="u">正确率</div></div></div>' +
       '</div>' +
       '<div class="hero-txt">' +
         '<h2>得分 ' + st.score + ' 分</h2>' +
         '<p>' + verdict + '　用时 ' + fmtTime(used) + '</p>' +
-        '<div class="d-flex flex-wrap align-items-center gap-2 mt-3">' +
+        '<div class="mt-4 flex flex-wrap items-center gap-2">' +
           '<button class="btn btn-outline-primary" data-act="retry-wrong"' +
             (st.wrong ? '' : ' disabled') +
             ' title="' + (st.wrong ? '把这一轮答错的题抽出来再练一遍' : '这一轮没有答错的题，不需要重练') + '">' +
-            '<i class="bi bi-arrow-repeat me-1"></i>再练一遍没做对的</button>' +
-          '<button class="btn btn-outline-secondary" data-act="again">再刷一遍</button>' +
+            '<i class="bi bi-arrow-repeat"></i>再练一遍没做对的</button>' +
+          '<button class="btn btn-outline" data-act="again">再刷一遍</button>' +
           '<button class="btn btn-primary" data-act="share-png">' +
-            '<i class="bi bi-download me-1"></i>导出分享图</button>' +
-          '<button class="btn btn-outline-secondary" data-act="back-banks">返回题库</button>' +
+            '<i class="bi bi-download"></i>导出分享图</button>' +
+          '<button class="btn btn-outline" data-act="back-banks">返回题库</button>' +
         '</div>' +
       '</div>' +
     '</div>' +
-    '<div class="grid">' +
-      '<div class="card num c-pri"><div class="v">' + st.total + '</div><div class="l">总题数</div></div>' +
-      '<div class="card num"><div class="v">' + st.answered + '</div><div class="l">已作答</div></div>' +
-      '<div class="card num c-ok"><div class="v">' + st.correct + '</div><div class="l">答对</div></div>' +
-      '<div class="card num c-bad"><div class="v">' + st.wrong + '</div><div class="l">答错</div></div>' +
-      '<div class="card num c-mut"><div class="v">' + st.unanswered + '</div><div class="l">未作答</div></div>' +
-      '<div class="card num"><div class="v">' + st.fav + '</div><div class="l">收藏</div></div>' +
+    '<div class="num-grid">' +
+      '<div class="num c-pri"><div class="v">' + st.total + '</div><div class="l">总题数</div></div>' +
+      '<div class="num"><div class="v">' + st.answered + '</div><div class="l">已作答</div></div>' +
+      '<div class="num c-ok"><div class="v">' + st.correct + '</div><div class="l">答对</div></div>' +
+      '<div class="num c-bad"><div class="v">' + st.wrong + '</div><div class="l">答错</div></div>' +
+      '<div class="num c-mut"><div class="v">' + st.unanswered + '</div><div class="l">未作答</div></div>' +
+      '<div class="num"><div class="v">' + st.fav + '</div><div class="l">收藏</div></div>' +
     '</div>' +
-    '<ul class="nav nav-pills gap-1 my-4" id="resultTabs">' + tabs + '</ul>' +
+    '<div class="tabs" id="resultTabs" role="tablist" aria-label="结果筛选">' + tabs + '</div>' +
     '<div id="resultList">' + list + '</div>';
 }
 function retryWrong() {
@@ -1895,32 +1939,33 @@ function again() {
    不截结果页本身：页面有 radial-gradient 背景和 fixed 定位，html2canvas 容易糊；
    单独画一张固定宽度的干净卡片，导出效果稳定。 */
 function shareCardHtml(rec) {
-  const tone = rec.rate >= 80 ? 'success' : rec.rate >= 60 ? 'warning' : 'danger';
+  const tone = rec.rate >= 80 ? 'ok' : rec.rate >= 60 ? 'warn' : 'bad';
+  const toneVar = 'rgb(var(--c-' + tone + '))';
   const deg = Math.round(rec.rate * 3.6);
-  return '<div class="share-card" style="width:560px;background:var(--bs-body-bg);color:var(--bs-body-color)">' +
-      '<div class="d-flex align-items-center gap-2">' +
+  return '<div class="share-card bg-surface text-ink" style="width:560px">' +
+      '<div class="flex items-center gap-2">' +
         '<span class="brand-logo">pi</span>' +
-        '<span class="fw-bold fs-5">popipa</span>' +
-        '<span class="ms-auto small text-body-secondary">' + esc(rec.date) + '</span>' +
+        '<span class="text-[17px] font-extrabold">popipa</span>' +
+        '<span class="ml-auto text-[12px] text-muted">' + esc(rec.date) + '</span>' +
       '</div>' +
-      '<div class="d-flex align-items-center gap-4 mt-3">' +
-        '<div class="ring" style="background:conic-gradient(var(--bs-' + tone + ') ' + deg +
-          'deg,var(--bs-secondary-bg) ' + deg + 'deg)">' +
-          '<div class="in"><div><div class="v" style="color:var(--bs-' + tone + '-text-emphasis)">' +
+      '<div class="mt-4 flex items-center gap-6">' +
+        '<div class="ring" style="background:conic-gradient(' + toneVar + ' ' + deg +
+          'deg,rgb(var(--c-raise)) ' + deg + 'deg)">' +
+          '<div class="in"><div><div class="v" style="color:' + toneVar + '">' +
             rec.rate + '%</div><div class="u">正确率</div></div></div>' +
         '</div>' +
         '<div>' +
-          '<div class="h5 fw-bold mb-1">' + esc(rec.bankName) + '</div>' +
-          '<div class="small text-body-secondary mb-2">得分 ' + rec.score + ' 分 · 用时 ' + esc(rec.used) + '</div>' +
-          '<div class="d-flex flex-wrap gap-3 small">' +
+          '<div class="mb-1 text-lg font-bold">' + esc(rec.bankName) + '</div>' +
+          '<div class="mb-3 text-[12px] text-muted">得分 ' + rec.score + ' 分 · 用时 ' + esc(rec.used) + '</div>' +
+          '<div class="flex flex-wrap gap-3 text-[12px]">' +
             '<span>总题数 <b>' + rec.total + '</b></span>' +
-            '<span>答对 <b class="text-success">' + rec.correct + '</b></span>' +
-            '<span>答错 <b class="text-danger">' + rec.wrong + '</b></span>' +
+            '<span>答对 <b class="text-ok">' + rec.correct + '</b></span>' +
+            '<span>答错 <b class="text-bad">' + rec.wrong + '</b></span>' +
             '<span>未答 <b>' + rec.unanswered + '</b></span>' +
           '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="small text-body-secondary mt-3 pt-3 border-top">' +
+      '<div class="mt-4 border-t border-line pt-3 text-[12px] text-muted">' +
         esc(rec.user) + ' · 📢U咩哇帕瓦📢</div>' +
     '</div>';
 }
@@ -1950,23 +1995,24 @@ function exportPng() {
   const done = url => {
     drop();
     shareBodyEl.innerHTML =
-      '<div class="modal-header">' +
-        '<h5 class="modal-title"><i class="bi bi-image me-2"></i>分享图已生成</h5>' +
-        '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>' +
+      '<div class="dialog-head">' +
+        '<h2 class="dialog-title"><i class="bi bi-image mr-2 text-brand"></i>分享图已生成</h2>' +
+        '<button type="button" class="dialog-close" data-act="share-close" aria-label="关闭">' +
+          '<i class="bi bi-x-lg"></i></button>' +
       '</div>' +
-      '<div class="modal-body"><div class="share-wrap">' +
+      '<div class="dialog-body"><div class="share-wrap">' +
         '<img alt="答题成绩分享图" src="' + url + '"></div></div>' +
-      '<div class="modal-footer">' +
-        '<button class="btn btn-outline-secondary" data-bs-dismiss="modal">关闭</button>' +
+      '<div class="dialog-foot">' +
+        '<button class="btn btn-outline" data-act="share-close">关闭</button>' +
         '<a class="btn btn-primary" data-act="share-dl" download="popipa-' + rec.rate + '分-' +
           esc(rec.date) + '.png" href="' + url + '">' +
-          '<i class="bi bi-download me-1"></i>下载 PNG</a>' +
+          '<i class="bi bi-download"></i>下载 PNG</a>' +
       '</div>';
-    bootstrap.Modal.getOrCreateInstance(shareModalEl).show();
+    openModal(shareModalEl);
   };
   const fail = () => { drop(); toast('生成分享图失败，请重试'); };
   try {
-    /* backgroundColor 交给卡片自己的 --bs-body-bg，深色模式下也是深底 */
+    /* backgroundColor 交给卡片自己的 bg-surface，深色模式下也是深底 */
     const p = html2canvas(holder.firstChild, { scale: 2, backgroundColor: null, logging: false });
     if (p && typeof p.then === 'function') p.then(cv => done(cv.toDataURL('image/png'))).catch(fail);
     else done(p.toDataURL('image/png'));
@@ -2014,8 +2060,7 @@ document.addEventListener('click', function (e) {
     case 'consent-yes': setConsent(true); break;
     case 'consent-no': setConsent(false); break;
     case 'consent-open': {
-      const m = document.getElementById('consentModal');
-      if (m && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(m).show();
+      openModal('consentModal');
       break;
     }
     case 'practice-chapter': {
@@ -2095,7 +2140,8 @@ document.addEventListener('click', function (e) {
     case 'fav': toggleFav(); break;
     case 'qmap-toggle': toggleQmap(); break;
     case 'share-png': exportPng(); break;
-    case 'share-dl': bootstrap.Modal.getOrCreateInstance(shareModalEl).hide(); break;
+    case 'share-dl': closeModal(shareModalEl); break;
+    case 'share-close': closeModal(shareModalEl); break;
     case 'prev': step(-1); break;
     case 'next': step(1); break;
     case 'jump': jump(Number(el.dataset.i)); break;
@@ -2111,24 +2157,51 @@ document.addEventListener('click', function (e) {
       const qid = el.dataset.qid;
       if (S.reviewOpen[qid]) delete S.reviewOpen[qid]; else S.reviewOpen[qid] = true;
       /* 只切当前卡片的 open 类，不重绘整页 */
-      const card = el.parentNode;
+      const card = el.closest ? el.closest('.rev') : el.parentNode;
       if (card && card.classList) card.classList.toggle('open', !!S.reviewOpen[qid]);
+      if (el.setAttribute) el.setAttribute('aria-expanded', S.reviewOpen[qid] ? 'true' : 'false');
       break;
     }
     case 'round-toggle': {
       const id = el.dataset.round;
       if (S.roundOpen[id]) delete S.roundOpen[id]; else S.roundOpen[id] = true;
-      /* 展开/收起交给 Bootstrap collapse，只同步箭头 */
-      const box = el.parentNode && el.parentNode.querySelector('.collapse');
-      const open = box && box.classList.contains('show');
-      const cx = el.querySelector('.round-cx');
-      if (cx) cx.className = 'bi ' + (open ? 'bi-chevron-up' : 'bi-chevron-down') +
-        ' text-body-secondary round-cx';
+      const open = !!S.roundOpen[id];
+      /* 直接控制内容显隐，不再依赖 Bootstrap collapse */
+      const card = el.closest ? el.closest('.round-card') : el.parentNode;
+      const box = card && card.querySelector ? card.querySelector('.round-body') : null;
+      if (box) {
+        box.hidden = !open;
+        box.classList.toggle('hidden', !open);
+      }
+      if (card && card.classList) card.classList.toggle('open', open);
+      if (el.setAttribute) el.setAttribute('aria-expanded', open ? 'true' : 'false');
+      const cx = el.querySelector && el.querySelector('.round-cx');
+      if (cx && cx.classList) cx.classList.toggle('rotate-180', open);
       break;
     }
     case 'retry-wrong': retryWrong(); break;
     case 'again': again(); break;
   }
+});
+
+/* 登录表单：Enter 直接提交（旧版只有按钮 click） */
+document.addEventListener('submit', function (e) {
+  const form = e.target && e.target.closest ? e.target.closest('[data-act="login-form"]') : null;
+  if (!form) return;
+  e.preventDefault();
+  doLogin();
+});
+
+/* 非原生控件上的 data-act（例如整张题库卡）支持 Enter / Space */
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const t = e.target;
+  if (!t || !t.closest) return;
+  if (/^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(t.tagName || '')) return;
+  const el = t.closest('[data-act]');
+  if (!el) return;
+  e.preventDefault();
+  if (typeof el.click === 'function') el.click();
 });
 
 /* 填空题：输入即存，避免重渲染丢焦点 */
@@ -2251,21 +2324,21 @@ function refreshGoalCard() {
   if (txt) txt.textContent = '今日已写 ' + today + ' / ' + goal + ' 题';
   const bar = document.getElementById('goalBar');
   if (bar) bar.style.width = pct + '%';
+  const track = bar && bar.parentNode;
+  if (track && track.setAttribute) track.setAttribute('aria-valuenow', String(pct));
 }
 function setConsent(yes) {
   const u = userOf(S.user);
   u.consent = !!yes;
   u.consentAt = Date.now();
   saveUser(S.user, u);
-  const m = document.getElementById('consentModal');
-  if (m && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(m).hide();
+  closeModal('consentModal');
   toast(yes ? '已同意，感谢支持' : '好的，数据不会计入统计');
   if (S.view === 'stats') refreshStatsBoard();
 }
 function maybeAskConsent() {
   if (typeof userOf(S.user).consent === 'boolean') return;
-  const m = document.getElementById('consentModal');
-  if (m && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(m).show();
+  openModal('consentModal');
 }
 function startWarmup() {
   const pool = [];
@@ -2401,8 +2474,8 @@ function sideBar(active) {
       item('fav', 'collection', 'collection.html?type=fav', 'bi-star', '收藏集', favN, ' data-type="fav"') +
     '</nav>' +
     '<div class="side-foot">' +
-      '<button class="btn btn-warm w-100" data-act="warmup">' +
-        '<i class="bi bi-cup-hot me-1"></i>每日热身' +
+      '<button class="btn btn-warm w-full" data-act="warmup">' +
+        '<i class="bi bi-cup-hot mr-1"></i>每日热身' +
         '<span class="side-sub">随机 5 题</span></button>' +
     '</div>' +
   '</aside>';
@@ -2461,22 +2534,22 @@ function renderHome() {
   if (prog) {
     const st = stats(prog.p);
     const bank = bankById(prog.bankId);
-    progHtml = '<div class="d-flex flex-wrap align-items-center gap-3">' +
-      '<div class="flex-grow-1 min-w-0"><div class="fw-semibold text-truncate">' +
+    progHtml = '<div class="flex flex-wrap items-center gap-3">' +
+      '<div class="min-w-0 flex-1"><div class="truncate font-semibold">' +
         esc(bank ? bank.name : prog.bankId) + '</div>' +
-        '<div class="small text-body-secondary">答到第 ' + st.answered + ' / ' + st.total + ' 题</div></div>' +
+        '<div class="text-[12px] text-muted">答到第 ' + st.answered + ' / ' + st.total + ' 题</div></div>' +
       '<button class="btn btn-sm btn-warm" data-act="resume-progress" data-bank="' +
         esc(prog.bankId) + '">继续</button></div>';
   } else if (lastRound) {
-    progHtml = '<div class="d-flex flex-wrap align-items-center gap-3">' +
-      '<div class="flex-grow-1 min-w-0"><div class="fw-semibold text-truncate">' +
+    progHtml = '<div class="flex flex-wrap items-center gap-3">' +
+      '<div class="min-w-0 flex-1"><div class="truncate font-semibold">' +
         esc(lastRound.bankName) + '</div>' +
-        '<div class="small text-body-secondary">上次 ' + lastRound.rate + '% · ' +
+        '<div class="text-[12px] text-muted">上次 ' + lastRound.rate + '% · ' +
         fmtDur(lastRound.seconds) + '</div></div>' +
-      '<span class="badge rounded-pill ' + rateBadge(lastRound.rate) + '">' +
+      '<span class="badge ' + rateBadge(lastRound.rate) + '">' +
         lastRound.rate + '%</span></div>';
   } else {
-    progHtml = '<div class="text-body-secondary small">还没有做题记录，先来一组吧。</div>';
+    progHtml = '<div class="text-[12px] text-muted">还没有做题记录，先来一组吧。</div>';
   }
 
   const dayBars = days.map(d =>
@@ -2488,65 +2561,59 @@ function renderHome() {
 
   const main =
     '<section class="hero-home">' +
-      '<div class="eyebrow">PRACTICE MAKES PERFECT</div>' +
+      '<p class="eyebrow">PRACTICE MAKES PERFECT</p>' +
       '<h1 class="welcome-line">' + welcome + '</h1>' +
       '<p class="hero-sub">欢迎回来，' + esc(S.user) + '。今天想从哪开始？</p>' +
       '<button class="btn btn-primary btn-lg" data-act="go-banks">' +
-        '<i class="bi bi-play-fill me-1"></i>开始练习</button>' +
+        '<i class="bi bi-play-fill"></i>开始练习</button>' +
     '</section>' +
-    '<div class="mt-3">' +
-        '<section class="card home-card" id="goalCard">' +
-          '<div class="card-body">' +
-            '<div class="eyebrow">DAILY GOAL</div>' +
-            '<div class="d-flex flex-wrap justify-content-between align-items-end gap-2">' +
-              '<div><h2 class="h5 mb-1">每日目标</h2>' +
-                '<div class="small text-body-secondary" id="goalText">今日已写 ' + today + ' / ' + goal + ' 题</div></div>' +
-              '<div class="goal-stepper">' +
-                '<button class="btn btn-sm btn-outline-secondary" data-act="goal" data-delta="-5" aria-label="减少目标">−</button>' +
-                '<span class="goal-num" id="goalNum">' + goal + '</span>' +
-                '<button class="btn btn-sm btn-outline-secondary" data-act="goal" data-delta="5" aria-label="增加目标">＋</button>' +
-              '</div>' +
-            '</div>' +
-            '<div class="progress mt-3" style="height:8px" role="progressbar" aria-label="每日目标进度">' +
-              '<div class="progress-bar" id="goalBar" style="width:' + pct + '%"></div></div>' +
+    '<section class="card home-card mt-4" id="goalCard">' +
+      '<div class="card-body">' +
+        '<p class="eyebrow">DAILY GOAL</p>' +
+        '<div class="flex flex-wrap items-end justify-between gap-2">' +
+          '<div><h2 class="m-0 text-[16px] font-bold">每日目标</h2>' +
+            '<div class="text-[12px] text-muted" id="goalText">今日已写 ' + today + ' / ' + goal + ' 题</div></div>' +
+          '<div class="goal-stepper">' +
+            '<button class="btn btn-sm btn-outline" data-act="goal" data-delta="-5" aria-label="减少目标">−</button>' +
+            '<span class="goal-num" id="goalNum">' + goal + '</span>' +
+            '<button class="btn btn-sm btn-outline" data-act="goal" data-delta="5" aria-label="增加目标">＋</button>' +
           '</div>' +
-        '</section>' +
-    '</div>' +
-    '<div class="stat-grid mt-3">' +
+        '</div>' +
+        '<div class="progress mt-4" role="progressbar" aria-label="每日目标进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '">' +
+          '<div class="progress-bar" id="goalBar" style="width:' + pct + '%"></div></div>' +
+      '</div>' +
+    '</section>' +
+    '<div class="stat-grid mt-4">' +
       statCard('总写题数', t.answered, '累计作答', 'bi-pencil-square') +
       statCard('总正确率', t.rate + '%', t.correct + ' 题答对', 'bi-bullseye') +
       statCard('收藏集', t.fav, '点击查看', 'bi-star', ' data-act="nav" data-view="collection" data-type="fav"') +
       statCard('错题本', t.wrong, '点击查看', 'bi-journal-bookmark', ' data-act="nav" data-view="collection" data-type="wrong"') +
       statCard('总写题时间', fmtDur(t.seconds), '累计用时', 'bi-stopwatch') +
     '</div>' +
-    '<div class="text-center my-3">' +
+    '<div class="my-4 text-center">' +
       '<button class="btn btn-warm btn-lg" data-act="go-banks">' +
-        '<i class="bi bi-play-fill me-1"></i>开始练习</button>' +
+        '<i class="bi bi-play-fill"></i>开始练习</button>' +
     '</div>' +
-    '<div class="row g-3">' +
-      '<div class="col-lg-6">' +
-        '<section class="card home-card h-100">' +
-          '<div class="card-body">' +
-            '<div class="eyebrow">LAST SESSION</div>' +
-            '<h2 class="h5 mb-1">上次进度</h2>' + progHtml +
-          '</div>' +
-        '</section>' +
-      '</div>' +
-      '<div class="col-lg-6">' +
-        '<section class="card home-card h-100">' +
-          '<div class="card-body">' +
-            '<div class="eyebrow">RECENT</div>' +
-            '<h2 class="h5 mb-3">近日统计</h2>' +
-            '<div class="day-bars">' + dayBars + '</div>' +
-            '<div class="small text-body-secondary mt-2">柱高 = 当天写题数；共 ' +
-              days.reduce((n, d) => n + d.answered, 0) + ' 题</div>' +
-          '</div>' +
-        '</section>' +
-      '</div>' +
+    '<div class="grid gap-3 lg:grid-cols-2">' +
+      '<section class="card home-card h-full">' +
+        '<div class="card-body">' +
+          '<p class="eyebrow">LAST SESSION</p>' +
+          '<h2 class="mb-1 mt-0 text-[16px] font-bold">上次进度</h2>' + progHtml +
+        '</div>' +
+      '</section>' +
+      '<section class="card home-card h-full">' +
+        '<div class="card-body">' +
+          '<p class="eyebrow">RECENT</p>' +
+          '<h2 class="mb-3 mt-0 text-[16px] font-bold">近日统计</h2>' +
+          '<div class="day-bars">' + dayBars + '</div>' +
+          '<div class="mt-2 text-[12px] text-muted">柱高 = 当天写题数；共 ' +
+            days.reduce((n, d) => n + d.answered, 0) + ' 题</div>' +
+        '</div>' +
+      '</section>' +
     '</div>' +
-    '<div class="text-center mt-3">' +
-      '<button class="btn btn-sm btn-outline-secondary" data-act="consent-open">' +
-        '<i class="bi bi-shield-check me-1"></i>数据与隐私</button>' +
+    '<div class="mt-4 text-center">' +
+      '<button class="btn btn-sm btn-outline" data-act="consent-open">' +
+        '<i class="bi bi-shield-check"></i>数据与隐私</button>' +
     '</div>';
 
   pageShell('home', main);
@@ -2570,9 +2637,7 @@ function renderSummary() {
       const c = chapterCounts(ch);
       const total = c.single + c.multiple + c.judge + c.fill;
       const rows = ch.questions.filter(q => q.answer.length).map((q, i) =>
-        '<div class="sum-q"><span class="badge rounded-pill ' +
-          (q.type === 'single' ? 'text-bg-primary' : q.type === 'multiple' ? 'text-bg-info' :
-           q.type === 'judge' ? 'text-bg-success' : 'text-bg-secondary') + '">' +
+        '<div class="sum-q"><span class="badge ' + TYPE_LABEL[q.type].cls + '">' +
           TYPE_LABEL[q.type].text + '</span>' +
           '<span class="sum-stem">' + esc(q.stem) + '</span></div>').join('');
       return '<details class="sum-ch">' +
@@ -2586,18 +2651,18 @@ function renderSummary() {
     }).join('');
     return '<section class="card home-card mb-4">' +
       '<div class="card-body">' +
-        '<div class="d-flex align-items-center gap-3 mb-3">' +
+        '<div class="mb-3 flex items-center gap-3">' +
           '<span class="bank-ico"><i class="bi ' + bankIcon(bank.id) + '"></i></span>' +
-          '<div class="flex-grow-1 min-w-0"><h2 class="h5 mb-0 text-truncate">' + esc(bank.name) + '</h2>' +
-            '<div class="small text-body-secondary">' + esc(bank.desc) + '</div></div>' +
-          '<span class="badge rounded-pill text-bg-secondary">' + bankQuestionIds(bank).length + ' 题</span>' +
+          '<div class="min-w-0 flex-1"><h2 class="m-0 truncate text-[17px] font-bold">' + esc(bank.name) + '</h2>' +
+            '<div class="text-[12px] text-muted">' + esc(bank.desc) + '</div></div>' +
+          '<span class="badge badge-muted">' + bankQuestionIds(bank).length + ' 题</span>' +
         '</div>' + chapters +
       '</div></section>';
   }).join('');
   pageShell('summary',
-    '<div class="page-head"><div class="eyebrow">LIBRARY INDEX</div>' +
-    '<h1 class="h3 fw-bold mb-1">题库汇总</h1>' +
-    '<p class="text-body-secondary mb-4">按题库 → 章节 → 题型展开，点击可只练这一章。</p></div>' + banks);
+    '<div class="page-head"><p class="eyebrow">LIBRARY INDEX</p>' +
+    '<h1 class="page-title">题库汇总</h1>' +
+    '<p class="mb-0 mt-1 text-muted">按题库 → 章节 → 题型展开，点击可只练这一章。</p></div>' + banks);
 }
 
 /* ---- 8.3 收藏集 / 错题本 ---- */
@@ -2610,34 +2675,35 @@ function renderCollection() {
     if (!ids.length) return '';
     const c = { single: 0, multiple: 0, judge: 0, fill: 0 };
     ids.forEach(id => { if (QMAP[id]) c[QMAP[id].type]++; });
-    return '<section class="card home-card mb-3"><div class="card-body d-flex flex-wrap align-items-center gap-3">' +
+    return '<section class="card home-card mb-3"><div class="card-body flex flex-wrap items-center gap-3">' +
       '<span class="bank-ico"><i class="bi ' + bankIcon(bank.id) + '"></i></span>' +
-      '<div class="flex-grow-1 min-w-0"><h2 class="h6 fw-bold mb-1 text-truncate">' + esc(bank.name) + '</h2>' +
-        '<div class="small text-body-secondary">' + countsText(c) + '</div></div>' +
-      '<div class="text-end"><div class="h4 mb-0">' + ids.length + '</div>' +
-        '<div class="small text-body-secondary">道题</div></div>' +
+      '<div class="min-w-0 flex-1"><h2 class="mb-1 truncate text-[15px] font-bold">' + esc(bank.name) + '</h2>' +
+        '<div class="text-[12px] text-muted">' + countsText(c) + '</div></div>' +
+      '<div class="text-right"><div class="text-xl font-bold leading-tight">' + ids.length + '</div>' +
+        '<div class="text-[12px] text-muted">道题</div></div>' +
       '<button class="btn btn-sm btn-warm" data-act="start-collection" data-bank="' + bank.id +
         '" data-type="' + kind + '">练这些题</button></div></section>';
   }).filter(Boolean).join('');
   pageShell(kind,
-    '<div class="page-head"><div class="eyebrow">' + eye + '</div>' +
-    '<h1 class="h3 fw-bold mb-1">' + label + '</h1>' +
-    '<p class="text-body-secondary mb-4">按题库查看，点进去会进入组卷页并自动勾选' + label + '。</p></div>' +
-    (rows || '<div class="card home-card"><div class="card-body text-body-secondary">' +
-      label + '还是空的，先去练几道题吧。</div></div>'));
+    '<div class="page-head"><p class="eyebrow">' + eye + '</p>' +
+    '<h1 class="page-title">' + label + '</h1>' +
+    '<p class="mb-0 mt-1 text-muted">按题库查看，点进去会进入组卷页并自动勾选' + label + '。</p></div>' +
+    (rows || '<div class="empty"><div class="e-ico"><i class="bi bi-inbox"></i></div>' +
+      label + '还是空的，先去练几道题吧。</div>'));
 }
 
 /* ---- 8.4 学习报告 ---- */
 function statsChart(rounds) {
   if (!rounds.length) {
-    return '<div class="empty-chart text-body-secondary small">还没有答题记录，交一次卷就会出现在这里。</div>';
+    return '<div class="empty-chart text-[12px]">还没有答题记录，交一次卷就会出现在这里。</div>';
   }
   const W = 640, H = 200, pad = 28;
   const maxQ = Math.max(1, ...rounds.map(r => r.total || 0));
-  const step = (W - pad * 2) / Math.max(1, rounds.length - 1);
-  const barW = Math.min(26, step * 0.5);
+  const step = rounds.length > 1 ? (W - pad * 2) / (rounds.length - 1) : 0;
+  const barW = rounds.length > 1 ? Math.min(26, step * 0.5) : 18;
+  const xOf = i => rounds.length > 1 ? pad + i * step : W / 2;
   const bars = rounds.map((r, i) => {
-    const x = pad + i * step;
+    const x = xOf(i);
     const h = Math.round(((r.total || 0) / maxQ) * (H - pad * 2));
     return '<rect x="' + (x - barW / 2).toFixed(1) + '" y="' + (H - pad - h) +
       '" width="' + barW.toFixed(1) + '" height="' + h + '" rx="3" class="chart-bar">' +
@@ -2645,10 +2711,10 @@ function statsChart(rounds) {
         (r.rate || 0) + '%，用时 ' + fmtDur(r.seconds) + '</title></rect>';
   }).join('');
   const pts = rounds.map((r, i) =>
-    (pad + i * step).toFixed(1) + ',' +
+    xOf(i).toFixed(1) + ',' +
     (H - pad - ((r.rate || 0) / 100) * (H - pad * 2)).toFixed(1)).join(' ');
   const dots = rounds.map((r, i) =>
-    '<circle cx="' + (pad + i * step).toFixed(1) + '" cy="' +
+    '<circle cx="' + xOf(i).toFixed(1) + '" cy="' +
     (H - pad - ((r.rate || 0) / 100) * (H - pad * 2)).toFixed(1) + '" r="3" class="chart-dot"/>').join('');
   return '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="每轮题数与正确率">' +
     '<line x1="' + pad + '" y1="' + (H - pad) + '" x2="' + (W - pad) + '" y2="' + (H - pad) + '" class="chart-axis"/>' +
@@ -2665,13 +2731,16 @@ function refreshStatsBoard() {
   const sort = S.statSort || 'answered';
   const rows = boardRows(sort);
   body.innerHTML = rows.length ? rows.map((r, i) =>
-    '<tr' + (r.name === S.user ? ' class="table-active"' : '') + '>' +
-      '<td>' + (i + 1) + '</td><td>' + esc(r.name) + '</td>' +
+    '<tr' + (r.name === S.user ? ' class="is-me"' : '') + '>' +
+      '<td class="text-muted">' + (i + 1) + '</td><td>' + esc(r.name) + '</td>' +
       '<td>' + r.answered + '</td><td>' + r.rate + '%</td></tr>').join('')
-    : '<tr><td colspan="4" class="text-body-secondary">还没有人同意数据收集</td></tr>';
+    : '<tr><td colspan="4" class="text-muted">还没有人同意数据收集</td></tr>';
   ['answered', 'rate'].forEach(k => {
     const b = document.getElementById('sort-' + k);
-    if (b) b.classList.toggle('active', sort === k);
+    if (b) {
+      b.classList.toggle('active', sort === k);
+      b.setAttribute('aria-pressed', sort === k ? 'true' : 'false');
+    }
   });
 }
 function renderStats() {
@@ -2681,44 +2750,46 @@ function renderStats() {
   const ach = syncAchievements(S.user);
   const historyHtml = renderRounds();
   const tip = consented ? '' :
-    '<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2">' +
-      '<span class="flex-grow-1">你还没有同意数据收集，当前不会出现在排行榜里。</span>' +
-      '<button class="btn btn-sm btn-outline-dark" data-act="consent-open">去设置</button></div>';
+    '<div class="alert alert-warn mb-4 flex flex-wrap items-center gap-2" role="status">' +
+      '<span class="flex-1">你还没有同意数据收集，当前不会出现在排行榜里。</span>' +
+      '<button class="btn btn-sm btn-outline" data-act="consent-open">去设置</button></div>';
   const main =
-    '<div class="page-head"><div class="eyebrow">LEARNING REPORT</div>' +
-      '<h1 class="h3 fw-bold mb-1">学习报告</h1>' +
-      '<p class="text-body-secondary mb-4">每次题数与正确率；排行榜只统计同意数据收集的用户。</p></div>' +
+    '<div class="page-head"><p class="eyebrow">LEARNING REPORT</p>' +
+      '<h1 class="page-title">学习报告</h1>' +
+      '<p class="mb-0 mt-1 text-muted">每次题数与正确率；排行榜只统计同意数据收集的用户。</p></div>' +
     tip +
     (consented
       ? '<section class="card home-card mb-4"><div class="card-body">' +
-          '<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">' +
-            '<h2 class="h5 mb-0">我的答题曲线</h2>' +
-            '<span class="small text-body-secondary">最近 ' + rounds.length + ' 轮</span></div>' +
+          '<div class="flex flex-wrap items-center justify-between gap-2">' +
+            '<h2 class="m-0 text-[16px] font-bold">我的答题曲线</h2>' +
+            '<span class="text-[12px] text-muted">最近 ' + rounds.length + ' 轮</span></div>' +
           statsChart(rounds) +
-          '<div class="small text-body-secondary mt-2">累计用时 ' +
+          '<div class="mt-2 text-[12px] text-muted">累计用时 ' +
             fmtDur(rounds.reduce((n, r) => n + (r.seconds || 0), 0)) + '</div>' +
         '</div></section>'
-      : '<section class="card home-card mb-4"><div class="card-body text-body-secondary">' +
+      : '<section class="card home-card mb-4"><div class="card-body text-muted">' +
           '同意数据收集后，这里会显示你的答题曲线。</div></section>') +
     '<section class="card home-card"><div class="card-body">' +
-      '<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">' +
-        '<h2 class="h5 mb-0">排行榜</h2>' +
-        '<div class="d-flex gap-2">' +
-          '<button class="btn btn-sm btn-outline-secondary sort-btn' +
+      '<div class="mb-2 flex flex-wrap items-center justify-between gap-2">' +
+        '<h2 class="m-0 text-[16px] font-bold">排行榜</h2>' +
+        '<div class="flex gap-2">' +
+          '<button class="btn btn-sm btn-outline sort-btn' +
             ((S.statSort || 'answered') === 'answered' ? ' active' : '') +
-            '" id="sort-answered" data-act="stat-sort" data-sort="answered">按答题数</button>' +
-          '<button class="btn btn-sm btn-outline-secondary sort-btn' +
+            '" id="sort-answered" data-act="stat-sort" data-sort="answered" aria-pressed="' +
+            ((S.statSort || 'answered') === 'answered' ? 'true' : 'false') + '">按答题数</button>' +
+          '<button class="btn btn-sm btn-outline sort-btn' +
             ((S.statSort || 'answered') === 'rate' ? ' active' : '') +
-            '" id="sort-rate" data-act="stat-sort" data-sort="rate">按正确率</button>' +
+            '" id="sort-rate" data-act="stat-sort" data-sort="rate" aria-pressed="' +
+            ((S.statSort || 'answered') === 'rate' ? 'true' : 'false') + '">按正确率</button>' +
         '</div></div>' +
-      '<div class="table-responsive"><table class="table table-sm align-middle mb-0">' +
+      '<div class="table-wrap"><table class="data-table">' +
         '<thead><tr><th>#</th><th>用户</th><th>总答题数</th><th>正确率</th></tr></thead>' +
         '<tbody id="boardBody"></tbody></table></div>' +
     '</div></section>' +
     '<section class="card home-card mt-4"><div class="card-body">' +
-      '<div class="d-flex justify-content-between align-items-end mb-3">' +
-        '<div><div class="eyebrow">ACHIEVEMENTS</div><h2 class="h5 mb-0">成就</h2></div>' +
-        '<span class="small text-body-secondary">' +
+      '<div class="mb-3 flex items-end justify-between">' +
+        '<div><p class="eyebrow">ACHIEVEMENTS</p><h2 class="m-0 text-[16px] font-bold">成就</h2></div>' +
+        '<span class="text-[12px] text-muted">' +
           ach.filter(a => a.unlockedAt).length + ' / ' + ach.length + '</span>' +
       '</div>' +
       '<div class="ach-grid">' + ach.map(a =>
@@ -2787,6 +2858,7 @@ function bootViews() {
   }
 }
 function boot() {
+  initDialogs();
   clearLegacy();         /* 清掉被取代的本机键，保持轻量 */
   if (!syncEnabled()) {
     migrateUsers();        /* 旧用户表里的业务字段搬进每用户自己的表 */

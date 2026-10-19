@@ -2,9 +2,12 @@
 
 一个刷题页面：登录 → 选题库 → 组卷 → 答题 → 交卷看结果。
 数据来自 `data/raw/*.md`，由 `scripts/parse-banks.js` 解析成 `app.data.js`；
-样式基于 Bootstrap 5.3（本地 vendor，无构建步骤）。
+样式基于 **Tailwind CSS 3.4**（本地编译，运行时不依赖 CDN）。
 附带一个零依赖的本地服务器：除了提供页面，还会把浏览器里的数据自动落盘，
 清缓存 / 换浏览器后打开就能恢复。
+
+> 前端从 Bootstrap 迁移到 Tailwind 的盘点、修复项和渲染约束见
+> [FRONTEND.md](FRONTEND.md) 与 [前端重构总结.md](前端重构总结.md)。
 
 > 换设备 / 交接开发：先读 [HANDOFF.md](HANDOFF.md)；本轮对话与决策见 [CONVERSATION.md](CONVERSATION.md)。
 
@@ -15,6 +18,15 @@
 ```bash
 node server.js          # 默认 8000 端口，只监听 127.0.0.1
 # 打开 http://localhost:8000/
+```
+
+`assets/app.css` 已编译并提交，直接运行不需要 `npm install`。
+只有修改 `src/tailwind.css` 或页面 class 时才需要重新构建：
+
+```bash
+npm install
+npm run build:css       # src/tailwind.css → assets/app.css
+npm run watch:css       # 开发时监听
 ```
 
 数据默认存到 `data/state.json`，每次改动后自动保存。换端口 / 换数据文件：
@@ -63,16 +75,19 @@ stats.html          学习报告（曲线、排行榜、同意弹窗）
 collection.html     错题本 / 收藏集
 banks.html          题库列表 + 组卷面板（顶栏、#app、Toast）
 server.js           零依赖静态服务器 + /api/state 数据落盘（node server.js）
-quiz.html           做题页（顶栏、#app、分享预览 Modal、Toast）
-app.css             自定义样式（颜色全部走 Bootstrap 变量，圆角用 --bs-border-radius*）
+quiz.html           做题页（顶栏、#app、分享预览 Dialog、Toast）
+src/tailwind.css    Tailwind 源文件（base / components / utilities）
+tailwind.config.js  暖褐主题、字体、阴影、dark 选择器
+assets/app.css      Tailwind 编译产物（提交到仓库，运行时不需构建）
+assets/favicon.svg  站点图标
 app.js              全部逻辑（页面路由 / 渲染 / 判分 / 存储 / 同步 / 事件），各页面共用
 app.data.js         题库（自动生成，勿手改）
 data/               题库源文件与解析产物；运行时数据在 data/state.json（已 gitignore）
 scripts/            Markdown → JSON 的解析脚本
-tests/logic.test.js Node 逻辑自测（极简 DOM 桩 + 假 Bootstrap Modal）
+tests/logic.test.js Node 逻辑自测（极简 DOM 桩 + Tailwind / Dialog）
 tests/server.test.js 服务端 /api/state 落盘测试（临时端口 + 临时文件）
 tests/e2e.test.js   Firefox headless 端到端测试（登录 → 落盘 → 换浏览器恢复）
-vendor/             Bootstrap、Bootstrap Icons、html2canvas
+vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除）
 ```
 
 `app.js` 用 `<body data-page="...">` 判断当前页；各页面共用同一份逻辑和样式，
@@ -158,13 +173,13 @@ vendor/             Bootstrap、Bootstrap Icons、html2canvas
 
 结果页「导出分享图」用 html2canvas 截一张离屏绘制的成绩卡（品牌 / 正确率环 /
 得分 / 用时 / 总题数·答对·答错·未答），落款是「用户名。📢U咩哇帕瓦📢」，
-在 Modal 里预览后可下载 PNG。
-卡片颜色走 Bootstrap 变量，深色模式下导出的是深底。
+在原生 `<dialog>` 里预览后可下载 PNG。
+卡片颜色走 Tailwind 主题变量，深色模式下导出的是深底。
 `html2canvas` 未加载或渲染失败时会给出提示，不会白屏。
 
 ## 历史轮次回看
 
-选题页底部「我的成绩历史」按时间倒序列出每一轮，点开原地展开（Bootstrap collapse，不跳页）：
+选题页底部「我的成绩历史」按时间倒序列出每一轮，点开原地展开（自定义 toggle，不跳页）：
 
 - 表格列：`题号 / 用户答案 / 正确答案 / 解析`
 - **只列已作答的题**，未作答的不出现

@@ -422,7 +422,7 @@ return true;
       if (wrongTab) wrongTab.click();
       const tabs2 = document.getElementById('resultTabs');
       const list2 = document.getElementById('resultList');
-      const active = tabs2 && tabs2.querySelector('.nav-link.active');
+      const active = tabs2 && tabs2.querySelector('.tab.active');
       return {
         ok: true,
         sameTabs: !!(tabs2 && tabs2.dataset.probe === 'keep'),
