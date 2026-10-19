@@ -27,9 +27,9 @@ const PAGE = (document.body && document.body.dataset && document.body.dataset.pa
 function pageMode(protocol) { return protocol === 'file:' ? 'spa' : 'pages'; }
 const FILE_MODE = pageMode(typeof location !== 'undefined' && location ? location.protocol : '') === 'spa';
 /* 彩蛋（每次硬加载独立随机）：
-   - 50% 显示 pipopa
-   - 1%  显示 📢U咩哇帕瓦📢
-   - 其余 49% 显示 popipa
+   - 49% 显示 pipopa
+   - 2%  显示 📢U咩哇帕瓦📢
+   - 49% 显示 popipa
    ?brand=pipopa / popipa / umewa 可强制，方便演示与测试。 */
 function pickBrand() {
   try {
@@ -41,7 +41,7 @@ function pickBrand() {
   } catch (e) {}
   if (typeof location === 'undefined' || !location) return 'popipa';
   const r = Math.random();
-  if (r < 1 / 100) return '📢U咩哇帕瓦📢';
+  if (r < 2 / 100) return '📢U咩哇帕瓦📢';
   if (r < 0.51) return 'pipopa';
   return 'popipa';
 }
