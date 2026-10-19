@@ -79,7 +79,7 @@ banks.html          题库列表 + 组卷面板（顶栏、#app、Toast）
 server.js           零依赖静态服务器 + /api/state 数据落盘（node server.js）
 quiz.html           做题页（顶栏、#app、分享预览 Dialog、Toast）
 src/tailwind.css    Tailwind 源文件（base / components / utilities）
-tailwind.config.js  暖褐主题、字体、阴影、dark 选择器
+tailwind.config.js  浅墨绿 / Tokyo Night 主题、字体、阴影、dark 选择器
 assets/app.css      Tailwind 编译产物（提交到仓库，运行时不需构建）
 assets/favicon.svg  站点图标
 app.js              全部逻辑（页面路由 / 渲染 / 判分 / 存储 / 同步 / 事件），各页面共用
@@ -152,7 +152,7 @@ vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除
 - **成就**：学习报告最下方 13 个成就（首次答题/交卷、排行榜前 10/5/1、
   5 次每日热身、5 天达成目标、10 轮、100/500 题、单轮全对、10 收藏、
   连续 7 天），解锁时间存 `ach`，之后一直保留。
-- **主题**：浅色与暗色都走暖褐色调；点导航栏的 popipa 回新主页。
+- **主题**：浅色走浅墨绿，暗色走 Tokyo Night；点导航栏的 popipa 回新主页。
 - **再练一遍没做对的**：交卷后出现在结果页，把这一轮「没做对」的题抽出来开新的一轮。
   新一轮是独立记录（新的 session id），原先那一轮的成绩、逐题记录、用时、进度
   都原样保留在 `rounds` 里，数字不会被覆盖。

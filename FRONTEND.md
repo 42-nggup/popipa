@@ -25,7 +25,7 @@
 | 12 | 题型徽章、答题卡、模式切换、结果页、复习卡 | 拆成 Tailwind components |
 | 13 | 移动端适配 | 重做断点，表格/侧边栏更稳 |
 | 14 | 入场 / 交互动画 | 删掉会在同视图重绘时重复播放的区块动画 |
-| 15 | 新主页、侧边栏、题库汇总、学习报告、暖褐主题 | 保留信息架构，整体重绘 |
+| 15 | 新主页、侧边栏、题库汇总、学习报告、主题色 | 保留信息架构，整体重绘 |
 
 页面与主视图：
 
@@ -54,7 +54,7 @@
 
 ```
 src/tailwind.css      Tailwind 源文件（base + components + utilities）
-tailwind.config.js    theme：暖褐配色、字体、阴影、断点、dark 选择器
+tailwind.config.js    theme：浅墨绿 / Tokyo Night 配色、字体、阴影、断点、dark 选择器
 assets/app.css        编译产物（提交到仓库，部署不需要 npm install）
 package.json          仅开发期构建 CSS 用；server.js 仍是零依赖
 ```

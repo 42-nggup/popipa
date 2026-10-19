@@ -43,8 +43,8 @@ module.exports = {
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace']
       },
       boxShadow: {
-        soft: '0 .6rem 1.6rem -1.3rem rgba(90,60,30,.5)',
-        lift: '0 1rem 2.4rem -1.2rem rgba(90,60,30,.38)'
+        soft: '0 .6rem 1.6rem -1.3rem rgba(9, 16, 12, .32)',
+        lift: '0 1rem 2.4rem -1.2rem rgba(9, 16, 12, .42)'
       },
       keyframes: {
         'view-in': {

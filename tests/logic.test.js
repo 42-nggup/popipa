@@ -1104,10 +1104,13 @@ ok('学习报告最下方有我的成绩历史',
    st54.indexOf('我的成绩历史') >= 0 &&
    st54.indexOf('我的成绩历史') > st54.indexOf('ach-grid'));
 
-section('55. 暗色主题也暖色化');
-ok('暗色变量改成棕褐',
-   /:root\[data-theme="dark"\]\s*\{[^}]*--c-paper:\s*30 24 19/.test(cssSrc) &&
-   /:root\[data-theme="dark"\]\s*\{[^}]*--c-brand:\s*208 156 104/.test(cssSrc));
+section('55. 暗色主题 Tokyo Night / 浅色浅墨绿');
+ok('暗色变量使用 Tokyo Night Night 变体',
+   /:root\[data-theme="dark"\]\s*\{[^}]*--c-paper:\s*26 27 38/.test(cssSrc) &&
+   /:root\[data-theme="dark"\]\s*\{[^}]*--c-brand:\s*122 162 247/.test(cssSrc));
+ok('浅色变量去掉棕色，改为浅墨绿',
+   /:root\s*\{[^}]*--c-paper:\s*238 243 238/.test(cssSrc) &&
+   /:root\s*\{[^}]*--c-brand:\s*53 107 84/.test(cssSrc));
 ok('暗色主按钮沿用品牌色变量',
    /\.btn-primary\s*\{[^}]*bg-brand[^}]*text-on-brand/.test(cssSrc));
 

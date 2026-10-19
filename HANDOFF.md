@@ -11,7 +11,7 @@
 > 键盘可达性、同视图重绘动画等问题。迁移盘点见 `FRONTEND.md` 与 `前端重构总结.md`；
 > 下文中所有 Bootstrap / `app.css` 相关描述都按新结构理解：
 > `src/tailwind.css` → `assets/app.css`，Bootstrap Icons / html2canvas 仍在 `vendor/`。
-> 当前测试规模：**logic 273 + server 20 + e2e 29，全绿**。
+> 当前测试规模：**logic 274 + server 20 + e2e 29，全绿**。
 
 ---
 
@@ -43,7 +43,7 @@
   - `node server.js`：真正的多页面（`index.html` / `home.html` / `banks.html` / `quiz.html` …），localStorage 同源共享，自动落盘。
   - 直接双击 `index.html`（`file://`）：浏览器按文件隔离 localStorage，所以 `app.js` 自动退回单页内视图切换；功能可用，但**不会落盘**。
 
-当前测试规模：**logic 273 + server 20 + e2e 29，全绿**。
+当前测试规模：**logic 274 + server 20 + e2e 29，全绿**。
 
 ---
 
@@ -97,7 +97,7 @@ collection.html       错题本 / 收藏集（?type=wrong|fav）
 app.js                全部逻辑：路由 / 渲染 / 判分 / 存储 / 同步 / 事件
 app.data.js           题库（自动生成，勿手改）
 src/tailwind.css      Tailwind 源文件（base / components / utilities）
-tailwind.config.js    暖褐主题、字体、阴影、dark 选择器
+tailwind.config.js    浅墨绿 / Tokyo Night 主题、字体、阴影、dark 选择器
 assets/app.css        Tailwind 编译产物（提交到仓库）
 package.json          仅开发期构建 CSS 用
 server.js             零依赖静态服务器 + /api/state 落盘
@@ -258,7 +258,7 @@ cp vendor/fonts/bootstrap-icons.woff2 dist/vendor/fonts/
 ### 6.2 跑测试
 
 ```bash
-node tests/logic.test.js     # 273 项，纯 Node + DOM 桩
+node tests/logic.test.js     # 274 项，纯 Node + DOM 桩
 node tests/server.test.js    # 20 项，起真实 server.js，临时端口 + 临时数据文件
 node tests/e2e.test.js       # 29 项，真实 Firefox headless + Marionette（需要 firefox）
 ```
@@ -345,7 +345,7 @@ M tests/logic.test.js
 
 | 套件 | 命令 | 结果 | 覆盖 |
 |---|---|---|---|
-| logic | `node tests/logic.test.js` | **273 通过** | 判分、重复提交幂等、组卷、收藏、成绩、成就、同步快照/墓碑/hydrate、viewKey、Tailwind/Dialog/回车登录 |
+| logic | `node tests/logic.test.js` | **274 通过** | 判分、重复提交幂等、组卷、收藏、成绩、成就、同步快照/墓碑/hydrate、viewKey、Tailwind/Dialog/回车登录 |
 | server | `node tests/server.test.js` | **20 通过** | GET/PUT、按 at 合并、墓碑、过滤、重启持久化、坏 JSON、`.bak` 恢复、数据文件 404 |
 | e2e | `node tests/e2e.test.js` | **29 通过** | 真实 Firefox：登录落盘；`banks ↔ setup` 侧边栏节点不重建；提交/切题骨架节点不重建；结果页切标签只换列表；换全新 profile 自动恢复 |
 
