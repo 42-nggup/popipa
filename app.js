@@ -26,6 +26,32 @@ const PAGE = (document.body && document.body.dataset && document.body.dataset.pa
    HTTP 下用 History API 做真正的同文档切换，不再重新加载文档。 */
 function pageMode(protocol) { return protocol === 'file:' ? 'spa' : 'pages'; }
 const FILE_MODE = pageMode(typeof location !== 'undefined' && location ? location.protocol : '') === 'spa';
+/* 彩蛋（每次硬加载独立随机）：
+   - 50% 显示 pipopa
+   - 1%  显示 📢U咩哇帕瓦📢
+   - 其余 49% 显示 popipa
+   ?brand=pipopa / popipa / umewa 可强制，方便演示与测试。 */
+function pickBrand() {
+  try {
+    if (typeof location !== 'undefined' && location && location.search) {
+      const forced = new URLSearchParams(location.search).get('brand');
+      if (forced === 'umewa') return '📢U咩哇帕瓦📢';
+      if (forced === 'pipopa' || forced === 'popipa') return forced;
+    }
+  } catch (e) {}
+  if (typeof location === 'undefined' || !location) return 'popipa';
+  const r = Math.random();
+  if (r < 1 / 100) return '📢U咩哇帕瓦📢';
+  if (r < 0.51) return 'pipopa';
+  return 'popipa';
+}
+const BRAND = pickBrand();
+function applyBrand() {
+  if (typeof document === 'undefined' || !document.querySelectorAll) return;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-brand-name]'), el => {
+    el.textContent = BRAND;
+  });
+}
 function canUseHistory() {
   return !FILE_MODE && typeof history !== 'undefined' &&
     history && typeof history.pushState === 'function' &&
@@ -880,7 +906,7 @@ function updatePageMeta() {
     stats: '学习报告', collection: S.collectionType === 'fav' ? '收藏集' : '错题本'
   }[S.view] || 'popipa';
   if (document.body && document.body.dataset) document.body.dataset.page = page;
-  document.title = 'popipa · ' + title;
+  document.title = BRAND + ' · ' + title;
 }
 
 /* ============ 6. 渲染 ============ */
@@ -1017,7 +1043,7 @@ function renderLogin() {
     '<section class="login-hero">' +
       '<div class="logo-big"><i class="bi bi-lightning-charge-fill"></i></div>' +
       '<p class="eyebrow">POPIPA · PRACTICE</p>' +
-      '<h1 class="login-title">popipa</h1>' +
+      '<h1 class="login-title">' + BRAND + '</h1>' +
       '<p class="login-sub">挑一套题库，答完立刻知道对错，随时看得见自己的进度。</p>' +
     '</section>' +
     '<form class="card login-box" data-act="login-form" novalidate>' +
@@ -2015,7 +2041,7 @@ function shareCardHtml(rec) {
   return '<div class="share-card bg-surface text-ink" style="width:560px">' +
       '<div class="flex items-center gap-2">' +
         '<span class="brand-logo">pi</span>' +
-        '<span class="text-[17px] font-extrabold">popipa</span>' +
+        '<span class="text-[17px] font-extrabold">' + BRAND + '</span>' +
         '<span class="ml-auto text-[12px] text-muted">' + esc(rec.date) + '</span>' +
       '</div>' +
       '<div class="mt-4 flex items-center gap-6">' +
@@ -2974,6 +3000,7 @@ function applyLocation() {
   replacePage('home.html', 'home');
 }
 function boot() {
+  applyBrand();
   initDialogs();
   ensureShell();
   clearLegacy();         /* 清掉被取代的本机键，保持轻量 */

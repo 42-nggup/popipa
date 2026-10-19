@@ -503,6 +503,50 @@ return true;
     ok('切到错题只换列表并更新高亮', resultTabs.changed && resultTabs.active);
     ok('结果页同视图切标签不播放过渡', resultTabs.reduced || resultTabs.entered === false);
 
+    /* 彩蛋：?brand=pipopa 强制走 pipopa，方便稳定验证 */
+    await ffA.client.command('WebDriver:Navigate', { url: base + '/banks.html?brand=pipopa' });
+    const brandEgg = await evalAsync(ffA.client, `
+      const cb = arguments[arguments.length - 1];
+      const deadline = Date.now() + 8000;
+      (function tick() {
+        if (document.querySelector('.bank-card')) {
+          const el = document.querySelector('[data-brand-name]');
+          cb({
+            ok: true,
+            brand: el ? el.textContent : null,
+            title: document.title
+          });
+          return;
+        }
+        if (Date.now() > deadline) { cb({ ok: false, href: location.href }); return; }
+        setTimeout(tick, 25);
+      })();
+    `);
+    ok('彩蛋 ?brand=pipopa 生效',
+       brandEgg.ok && brandEgg.brand === 'pipopa' && brandEgg.title.indexOf('pipopa') === 0);
+
+    await ffA.client.command('WebDriver:Navigate', { url: base + '/banks.html?brand=umewa' });
+    const brandEgg2 = await evalAsync(ffA.client, `
+      const cb = arguments[arguments.length - 1];
+      const deadline = Date.now() + 8000;
+      (function tick() {
+        if (document.querySelector('.bank-card')) {
+          const el = document.querySelector('[data-brand-name]');
+          cb({
+            ok: true,
+            brand: el ? el.textContent : null,
+            title: document.title
+          });
+          return;
+        }
+        if (Date.now() > deadline) { cb({ ok: false, href: location.href }); return; }
+        setTimeout(tick, 25);
+      })();
+    `);
+    ok('彩蛋 ?brand=umewa 生效',
+       brandEgg2.ok && brandEgg2.brand === '📢U咩哇帕瓦📢' &&
+       brandEgg2.title.indexOf('📢U咩哇帕瓦📢') === 0);
+
     try { await ffA.client.command('WebDriver:DeleteSession', {}); } catch (e) {}
     ffA.client.close();
     await stopChild(ffA.child);

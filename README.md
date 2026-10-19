@@ -203,6 +203,24 @@ vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除
   不再整块重建 `#app`；结果页切标签也只替换题目列表。
 - 尊重 `prefers-reduced-motion: reduce`（系统开启减少动态时不做动画）。
 
+## 彩蛋
+
+每次硬加载独立随机：
+
+- **50%** 概率把品牌显示成 `pipopa`
+- **1%** 概率显示成 `📢U咩哇帕瓦📢`
+- 其余 **49%** 显示 `popipa`
+
+影响顶栏品牌、登录页大标题、分享卡品牌和页面标题。调试时可以强制：
+
+```text
+?brand=popipa
+?brand=pipopa
+?brand=umewa
+```
+
+例如 `http://localhost:8000/home.html?brand=umewa`。
+
 ## 已知限制
 
 - 同步粒度是“一个 localStorage key”。同一用户在两个浏览器**同时**答题时，

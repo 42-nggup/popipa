@@ -12,7 +12,7 @@
 > 键盘可达性、同视图重绘动画等问题。迁移盘点见 `FRONTEND.md` 与 `前端重构总结.md`；
 > 下文中所有 Bootstrap / `app.css` 相关描述都按新结构理解：
 > `src/tailwind.css` → `assets/app.css`，Bootstrap Icons / html2canvas 仍在 `vendor/`。
-> 当前测试规模：**logic 276 + server 20 + e2e 32，全绿**。
+> 当前测试规模：**logic 276 + server 20 + e2e 34，全绿**。
 
 ---
 
@@ -46,7 +46,7 @@
   - 直接双击 `index.html`（`file://`）：浏览器按文件隔离 localStorage，`app.js` 退回页内视图切换；
     功能可用，但**不会落盘**，地址栏也不同步。
 
-当前测试规模：**logic 276 + server 20 + e2e 32，全绿**。
+当前测试规模：**logic 276 + server 20 + e2e 34，全绿**。
 
 ---
 
@@ -356,7 +356,7 @@ M tests/logic.test.js
 |---|---|---|---|
 | logic | `node tests/logic.test.js` | **276 通过** | 判分、重复提交幂等、组卷、收藏、成绩、成就、同步快照/墓碑/hydrate、viewKey、Tailwind/Dialog/回车登录 |
 | server | `node tests/server.test.js` | **20 通过** | GET/PUT、按 at 合并、墓碑、过滤、重启持久化、坏 JSON、`.bak` 恢复、数据文件 404 |
-| e2e | `node tests/e2e.test.js` | **32 通过** | 真实 Firefox：登录落盘；`banks ↔ setup` 侧边栏节点不重建；提交/切题骨架节点不重建；结果页切标签只换列表；换全新 profile 自动恢复 |
+| e2e | `node tests/e2e.test.js` | **34 通过** | 真实 Firefox：登录落盘；`banks ↔ setup` 侧边栏节点不重建；提交/切题骨架节点不重建；结果页切标签只换列表；换全新 profile 自动恢复 |
 
 E2E 的可视验证（本轮做过）：
 
