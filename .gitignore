@@ -1,0 +1,7 @@
+# popipa 运行时数据（浏览器数据自动落盘到这里，不要提交）
+data/state.json
+data/state.json.bak
+data/state.json.tmp
+dist/data/state.json
+dist/data/state.json.bak
+dist/data/state.json.tmp

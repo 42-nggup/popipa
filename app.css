@@ -35,6 +35,22 @@ body{
 #whoBox[hidden]{display:none !important}
 .avatar{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:var(--bs-white);
         font-size:12px;font-weight:700;background:linear-gradient(135deg,var(--bs-primary),var(--bs-primary-border-subtle))}
+/* 数据落盘状态：绿=已保存，灰=仅本机，黄=连不上服务器正在重试 */
+.sync-dot{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;
+          color:var(--bs-secondary-color);font-size:.95rem;cursor:default;opacity:.75}
+.sync-dot[data-state="ok"]{color:var(--bs-success);opacity:.9}
+.sync-dot[data-state="saving"]{opacity:.5}
+.sync-dot[data-state="error"]{color:var(--bs-warning);opacity:1}
+
+/* ---------- 2.1 页面切换过渡（只在新视图出现时加，不参与同视图重绘） ---------- */
+@keyframes popipa-view-in{
+  from{opacity:.6;transform:translateY(2px)}
+  to{opacity:1;transform:none}
+}
+.view-enter{animation:popipa-view-in .1s cubic-bezier(.2,.8,.2,1) both}
+@media (prefers-reduced-motion: reduce){
+  .view-enter{animation:none}
+}
 
 /* ---------- 3. 主题开关（#app 外面，所有页面同一位置） ---------- */
 /* 主题开关在 navbar 里，尺寸和旁边的按钮一致 */

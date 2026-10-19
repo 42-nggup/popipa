@@ -174,9 +174,267 @@ const store = {
     try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); }
     catch (e) { return d; }
   },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
-  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  set(k, v) {
+    try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return; }
+    touchSync(k, false);
+  },
+  del(k) {
+    try { localStorage.removeItem(k); } catch (e) { return; }
+    touchSync(k, true);
+  }
 };
+
+/* ---- 4.1 服务端持久化 ----
+   浏览器 localStorage 仍是读写入口（同步 API，页面逻辑不用改），
+   每次写入都会把快照推给本地 server.js，由它落盘到 data/state.json；
+   打开页面时先拉一次，按 key 的写入时间 at 做 last-write-wins 合并。
+   当前登录（popipa:user）和本机主题（popipa:theme）留在各自浏览器，不参与同步；
+   数据文件丢了 / 换浏览器时，其余数据（用户表、进度、错题、收藏、成绩、成就）都会回来。 */
+const SYNC_URL = '/api/state';
+const SYNC_META = 'popipa:sync';   /* 本机元数据：{ at: {key: 毫秒}, dead: {key: 1} } */
+const SYNC_TIPS = {
+  ok: '数据已保存到本机服务器的数据文件',
+  saving: '正在保存到本机服务器…',
+  error: '暂时连不上本机服务器，数据仍在这个浏览器里，稍后自动重试',
+  off: '这个服务器没有数据落盘接口，数据只在这个浏览器里',
+  local: '数据只保存在这个浏览器里；用 node server.js 打开可自动落盘'
+};
+let syncOff = false;   /* 服务器明确不支持接口时，本页不再重试 */
+let pushTimer = null, pushInFlight = false, pushQueued = false, pushRetry = 0;
+
+function isSyncKey(k) {
+  return typeof k === 'string' && k.indexOf('popipa:') === 0 &&
+    k !== KEY.user && k !== KEY.theme && k !== SYNC_META &&
+    k.indexOf('popipa:progress:') !== 0 && k !== 'popipa:records';
+}
+function syncEnabled() {
+  return !syncOff && !FILE_MODE && typeof fetch === 'function' &&
+    typeof location !== 'undefined' && !!location &&
+    (location.protocol === 'http:' || location.protocol === 'https:');
+}
+function readSyncMeta() {
+  try {
+    const v = JSON.parse(localStorage.getItem(SYNC_META) || 'null');
+    if (!v || typeof v !== 'object') return { at: {}, dead: {} };
+    return {
+      at: v.at && typeof v.at === 'object' ? v.at : {},
+      dead: v.dead && typeof v.dead === 'object' ? v.dead : {}
+    };
+  } catch (e) { return { at: {}, dead: {} }; }
+}
+function writeSyncMeta(m) {
+  try { localStorage.setItem(SYNC_META, JSON.stringify(m)); } catch (e) {}
+}
+function rawGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function rawSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+function rawDel(k) { try { localStorage.removeItem(k); return true; } catch (e) { return false; } }
+
+function syncKeys() {
+  const out = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (isSyncKey(k)) out.push(k);
+    }
+  } catch (e) {}
+  return out;
+}
+/* 升级前就存在的键没有时间戳：补一个“现在”，保证本机数据不会被旧的服务器副本盖掉 */
+function ensureSyncTimestamps() {
+  if (!syncEnabled()) return 0;
+  const meta = readSyncMeta();
+  const now = Date.now();
+  let n = 0;
+  syncKeys().forEach(k => {
+    if (!meta.at[k]) { meta.at[k] = now; n++; }
+    if (meta.dead[k]) delete meta.dead[k];
+  });
+  if (n) writeSyncMeta(meta);
+  return n;
+}
+function syncSnapshot() {
+  const meta = readSyncMeta();
+  const keys = {};
+  syncKeys().forEach(k => {
+    const v = rawGet(k);
+    if (v == null) return;
+    keys[k] = { v: v, at: Number(meta.at[k]) || 0 };
+  });
+  /* 删除也要同步：v:null 是墓碑，否则删掉的键会在下次拉取时复活 */
+  Object.keys(meta.dead || {}).forEach(k => {
+    if (!isSyncKey(k) || keys[k]) return;
+    keys[k] = { v: null, at: Number(meta.at[k]) || 0 };
+  });
+  return keys;
+}
+/* 把服务器上的键合并进本机：只接受比本机新的（at 相同算本机赢，避免反复覆盖） */
+function applyRemoteKeys(remote) {
+  const meta = readSyncMeta();
+  let applied = 0;
+  Object.keys(remote || {}).forEach(k => {
+    if (!isSyncKey(k)) return;
+    const e = remote[k];
+    if (!e || typeof e !== 'object') return;
+    const at = Number(e.at) || 0;
+    if (at <= (Number(meta.at[k]) || 0)) return;
+    if (e.v === null) { rawDel(k); meta.dead[k] = 1; }
+    else if (typeof e.v === 'string') {
+      /* 写不进去（配额满 / 隐私模式）就别记时间戳，否则会误以为已经同步过 */
+      if (!rawSet(k, e.v)) return;
+      delete meta.dead[k];
+    }
+    else return;
+    meta.at[k] = at;
+    applied++;
+  });
+  if (applied) writeSyncMeta(meta);
+  return applied;
+}
+function apiFetch(opts) {
+  const opt = Object.assign({ cache: 'no-store' }, opts || {});
+  if (typeof AbortController === 'function' && typeof setTimeout === 'function') {
+    const ac = new AbortController();
+    opt.signal = ac.signal;
+    const timer = setTimeout(() => { try { ac.abort(); } catch (e) {} }, 2000);
+    return fetch(SYNC_URL, opt).then(r => { clearTimeout(timer); return r; },
+      err => { clearTimeout(timer); throw err; });
+  }
+  return fetch(SYNC_URL, opt);
+}
+function syncGet() {
+  return apiFetch({ method: 'GET' }).then(r => {
+    if (!r || !r.ok) { const err = new Error('http ' + (r && r.status)); err.status = r && r.status; throw err; }
+    const ct = r.headers && typeof r.headers.get === 'function'
+      ? (r.headers.get('content-type') || '') : 'application/json';
+    /* 普通静态服务器会把 /api/state 当文件、返回 404 或 HTML：此时退回纯本机模式 */
+    if (ct.indexOf('application/json') < 0) {
+      const err = new Error('not popipa api'); err.status = 404; throw err;
+    }
+    return r.json();
+  });
+}
+function syncPut(keys) {
+  return apiFetch({
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ keys: keys })
+  }).then(r => {
+    if (!r || !r.ok) { const err = new Error('http ' + (r && r.status)); err.status = r && r.status; throw err; }
+    return r.json();
+  });
+}
+/* 打开页面时：先拉、合并、再把合并后的快照推回去（服务端也按 at 合并，幂等） */
+function hydrate() {
+  if (!syncEnabled()) return Promise.resolve({ pulled: 0, pushed: false });
+  ensureSyncTimestamps();
+  return syncGet().then(remote => {
+    const pulled = applyRemoteKeys(remote && remote.keys);
+    return syncPut(syncSnapshot()).then(res => {
+      const more = applyRemoteKeys(res && res.keys);
+      pushRetry = 0;
+      updateSyncDot('ok');
+      return { pulled: pulled + more, pushed: true };
+    }).catch(() => {
+      updateSyncDot('error');
+      return { pulled: pulled, pushed: false };
+    });
+  }).catch(err => {
+    if (err && err.status === 404) { syncOff = true; updateSyncDot('off'); }
+    else updateSyncDot('error');
+    return { pulled: 0, pushed: false, error: err };
+  });
+}
+function schedulePush(delay) {
+  if (!syncEnabled()) return;
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => { pushTimer = null; pushNow(); }, delay == null ? 500 : delay);
+}
+function pushNow() {
+  if (!syncEnabled()) return Promise.resolve(false);
+  if (pushInFlight) { pushQueued = true; return Promise.resolve(false); }
+  if (pushTimer) { clearTimeout(pushTimer); pushTimer = null; }
+  pushInFlight = true;
+  updateSyncDot('saving');
+  return syncPut(syncSnapshot()).then(res => {
+    applyRemoteKeys(res && res.keys);
+    pushRetry = 0;
+    updateSyncDot('ok');
+    return true;
+  }).catch(err => {
+    pushRetry++;
+    if (err && err.status === 404) {
+      syncOff = true;
+      updateSyncDot('off');
+    } else {
+      updateSyncDot('error');
+      if (pushRetry <= 3) schedulePush(Math.min(30000, 1500 * pushRetry));
+    }
+    return false;
+  }).then(ok => {
+    pushInFlight = false;
+    if (pushQueued) { pushQueued = false; schedulePush(100); }
+    return ok;
+  });
+}
+/* 关页面 / 切到后台时补一次；keepalive 有 64KB 限制，超了交给下次进页面补推 */
+function flushSync() {
+  if (!syncEnabled() || pushInFlight || !pushTimer) return;
+  clearTimeout(pushTimer);
+  pushTimer = null;
+  const body = JSON.stringify({ keys: syncSnapshot() });
+  if (body.length > 60000) return;
+  try {
+    fetch(SYNC_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: body,
+      keepalive: true
+    });
+  } catch (e) {}
+}
+function updateSyncDot(state) {
+  if (typeof document === 'undefined' || !document.getElementById) return;
+  let el = document.getElementById('syncDot');
+  const top = document.getElementById('top');
+  const who = document.getElementById('whoBox');
+  if (!el) {
+    if (!top || !who || !who.parentNode ||
+        typeof who.parentNode.insertBefore !== 'function') return;
+    el = document.createElement('span');
+    el.id = 'syncDot';
+    el.className = 'sync-dot';
+    try { who.parentNode.insertBefore(el, who); } catch (e) { return; }
+  }
+  const icon = state === 'ok' ? 'bi-cloud-check'
+    : state === 'saving' ? 'bi-arrow-repeat'
+    : state === 'error' ? 'bi-cloud-slash'
+    : 'bi-hdd';
+  el.dataset.state = state;
+  el.title = SYNC_TIPS[state] || '';
+  if (el.setAttribute) el.setAttribute('aria-label', el.title);
+  el.innerHTML = '<i class="bi ' + icon + '"></i>';
+}
+if (typeof window !== 'undefined' && window && typeof window.addEventListener === 'function') {
+  window.addEventListener('pagehide', flushSync);
+  window.addEventListener('online', () => { if (syncEnabled()) schedulePush(0); });
+}
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener('visibilitychange', () => {
+    if (typeof document.visibilityState === 'undefined') return;
+    if (document.visibilityState === 'hidden') flushSync();
+    else if (syncEnabled() && !pushTimer) schedulePush(0);
+  });
+}
+/* 每次写入只记时间戳并排一次防抖推送；即使当前不能同步（file://）也记，
+   这样离线期间的改动以后按真实时间合并，而不是统一按“现在”算。 */
+function touchSync(k, dead) {
+  if (!isSyncKey(k)) return;
+  const meta = readSyncMeta();
+  meta.at[k] = Date.now();
+  if (dead) meta.dead[k] = 1; else delete meta.dead[k];
+  writeSyncMeta(meta);
+  schedulePush();
+}
 /* 轻量化：清掉已经被取代的本机键。老版的进度是 popipa:progress:<用户>:<题库>，
    旧版"本机记录"是 popipa:records——现在都收进用户表了，留着只会占地方。 */
 function clearLegacy() {
@@ -467,7 +725,12 @@ function applyTheme(t) {
   S.theme = t === 'dark' ? 'dark' : 'light';
   document.documentElement.dataset.bsTheme = S.theme;   /* Bootstrap 认这个属性 */
   store.set(KEY.theme, S.theme);          /* 本机默认值，登录页也用它 */
-  if (S.user) { const u = userOf(S.user); u.theme = S.theme; saveUser(S.user, u); }
+  if (S.user) {
+    const u = userOf(S.user);
+    /* 主题没变就别重写用户表：每次开页面都写一次会把同步时间戳顶新，
+       服务器上别处更新的数据反而会被这份旧副本盖掉 */
+    if (u.theme !== S.theme) { u.theme = S.theme; saveUser(S.user, u); }
+  }
   renderThemeBtn();
 }
 function toggleTheme() {
@@ -558,10 +821,52 @@ function renderThemeBtn() {
 }
 
 /* ============ 6. 渲染 ============ */
+/* 页面切换的判定：视图 + 会改变页面骨架的上下文。
+   同一视图内的重绘（切题、交卷、排序、展开）key 不变，不做过渡。 */
+function viewKey() {
+  const v = S.view || 'login';
+  if (v === 'collection') return v + ':' + (S.collectionType || 'wrong');
+  if (v === 'setup') return v + ':' + (S.bankId || '');
+  if (v === 'quiz' || v === 'result') {
+    return v + ':' + (S.session ? S.session.bankId + ':' + S.session.id : '');
+  }
+  return v;
+}
+let lastViewKey = null;
+let hasPainted = false;
+
 function render() {
   /* 切题会整页重绘，先把答题卡当前的滑动位置记下来，避免每次都从左端重新滑 */
   const qm = document.getElementById('qmap');
   if (qm && !S.qmapOpen && typeof qm.scrollLeft === 'number') S.qmapScroll = qm.scrollLeft;
+
+  const hadShell = !!(app.querySelector && app.querySelector('.home-main'));
+  const key = viewKey();
+  const changed = key !== lastViewKey;
+  const first = !hasPainted;
+  const y = (typeof window !== 'undefined' && window &&
+    (typeof window.scrollY === 'number' ? window.scrollY : window.pageYOffset)) || 0;
+  lastViewKey = key;
+  hasPainted = true;
+
+  renderDispatch();
+
+  /* 同视图重绘保持滚动位置；换视图回到顶部 */
+  if (!first && typeof window !== 'undefined' && window &&
+      typeof window.scrollTo === 'function') {
+    window.scrollTo(0, changed ? 0 : y);
+  }
+  if (changed) {
+    const hasShell = !!(app.querySelector && app.querySelector('.home-main'));
+    /* 骨架没变只淡入主内容（侧边栏不动）；骨架切换时整块过渡 */
+    const target = hadShell && hasShell && app.querySelector
+      ? app.querySelector('.home-main') : app;
+    pulseView(target);
+  }
+}
+
+/* 只做 DOM 分发；过渡和滚动统一在外层 render() 里处理 */
+function renderDispatch() {
   renderThemeBtn();
   if (S.view === 'login' || !S.user) return renderLogin();
   topbar.hidden = false;
@@ -576,6 +881,29 @@ function render() {
   if (S.view === 'setup') return renderSetup();
   if (S.view === 'quiz') return renderQuiz();
   if (S.view === 'result') return renderResult();
+}
+
+/* 视图切换的进入过渡：只加一个 class，让 CSS 做 100ms 淡入 + 轻微上移。
+   同视图重绘不会调用这里，所以提交 / 切题不会闪。 */
+function pulseView(el) {
+  if (!el || !el.classList) return;
+  if (typeof window === 'undefined' || !window ||
+      typeof window.requestAnimationFrame !== 'function') return;
+  if (typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  el.classList.remove('view-enter');
+  if (typeof el.offsetWidth === 'number') void el.offsetWidth;   /* 强制重排，动画才能重放 */
+  el.classList.add('view-enter');
+  /* 快速连续切页时，只让最后一次的清理生效 */
+  const seq = (el.__viewSeq = (el.__viewSeq || 0) + 1);
+  const done = () => {
+    if (el.__viewSeq !== seq) return;
+    if (el.classList) el.classList.remove('view-enter');
+  };
+  if (typeof el.addEventListener === 'function') {
+    el.addEventListener('animationend', done, { once: true });
+  }
+  if (typeof setTimeout === 'function') setTimeout(done, 220);
 }
 
 /* ---- 6.1 登录主页 ---- */
@@ -996,16 +1324,56 @@ function resumeSession() {
 }
 
 /* ---- 6.5 答题界面 ---- */
-function renderQuiz() {
-  const s = S.session;
-  if (!s) { S.view = 'banks'; return render(); }
-  const st = stats(s);
+/* ---- 6.5 答题界面 ----
+   答题页用常驻的 #quizRoot：切题只换题卡和状态条，提交只改选项 + 插反馈，
+   不再每次把整个 #app 重建成新字符串——整页重绘正是闪烁的来源。 */
+function quizBarHtml(s, st) {
+  st = st || stats(s);
+  return '<span class="stat">第 <b>' + (s.idx + 1) + '</b> / ' + s.order.length + ' 题</span>' +
+    '<span class="stat"><i class="dot" style="background:var(--bs-secondary-bg)"></i>已答 <b>' + st.answered + '</b></span>' +
+    '<span class="stat"><i class="dot" style="background:var(--bs-success)"></i>答对 <b>' + st.correct + '</b></span>' +
+    '<span class="stat"><i class="dot" style="background:var(--bs-danger)"></i>答错 <b>' + st.wrong + '</b></span>' +
+    '<span class="stat">正确率 <b>' + st.rate + '%</b></span>' +
+    '<span class="stat" style="margin-left:auto"><i class="bi bi-stopwatch me-1"></i><b id="elapsed">0 秒</b></span>';
+}
+function quizProgressHtml(st) {
+  return '<div class="progress mb-3" style="height:6px" role="progressbar" aria-label="答题进度" id="quizProgress">' +
+    '<div class="progress-bar" style="width:' + (st.total ? st.answered / st.total * 100 : 0) + '%"></div></div>';
+}
+/* 判题反馈（答题页与结果页共用 answerText / pickedText） */
+function quizTipHtml(q, s, qid) {
+  if (!s.submitted[qid]) return '';
+  const picked = s.answers[qid];
+  const ok = isCorrect(q, picked);
+  const counting = autoJump && autoJump.qid === qid;   // 只有刚提交、且还有下一题时才有倒计时
+  return '<div class="alert ' + (ok ? 'alert-success' : 'alert-danger') + ' mt-3">' +
+    '<div class="fw-bold">' + (ok ? '<i class="bi bi-check-circle-fill me-1"></i>答对了' : '<i class="bi bi-x-circle-fill me-1"></i>答错了') + '</div>' +
+    (ok ? '' : '<div>正确答案：' + esc(answerText(q).replace(/\s+/g, ' ').trim()) + '</div>') +
+    '<div class="small">你的答案：' + esc(pickedText(q, picked)) + '</div>' +
+    (q.analysis ? '<div class="ana">解析：' + fmt(q.analysis) + '</div>' : '') +
+    (counting ? '<div class="autojump"><i class="bi bi-hourglass-split me-1"></i><b id="autojump">' + autoJump.sec + '</b> 秒后自动进入下一题' +
+      '<button class="btn btn-sm btn-outline-secondary" data-act="cancel-auto">取消跳转</button></div>' : '') +
+    '</div>';
+}
+function quizActionsHtml(s, done) {
+  const isLast = s.idx === s.order.length - 1;
+  const isFirst = s.idx === 0;
+  return (done
+    ? '<button class="btn btn-outline-secondary" data-act="redo">重做本题</button>'
+    : '<button class="btn btn-primary flex-grow-1" data-act="submit">提交答案</button>') +
+    '<button class="btn btn-outline-secondary" data-act="prev" ' + (isFirst ? 'disabled' : '') + '>上一题</button>' +
+    (isLast
+      /* 最后一题没有下一题：只留一个「交卷」，放在下一题的位置；不再重复放两个交卷按钮 */
+      ? '<button class="btn btn-primary" data-act="finish">交卷</button>'
+      : '<button class="btn btn-outline-secondary" data-act="next">下一题</button>' +
+        '<button class="btn btn-outline-secondary" data-act="finish">交卷</button>');
+}
+function quizCardHtml(s) {
   const qid = s.order[s.idx];
   const q = QMAP[qid];
   const t = TYPE_LABEL[q.type];
   const done = !!s.submitted[qid];
   const picked = s.answers[qid];
-  const ok = done && isCorrect(q, picked);
 
   /* 题干 + 作答区 */
   let body = '';
@@ -1029,97 +1397,145 @@ function renderQuiz() {
     }).join('');
   }
 
-  /* 判题反馈（答题页与结果页共用 answerText / pickedText） */
-  let tip = '';
-  if (done) {
-    const counting = autoJump && autoJump.qid === qid;   // 只有刚提交、且还有下一题时才有倒计时
-    tip = '<div class="alert ' + (ok ? 'alert-success' : 'alert-danger') + ' mt-3">' +
-      '<div class="fw-bold">' + (ok ? '<i class="bi bi-check-circle-fill me-1"></i>答对了' : '<i class="bi bi-x-circle-fill me-1"></i>答错了') + '</div>' +
-      (ok ? '' : '<div>正确答案：' + esc(answerText(q).replace(/\s+/g, ' ').trim()) + '</div>') +
-      '<div class="small">你的答案：' + esc(pickedText(q, picked)) + '</div>' +
-      (q.analysis ? '<div class="ana">解析：' + fmt(q.analysis) + '</div>' : '') +
-      (counting ? '<div class="autojump"><i class="bi bi-hourglass-split me-1"></i><b id="autojump">' + autoJump.sec + '</b> 秒后自动进入下一题' +
-        '<button class="btn btn-sm btn-outline-secondary" data-act="cancel-auto">取消跳转</button></div>' : '') +
-      '</div>';
-  }
-
-  /* 答题卡：同一局且题数没变就复用已有节点——切题不重建格子，滚动位置也不丢 */
-  let reuseMap = document.getElementById('qmap');
-  if (reuseMap && (!reuseMap.children || reuseMap.children.length !== s.order.length ||
-      reuseMap.dataset.session !== String(s.id))) reuseMap = null;
-  if (reuseMap && reuseMap.parentNode) reuseMap.parentNode.removeChild(reuseMap);
-
-  const nav = reuseMap ? '' : s.order.map((id, i) => {
+  return '<div class="qhead">' +
+      '<span class="badge ' + t.cls + '">' + t.text + '</span>' +
+      '<span class="qno">' + esc(QPOS[qid].chapterName) + '</span>' +
+      '<button class="fav ' + (isFav(S.user, qid) ? 'on' : '') + '" data-act="fav" title="收藏本题"' +
+        ' aria-pressed="' + (isFav(S.user, qid) ? 'true' : 'false') + '">' +
+        (isFav(S.user, qid) ? '<i class="bi bi-star-fill"></i>' : '<i class="bi bi-star"></i>') + '</button>' +
+    '</div>' +
+    '<h2 class="stem">' + fmt(q.stem) + '</h2>' +
+    body + quizTipHtml(q, s, qid) +
+    '<div class="q-actions d-flex flex-wrap gap-2 mt-3">' + quizActionsHtml(s, done) + '</div>';
+}
+function quizMapHtml(s) {
+  return s.order.map((id, i) => {
     const d = !!s.submitted[id];
     const c = d ? (isCorrect(QMAP[id], s.answers[id]) ? 'ok' : 'no') : '';
     return '<b class="' + c + (i === s.idx ? ' cur' : '') + '" data-act="jump" data-i="' + i + '">' +
       (i + 1) + '</b>';
   }).join('');
-
-  const isLast = s.idx === s.order.length - 1;
-  const isFirst = s.idx === 0;
-
-  app.innerHTML =
-    '<div class="qbar">' +
-      '<span class="stat">第 <b>' + (s.idx + 1) + '</b> / ' + s.order.length + ' 题</span>' +
-      '<span class="stat"><i class="dot" style="background:var(--bs-secondary-bg)"></i>已答 <b>' + st.answered + '</b></span>' +
-      '<span class="stat"><i class="dot" style="background:var(--bs-success)"></i>答对 <b>' + st.correct + '</b></span>' +
-      '<span class="stat"><i class="dot" style="background:var(--bs-danger)"></i>答错 <b>' + st.wrong + '</b></span>' +
-      '<span class="stat">正确率 <b>' + st.rate + '%</b></span>' +
-      '<span class="stat" style="margin-left:auto"><i class="bi bi-stopwatch me-1"></i><b id="elapsed">0 秒</b></span>' +
-    '</div>' +
-    '<div class="progress mb-3" style="height:6px" role="progressbar" aria-label="答题进度">' +
-      '<div class="progress-bar" style="width:' + (st.answered / st.total * 100) + '%"></div></div>' +
-    '<div class="card qcard">' +
-      '<div class="qhead">' +
-        '<span class="badge ' + t.cls + '">' + t.text + '</span>' +
-        '<span class="qno">' + esc(QPOS[qid].chapterName) + '</span>' +
-        '<button class="fav ' + (isFav(S.user, qid) ? 'on' : '') + '" data-act="fav" title="收藏本题"' +
-          ' aria-pressed="' + (isFav(S.user, qid) ? 'true' : 'false') + '">' +
-          (isFav(S.user, qid) ? '<i class="bi bi-star-fill"></i>' : '<i class="bi bi-star"></i>') + '</button>' +
-      '</div>' +
-      '<h2 class="stem">' + fmt(q.stem) + '</h2>' +
-      body + tip +
-      '<div class="d-flex flex-wrap gap-2 mt-3">' +
-        (done
-          ? '<button class="btn btn-outline-secondary" data-act="redo">重做本题</button>'
-          : '<button class="btn btn-primary flex-grow-1" data-act="submit">提交答案</button>') +
-        '<button class="btn btn-outline-secondary" data-act="prev" ' + (isFirst ? 'disabled' : '') + '>上一题</button>' +
-        (isLast
-          /* 最后一题没有下一题：只留一个「交卷」，放在下一题的位置；不再重复放两个交卷按钮 */
-          ? '<button class="btn btn-primary" data-act="finish">交卷</button>'
-          : '<button class="btn btn-outline-secondary" data-act="next">下一题</button>' +
-            '<button class="btn btn-outline-secondary" data-act="finish">交卷</button>') +
-      '</div>' +
-    '</div>' +
-    '<div class="qmap-wrap' + (S.qmapOpen ? ' open' : '') + '">' +
-      '<div class="qmap' + (S.qmapOpen ? ' open' : '') + '" id="qmap" data-session="' + esc(s.id) + '">' +
-        nav + '</div>' +
-      '<button class="qmap-expand" type="button" data-act="qmap-toggle"' +
-        ' aria-expanded="' + (S.qmapOpen ? 'true' : 'false') + '"' +
-        ' title="' + (S.qmapOpen ? '收起答题卡' : '展开答题卡') + '"' +
-        ' aria-label="' + (S.qmapOpen ? '收起答题卡' : '展开答题卡') + '">' +
-        '<i class="bi ' + (S.qmapOpen ? 'bi-chevron-up' : 'bi-chevron-down') + '"></i></button>' +
-    '</div>' +
-    '<div class="kbdhint">快捷键：<span class="kbd">←</span> <span class="kbd">→</span> 切题 · ' +
-      '<span class="kbd">1</span>~<span class="kbd">4</span> 选项 · ' +
-      '<span class="kbd">Enter</span> 提交 · <span class="kbd">F</span> 收藏</div>';
-  /* 复用的节点重新插回去，只更新每个格子的状态类（结构不动） */
-  if (reuseMap) {
-    const slot = document.getElementById('qmap');
-    if (slot && slot.parentNode) {
-      reuseMap.className = 'qmap' + (S.qmapOpen ? ' open' : '');
-      reuseMap.dataset.session = String(s.id);
-      const kids = reuseMap.children;
-      for (let i = 0; i < kids.length; i++) {
-        const qid2 = s.order[i];
-        kids[i].className = (s.submitted[qid2]
-          ? (isCorrect(QMAP[qid2], s.answers[qid2]) ? 'ok' : 'no') : '') +
-          (i === s.idx ? ' cur' : '');
-      }
-      slot.parentNode.replaceChild(reuseMap, slot);
-    }
+}
+function quizMapWrapHtml(s) {
+  return '<div class="qmap-wrap' + (S.qmapOpen ? ' open' : '') + '" id="quizMapWrap">' +
+    '<div class="qmap' + (S.qmapOpen ? ' open' : '') + '" id="qmap" data-session="' + esc(s.id) + '">' +
+      quizMapHtml(s) + '</div>' +
+    '<button class="qmap-expand" type="button" data-act="qmap-toggle"' +
+      ' aria-expanded="' + (S.qmapOpen ? 'true' : 'false') + '"' +
+      ' title="' + (S.qmapOpen ? '收起答题卡' : '展开答题卡') + '"' +
+      ' aria-label="' + (S.qmapOpen ? '收起答题卡' : '展开答题卡') + '">' +
+      '<i class="bi ' + (S.qmapOpen ? 'bi-chevron-up' : 'bi-chevron-down') + '"></i></button>' +
+  '</div>';
+}
+/* 状态条 / 进度 / 答题卡格子：切题和提交都只更新这几处 */
+function patchQuizBar(st) {
+  const s = S.session;
+  if (!s) return;
+  st = st || stats(s);
+  const bar = document.getElementById('quizBar');
+  if (bar) bar.innerHTML = quizBarHtml(s, st);
+  const prog = document.getElementById('quizProgress');
+  const p = prog && prog.querySelector ? prog.querySelector('.progress-bar') : null;
+  if (p && p.style) p.style.width = (st.total ? st.answered / st.total * 100 : 0) + '%';
+}
+function patchQuizMap() {
+  const s = S.session;
+  const box = document.getElementById('qmap');
+  if (!s || !box || !box.children || box.children.length !== s.order.length) return;
+  for (let i = 0; i < box.children.length; i++) {
+    const qid = s.order[i];
+    const d = !!s.submitted[qid];
+    box.children[i].className = (d ? (isCorrect(QMAP[qid], s.answers[qid]) ? 'ok' : 'no') : '') +
+      (i === s.idx ? ' cur' : '');
   }
+}
+/* 切题：保留答题页骨架，只换状态条 / 题卡 / 格子 */
+function patchQuiz(s) {
+  const st = stats(s);
+  patchQuizBar(st);
+  const card = document.getElementById('quizCard');
+  if (card) card.innerHTML = quizCardHtml(s);
+  const wrap = document.getElementById('quizMapWrap');
+  if (wrap) wrap.className = 'qmap-wrap' + (S.qmapOpen ? ' open' : '');
+  const box = document.getElementById('qmap');
+  if (box) {
+    box.className = 'qmap' + (S.qmapOpen ? ' open' : '');
+    box.dataset.session = String(s.id);
+  }
+  patchQuizMap();
+  restoreQmapScroll();
+  scrollNavToCurrent();
+  tickTimer();
+}
+/* 提交：连题卡都不重建，只锁选项、插反馈、换按钮 */
+function patchQuizAnswered() {
+  const s = S.session;
+  if (!s) return false;
+  const qid = s.order[s.idx];
+  const q = QMAP[qid];
+  if (!q) return false;
+  const card = document.getElementById('quizCard');
+  const actions = card && card.querySelector ? card.querySelector('.q-actions') : null;
+  if (!card || !actions) return false;
+
+  if (q.type === 'fill') {
+    const fill = document.getElementById('fill');
+    if (!fill) return false;
+    if (fill.classList) fill.classList.add('locked');
+    fill.disabled = true;
+  } else {
+    const opts = card.querySelectorAll ? card.querySelectorAll('.opt[data-act="pick"]') : null;
+    if (!opts || !opts.length) return false;
+    Array.prototype.forEach.call(opts, el => {
+      const k = el.dataset.key;
+      const sel = Array.isArray(s.answers[qid]) && s.answers[qid].indexOf(k) >= 0;
+      let cls = 'opt';
+      if (q.answer.indexOf(k) >= 0) cls += ' ok';
+      else if (sel) cls += ' no';
+      cls += ' locked';
+      el.className = cls;
+    });
+  }
+
+  /* 判题反馈插在按钮组前面（只在第一次提交时会出现） */
+  const old = card.querySelector('.quiz-tip');
+  if (old && old.parentNode) old.parentNode.removeChild(old);
+  const tip = document.createElement('div');
+  tip.className = 'quiz-tip';
+  tip.innerHTML = quizTipHtml(q, s, qid);
+  card.insertBefore(tip, actions);
+  actions.innerHTML = quizActionsHtml(s, true);
+
+  const st = stats(s);
+  patchQuizBar(st);
+  patchQuizMap();
+  tickTimer();
+  return true;
+}
+function renderQuiz() {
+  const s = S.session;
+  if (!s) { S.view = 'banks'; return render(); }
+
+  /* 同一局：只打补丁，不重建整个页面 */
+  const root = document.getElementById('quizRoot');
+  if (root && root.parentNode && root.dataset &&
+      root.dataset.session === String(s.id) &&
+      document.getElementById('quizCard') && document.getElementById('qmap')) {
+    patchQuiz(s);
+    return;
+  }
+
+  const st = stats(s);
+  app.innerHTML =
+    '<div id="quizRoot" data-session="' + esc(s.id) + '">' +
+      '<div class="qbar" id="quizBar">' + quizBarHtml(s, st) + '</div>' +
+      quizProgressHtml(st) +
+      '<div class="card qcard" id="quizCard">' + quizCardHtml(s) + '</div>' +
+      quizMapWrapHtml(s) +
+      '<div class="kbdhint">快捷键：<span class="kbd">←</span> <span class="kbd">→</span> 切题 · ' +
+        '<span class="kbd">1</span>~<span class="kbd">4</span> 选项 · ' +
+        '<span class="kbd">Enter</span> 提交 · <span class="kbd">F</span> 收藏</div>' +
+    '</div>';
   restoreQmapScroll();
   scrollNavToCurrent();
   tickTimer();
@@ -1198,7 +1614,10 @@ function submitCurrent(arm) {
   s.submitted[qid] = true;
   if (arm === false) autoJump = null; else armAuto();
   saveProgress();
-  render();
+  /* 只改本题的选项 / 反馈 / 状态条；DOM 不完整（或测试桩）时才退回整页重绘 */
+  let patched = false;
+  try { patched = patchQuizAnswered(); } catch (e) { patched = false; }
+  if (!patched) render();
   return true;
 }
 function redoCurrent() {
@@ -1333,26 +1752,8 @@ function finish() {
 }
 
 /* ---- 6.7 结果 / 分数统计界面 ---- */
-function renderResult() {
-  const s = S.session;
-  if (!s) { S.view = 'banks'; return render(); }
-  const st = stats(s);
-  const used = (s.finishedAt || Date.now()) - s.startedAt;
-  const tone = st.rate >= 80 ? 'success' : st.rate >= 60 ? 'warning' : 'danger';
-  const color = 'var(--bs-' + tone + ')';          /* 环形图用实心色 */
-  const toneText = 'var(--bs-' + tone + '-text-emphasis)';    /* 数字用文字色，深色下才够亮 */
-  const deg = Math.round(st.rate * 3.6);
-  const verdict = st.rate >= 80 ? '很稳，继续保持！' : st.rate >= 60 ? '及格线以上，再刷一遍更稳。' : '基础还需巩固，建议专攻错题。';
-
-  const tabs = [
-    ['all', '全部 ' + st.total],
-    ['wrong', '错题 ' + st.wrong],
-    ['unanswered', '未作答 ' + st.unanswered],
-    ['fav', '收藏 ' + st.fav]
-  ].map(([k, label]) =>
-    '<li class="nav-item"><button class="nav-link ' + (S.reviewTab === k ? 'active' : '') + '" data-act="tab" data-tab="' + k + '">' +
-    label + '</button></li>').join('');
-
+/* 当前标签下的逐题列表；切标签时只替换这一块，不重建整页 */
+function resultListHtml(s) {
   const ids = s.order.filter(qid => {
     if (S.reviewTab === 'wrong') return s.submitted[qid] && !isCorrect(QMAP[qid], s.answers[qid]);
     if (S.reviewTab === 'unanswered') return !s.submitted[qid];
@@ -1360,7 +1761,7 @@ function renderResult() {
     return true;
   });
 
-  const list = ids.length ? ids.map(qid => {
+  return ids.length ? ids.map(qid => {
     const q = QMAP[qid];
     const n = s.order.indexOf(qid) + 1;
     const done = !!s.submitted[qid];
@@ -1385,6 +1786,41 @@ function renderResult() {
         (q.analysis ? '<div class="line" style="margin-top:6px">解析：' + fmt(q.analysis) + '</div>' : '') +
       '</div></div>';
   }).join('') : '<div class="card empty"><div class="e-ico"><i class="bi bi-emoji-smile"></i></div>这个分类下没有题目</div>';
+}
+/* 结果页切标签：只换列表 + 高亮，不重绘头部和分数卡 */
+function refreshResultTab() {
+  const s = S.session;
+  if (!s) return false;
+  const tabs = document.getElementById('resultTabs');
+  const list = document.getElementById('resultList');
+  if (!tabs || !list || !tabs.querySelectorAll) return false;
+  Array.prototype.forEach.call(tabs.querySelectorAll('[data-act="tab"]'), b => {
+    if (b.classList) b.classList.toggle('active', b.dataset.tab === S.reviewTab);
+  });
+  list.innerHTML = resultListHtml(s);
+  return true;
+}
+function renderResult() {
+  const s = S.session;
+  if (!s) { S.view = 'banks'; return render(); }
+  const st = stats(s);
+  const used = (s.finishedAt || Date.now()) - s.startedAt;
+  const tone = st.rate >= 80 ? 'success' : st.rate >= 60 ? 'warning' : 'danger';
+  const color = 'var(--bs-' + tone + ')';          /* 环形图用实心色 */
+  const toneText = 'var(--bs-' + tone + '-text-emphasis)';    /* 数字用文字色，深色下才够亮 */
+  const deg = Math.round(st.rate * 3.6);
+  const verdict = st.rate >= 80 ? '很稳，继续保持！' : st.rate >= 60 ? '及格线以上，再刷一遍更稳。' : '基础还需巩固，建议专攻错题。';
+
+  const tabs = [
+    ['all', '全部 ' + st.total],
+    ['wrong', '错题 ' + st.wrong],
+    ['unanswered', '未作答 ' + st.unanswered],
+    ['fav', '收藏 ' + st.fav]
+  ].map(([k, label]) =>
+    '<li class="nav-item"><button class="nav-link ' + (S.reviewTab === k ? 'active' : '') + '" data-act="tab" data-tab="' + k + '">' +
+    label + '</button></li>').join('');
+
+  const list = resultListHtml(s);
 
   app.innerHTML =
     '<h1>答题结果<span class="sub">' + esc(s.bankName) + ' · ' + esc(s.mode === 'random' ? '随机顺序' : '顺序作答') + '</span></h1>' +
@@ -1416,8 +1852,8 @@ function renderResult() {
       '<div class="card num c-mut"><div class="v">' + st.unanswered + '</div><div class="l">未作答</div></div>' +
       '<div class="card num"><div class="v">' + st.fav + '</div><div class="l">收藏</div></div>' +
     '</div>' +
-    '<ul class="nav nav-pills gap-1 my-4">' + tabs + '</ul>' +
-    list;
+    '<ul class="nav nav-pills gap-1 my-4" id="resultTabs">' + tabs + '</ul>' +
+    '<div id="resultList">' + list + '</div>';
 }
 function retryWrong() {
   const s = S.session;
@@ -1665,7 +2101,12 @@ document.addEventListener('click', function (e) {
     case 'jump': jump(Number(el.dataset.i)); break;
     case 'cancel-auto': autoJump = null; render(); toast('已取消自动跳转'); break;
     case 'finish': submitAndFinish(); break;
-    case 'tab': S.reviewTab = el.dataset.tab; S.reviewOpen = {}; render(); break;
+    case 'tab':
+      S.reviewTab = el.dataset.tab;
+      S.reviewOpen = {};
+      /* 结果页切标签只换列表和高亮，不重建整页 */
+      if (!refreshResultTab()) render();
+      break;
     case 'toggle-rev': {
       const qid = el.dataset.qid;
       if (S.reviewOpen[qid]) delete S.reviewOpen[qid]; else S.reviewOpen[qid] = true;
@@ -1943,9 +2384,12 @@ function sideBar(active) {
   const wrongN = wrongIds(S.user).length, favN = favIds(S.user).length;
   const item = (key, view, href, icon, label, n, extra) =>
     '<a class="side-link' + (active === key ? ' active' : '') + '" href="' + href +
-      '" data-act="nav" data-view="' + view + '"' + (extra || '') + '>' +
+      '" data-act="nav" data-view="' + view + '" data-nav="' + key + '"' +
+      (active === key ? ' aria-current="page"' : '') + (extra || '') + '>' +
       '<i class="bi ' + icon + '"></i><span>' + label + '</span>' +
-      (n != null ? '<span class="side-n">' + n + '</span>' : '') + '</a>';
+      (n != null ? '<span class="side-n"' +
+        (key === 'wrong' || key === 'fav' ? ' data-count="' + key + '"' : '') + '>' + n + '</span>' : '') +
+      '</a>';
   return '<aside class="side">' +
     '<div class="side-brand"><span class="brand-logo">pi</span><span>popipa</span></div>' +
     '<nav class="side-nav">' +
@@ -1963,9 +2407,33 @@ function sideBar(active) {
     '</div>' +
   '</aside>';
 }
+/* 侧边栏只建一次：页面内切换时更新高亮 / 计数，不重建节点，
+   否则每次换页侧边栏都会消失再出现，看起来就是闪一下。 */
+function refreshSideBar(active) {
+  if (!app.querySelectorAll) return;
+  Array.prototype.forEach.call(app.querySelectorAll('.side-link'), a => {
+    const on = a.dataset && a.dataset.nav === active;
+    if (a.classList) a.classList.toggle('active', on);
+    if (on && a.setAttribute) a.setAttribute('aria-current', 'page');
+    else if (a.removeAttribute) a.removeAttribute('aria-current');
+  });
+  const wrong = app.querySelector('[data-count="wrong"]');
+  if (wrong) wrong.textContent = String(wrongIds(S.user).length);
+  const fav = app.querySelector('[data-count="fav"]');
+  if (fav) fav.textContent = String(favIds(S.user).length);
+}
 function pageShell(active, main) {
-  app.innerHTML = '<div class="home-wrap">' + sideBar(active) +
-    '<div class="home-main">' + main + '</div></div>';
+  const wrap = app.querySelector ? app.querySelector('.home-wrap') : null;
+  const mainEl = wrap && wrap.querySelector ? wrap.querySelector('.home-main') : null;
+  if (!mainEl) {
+    /* 第一次进带侧边栏的页面（或从登录 / 做题页回来）：建整壳 */
+    app.innerHTML = '<div class="home-wrap">' + sideBar(active) +
+      '<div class="home-main">' + main + '</div></div>';
+    return;
+  }
+  /* 页面内切换：保留侧边栏和滚动位置，只替换主区 */
+  refreshSideBar(active);
+  mainEl.innerHTML = main;
 }
 
 /* ---- 8.1 学习概览 ---- */
@@ -2269,10 +2737,9 @@ function renderStats() {
 }
 
 /* ============ 8. 启动 ============ */
-function boot() {
-  clearLegacy();         /* 清掉被取代的本机键，保持轻量 */
-  migrateUsers();        /* 旧用户表里的业务字段搬进每用户自己的表 */
-  applyTheme(theme());   /* 页面一加载就把主题定下来，避免闪一下浅色 */
+/* 先把“从服务器恢复”跑完再渲染：这样清过缓存的浏览器打开时，
+   看到的就是恢复后的进度 / 错题 / 成绩，而不是空页面 */
+function bootViews() {
   if (PAGE === 'login') { S.view = 'login'; render(); return; }
   if (!S.user) {
     if (FILE_MODE) { try { location.replace('index.html'); } catch (e) {} return; }
@@ -2318,5 +2785,27 @@ function boot() {
     S.view = 'quiz';
     render();
   }
+}
+function boot() {
+  clearLegacy();         /* 清掉被取代的本机键，保持轻量 */
+  if (!syncEnabled()) {
+    migrateUsers();        /* 旧用户表里的业务字段搬进每用户自己的表 */
+    applyTheme(theme());   /* 页面一加载就把主题定下来，避免闪一下浅色 */
+    updateSyncDot('local');
+    bootViews();
+    return;
+  }
+  updateSyncDot('saving');
+  hydrate().then(res => {
+    migrateUsers();
+    applyTheme(theme());
+    bootViews();
+    if (res && res.pulled) toast('已从本机服务器恢复 ' + res.pulled + ' 项数据');
+  }).catch(() => {
+    /* 服务器临时不可用也照常进入：先用本机数据，写入时会自动重试推送 */
+    migrateUsers();
+    applyTheme(theme());
+    bootViews();
+  });
 }
 boot();

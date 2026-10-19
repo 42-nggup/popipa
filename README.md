@@ -1,22 +1,37 @@
 # popipa · 在线刷题
 
-一个纯前端刷题页面：登录 → 选题库 → 组卷 → 答题 → 交卷看结果。
+一个刷题页面：登录 → 选题库 → 组卷 → 答题 → 交卷看结果。
 数据来自 `data/raw/*.md`，由 `scripts/parse-banks.js` 解析成 `app.data.js`；
 样式基于 Bootstrap 5.3（本地 vendor，无构建步骤）。
+附带一个零依赖的本地服务器：除了提供页面，还会把浏览器里的数据自动落盘，
+清缓存 / 换浏览器后打开就能恢复。
+
+> 换设备 / 交接开发：先读 [HANDOFF.md](HANDOFF.md)；本轮对话与决策见 [CONVERSATION.md](CONVERSATION.md)。
 
 ## 运行
 
-推荐用本地服务器打开（多页面之间共享 localStorage）：
+推荐用本地服务器打开（多页面共享 localStorage，数据自动落盘）：
 
 ```bash
-node server.js          # 默认 8000 端口
+node server.js          # 默认 8000 端口，只监听 127.0.0.1
 # 打开 http://localhost:8000/
+```
+
+数据默认存到 `data/state.json`，每次改动后自动保存。换端口 / 换数据文件：
+
+```bash
+node server.js 8080                     # 换端口
+PORT=8080 node server.js                # 同上
+POPIPA_STATE=/path/to/state.json node server.js   # 换数据文件
+HOST=0.0.0.0 node server.js             # 允许局域网访问（接口也会暴露，慎用）
 ```
 
 也可以直接双击 `index.html`。但浏览器在 `file://` 下会**按文件隔离
 localStorage**（登录态传不到下一个 HTML），所以此时 `app.js` 会自动退回
-“单页内视图切换”：功能完整，只是地址栏不会变成 `banks.html` / `quiz.html`。
-想要真正的三页跳转，请用 `node server.js` 或任意静态服务器。
+“单页内视图切换”：功能完整，只是地址栏不会变成 `banks.html` / `quiz.html`，
+而且**不会落盘**（顶栏会显示灰色的“仅本机”图标）。想要三页跳转和自动持久化，
+请用 `node server.js`。用其他静态服务器打开时，页面仍可用，但检测不到
+`/api/state` 就自动退回纯 localStorage 模式。
 
 ```
 index.html       登录页
@@ -33,7 +48,9 @@ HTTP 模式下做题页地址需要带 `?bank=<题库 id>`（从主界面点「�
 测试：
 
 ```bash
-node tests/logic.test.js
+node tests/logic.test.js    # 逻辑自测（Node + DOM 桩）
+node tests/server.test.js   # 起真的 server.js，测 /api/state 读写与落盘
+node tests/e2e.test.js      # 真实 Firefox：登录 → 落盘 → 换 profile 自动恢复
 ```
 
 ## 目录
@@ -45,23 +62,27 @@ summary.html        题库汇总
 stats.html          学习报告（曲线、排行榜、同意弹窗）
 collection.html     错题本 / 收藏集
 banks.html          题库列表 + 组卷面板（顶栏、#app、Toast）
-server.js           零依赖静态服务器（多页面模式用，node server.js）
+server.js           零依赖静态服务器 + /api/state 数据落盘（node server.js）
 quiz.html           做题页（顶栏、#app、分享预览 Modal、Toast）
 app.css             自定义样式（颜色全部走 Bootstrap 变量，圆角用 --bs-border-radius*）
-app.js              全部逻辑（页面路由 / 渲染 / 判分 / 存储 / 事件），三个页面共用
+app.js              全部逻辑（页面路由 / 渲染 / 判分 / 存储 / 同步 / 事件），各页面共用
 app.data.js         题库（自动生成，勿手改）
-data/               题库源文件与解析产物
+data/               题库源文件与解析产物；运行时数据在 data/state.json（已 gitignore）
 scripts/            Markdown → JSON 的解析脚本
 tests/logic.test.js Node 逻辑自测（极简 DOM 桩 + 假 Bootstrap Modal）
+tests/server.test.js 服务端 /api/state 落盘测试（临时端口 + 临时文件）
+tests/e2e.test.js   Firefox headless 端到端测试（登录 → 落盘 → 换浏览器恢复）
 vendor/             Bootstrap、Bootstrap Icons、html2canvas
 ```
 
-`app.js` 用 `<body data-page="...">` 判断当前页；三个页面共用同一份逻辑和样式，
+`app.js` 用 `<body data-page="...">` 判断当前页；各页面共用同一份逻辑和样式，
 跳转由 `goPage()` 统一处理（登录 → `banks.html`，开始答题 → `quiz.html?bank=…`，
 返回题库 → `banks.html`，退出登录 → `index.html`）。`pageMode()` 决定模式：
 `http(s)` 走真实跳转，`file:` 退回页内切换。
 
 ## 存储模型
+
+浏览器里的 localStorage 仍是读写入口；跑 `node server.js` 时，可共享的部分会自动落盘：
 
 - `popipa:users`：**用户表，只记身份**（`name` / `lastLogin`）。
 - `popipa:u:<昵称>`：**每个用户一张表**，存这个用户的全部业务数据：
@@ -81,6 +102,23 @@ vendor/             Bootstrap、Bootstrap Icons、html2canvas
 - 旧版本把业务字段直接塞在 `popipa:users` 里，启动时 `migrateUsers()`
   会自动搬进各用户自己的表，用户表只留身份字段（幂等）。
 - 更早的 `popipa:progress:*` / `popipa:records` 启动时直接删除。
+
+### 自动落盘（node server.js）
+
+- **写**：所有可共享的 `popipa:*`（用户表、每用户表、`popipa:last`）在写入后
+  防抖 500ms 推给 `/api/state`；关闭页面 / 切到后台时再用 `keepalive` 补一次。
+  服务端按每个 key 的 `at` 做 last-write-wins 合并，原子写到 `data/state.json`
+  （上一版留成 `state.json.bak`）。
+- **读**：打开页面时先 `GET /api/state`，只把“比本机新”的 key 写回 localStorage，
+  再把合并后的快照推回去。所以清缓存 / 换浏览器后，用户表、进度、错题、收藏、
+  成绩、成就都会自动恢复；本机较新的数据也不会被服务器上的旧副本盖掉。
+- **删除**用墓碑（`v: null`）同步，删掉的 key 不会下次又被拉回来。
+- **不同步**：`popipa:user`（当前登录态）和 `popipa:theme`（本机主题）留在各自
+  浏览器。换浏览器后需要重新登录一次，昵称已自动回填。
+- **状态图标**：顶栏云图标绿色=已保存；黄色=暂时连不上、正在重试；灰色=纯本机
+  模式（`file://`、普通静态服务器，或接口不可用）。
+- **数据文件**不会被静态服务暴露（直接访问 `/data/state.json` 返回 404）。
+  想手动备份就复制 `data/state.json`；要换位置用 `POPIPA_STATE=/path/to/state.json`。
 
 ## 答题规则
 
@@ -133,8 +171,21 @@ vendor/             Bootstrap、Bootstrap Icons、html2canvas
 - 最后一行汇总：`总题数 / 答错 / 答对 / 未答 / 正确率`
 - 数字全部取自 `rounds` 里的快照，题库之后改版也不会变
 
-## 已知未完成
+## 界面过渡
 
-- 没有服务端，所有数据只在当前浏览器的 localStorage 里。
+- 页面内切换（题库 ↔ 组卷、侧边栏各页）复用顶栏和侧边栏，只替换主内容；
+  真正换视图时主内容做 100ms 淡入 + 轻微上移。
+- 同一视图的重绘（提交答案、切题、结果页切标签、排序、展开）**不播放过渡**，并保持滚动位置。
+- 答题页常驻 `#quizRoot`：提交只更新选项 / 反馈 / 状态条，切题只换题卡和答题卡格子，
+  不再整块重建 `#app`；结果页切标签也只替换题目列表。
+- 尊重 `prefers-reduced-motion: reduce`（系统开启减少动态时不做动画）。
+
+## 已知限制
+
+- 同步粒度是“一个 localStorage key”。同一用户在两个浏览器**同时**答题时，
+  按整张用户表最后写入的那份为准（key 级 last-write-wins），没有字段级合并。
+- 数据只落在本机 `data/state.json`，没有云端同步；换机器需要手动拷贝该文件。
+- 服务默认只监听 `127.0.0.1`；手机 / 局域网访问要 `HOST=0.0.0.0`，
+  此时 `/api/state` 也会暴露在局域网里，请自行权衡。
 - 开发记录见 `整改需求.md`、`第二次需求整改.md`、`追加需求.md`。
 

@@ -51,7 +51,9 @@ const sandbox = {
   localStorage: {
     getItem: k => (k in storage ? storage[k] : null),
     setItem: (k, v) => { storage[k] = String(v); },
-    removeItem: k => { delete storage[k]; }
+    removeItem: k => { delete storage[k]; },
+    get length() { return Object.keys(storage).length; },
+    key: i => Object.keys(storage)[i] || null
   },
   bootstrap: { Modal: FakeModal },
   setTimeout, clearTimeout, setInterval: () => 0, clearInterval() {}, confirm: () => true
@@ -71,6 +73,8 @@ globalThis.__hook = { S, stats, isCorrect, hasAnswer, startSession, pickKey, sub
   totalsOf, todayAnswered, last7, latestProgress, setGoal, setConsent,
   leaderboard, startWarmup, boardRows,
   ACHIEVEMENTS, syncAchievements, achievementStats, userRank, longestStreak,
+  syncEnabled, syncSnapshot, applyRemoteKeys, ensureSyncTimestamps, isSyncKey,
+  readSyncMeta, touchSync, hydrate, pushNow, updateSyncDot, viewKey,
   getAuto: () => autoJump,
   exportPng, shareCardHtml, shareRecord, dateStamp,
   getToast: () => toastEl.textContent,
@@ -964,7 +968,9 @@ H.S.wrongOnly = false; H.S.favOnly = false;
 H.startSession();
 H.jump(0);
 const q50 = H.S.session.order[0];
-H.pickKey(H.QMAP[q50].answer[0]);
+const q50q = H.QMAP[q50];
+/* 不依赖题型和出题顺序：填空题没有选项，直接写入正确答案 */
+H.S.session.answers[q50] = q50q.type === 'fill' ? q50q.answer[0] : q50q.answer.slice();
 H.submitCurrent(false);
 H.finish();
 const t50 = H.totalsOf(u50);
@@ -1113,5 +1119,99 @@ ok('组卷页也有侧边栏',
 ok('组卷页侧边栏仍高亮「开始练习」',
    /class="side-link active"[^>]*href="banks.html"/.test(s56));
 
-console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
-process.exit(fail ? 1 : 0);
+/* 同步层测试要等 Promise，放在最后；前面的测试仍然是同步跑完的 */
+(async () => {
+  section('57. 服务端持久化：快照 / 合并 / 恢复');
+  /* boot 已经跑完，这里只测同步层，所以再补一个 http 环境 */
+  sandbox.location = { protocol: 'http:' };
+  const server = { keys: {}, updatedAt: 0 };
+  const jsonRes = obj => ({
+    ok: true, status: 200,
+    headers: { get: () => 'application/json' },
+    json: async () => JSON.parse(JSON.stringify(obj))
+  });
+  sandbox.fetch = async (url, opts) => {
+    if (!opts || !opts.method || opts.method === 'GET') return jsonRes(server);
+    const body = JSON.parse(opts.body || '{}');
+    Object.keys(body.keys || {}).forEach(k => {
+      const e = body.keys[k], prev = server.keys[k];
+      if (!prev || (e.at || 0) >= (prev.at || 0)) server.keys[k] = { v: e.v, at: e.at };
+    });
+    server.updatedAt = Date.now();
+    return jsonRes(server);
+  };
+  ok('http 环境下同步开启', H.syncEnabled() === true);
+  ok('登录态 / 本机主题 / 同步元数据不同步',
+     !H.isSyncKey('popipa:user') && !H.isSyncKey('popipa:theme') && !H.isSyncKey('popipa:sync'));
+  ok('旧版遗留键不同步',
+     !H.isSyncKey('popipa:progress:小明:web') && !H.isSyncKey('popipa:records'));
+
+  H.store.set('popipa:u:同步测试', { name: '同步测试', wrong: { 'web-1': 1 } });
+  ok('写入后记录 at 时间戳', typeof H.readSyncMeta().at['popipa:u:同步测试'] === 'number');
+  const snap = H.syncSnapshot();
+  ok('快照包含用户表', !!snap['popipa:u:同步测试']);
+  ok('快照不含登录态 / 本机主题 / 同步元数据',
+     !snap['popipa:user'] && !snap['popipa:theme'] && !snap['popipa:sync']);
+
+  /* 升级前就存在的老键没有 at：补一个当前时间，避免被旧服务器副本覆盖 */
+  sandbox.localStorage.setItem('popipa:u:老数据', '{"name":"老数据"}');
+  H.ensureSyncTimestamps();
+  ok('升级前的老键补上时间戳', typeof H.readSyncMeta().at['popipa:u:老数据'] === 'number');
+
+  /* hydrate：服务器有、本机没有的键要拉回来 */
+  server.keys['popipa:u:远端用户'] = {
+    v: JSON.stringify({ name: '远端用户', wrong: { 'java-9': 1 } }),
+    at: Date.now() + 1000
+  };
+  const res = await H.hydrate();
+  ok('hydrate 拉取服务器数据', res.pulled >= 1 &&
+     !!sandbox.localStorage.getItem('popipa:u:远端用户'));
+  ok('hydrate 不会冲掉本机更新的数据', !!sandbox.localStorage.getItem('popipa:u:同步测试'));
+
+  /* 更旧的服务器副本不能覆盖本机 */
+  const localAt = H.readSyncMeta().at['popipa:u:同步测试'];
+  const before = sandbox.localStorage.getItem('popipa:u:同步测试');
+  H.applyRemoteKeys({ 'popipa:u:同步测试': { v: '{"old":1}', at: localAt - 1 } });
+  ok('更旧的服务器数据不会覆盖本机', sandbox.localStorage.getItem('popipa:u:同步测试') === before);
+
+  /* 墓碑：服务器上 v:null 表示这个键被删了 */
+  H.applyRemoteKeys({ 'popipa:u:远端用户': { v: null, at: Date.now() + 2000 } });
+  ok('墓碑会删除本机键', sandbox.localStorage.getItem('popipa:u:远端用户') === null);
+
+  /* 本机删除也要留墓碑，否则下次 hydrate 会把它拉回来 */
+  H.store.set('popipa:u:待删', { name: '待删' });
+  H.store.del('popipa:u:待删');
+  const dead = H.syncSnapshot()['popipa:u:待删'];
+  ok('删除会留下墓碑', !!dead && dead.v === null);
+
+  /* 写入后 pushNow 能把新数据推给服务器 */
+  H.store.set('popipa:u:推送测试', { name: '推送测试' });
+  const pushed = await H.pushNow();
+  ok('pushNow 推送成功', pushed === true && !!server.keys['popipa:u:推送测试']);
+
+  /* 普通静态服务器没有 /api/state：退回纯本机模式，不再重试 */
+  sandbox.fetch = async () => ({ ok: false, status: 404, headers: { get: () => 'text/html' } });
+  await H.hydrate();
+  ok('接口不存在时退回本机模式', H.syncEnabled() === false);
+
+  section('58. 视图切换判定（只在真换页时做过渡）');
+  H.S.view = 'quiz';
+  H.S.session = { id: 's1', bankId: 'web', idx: 0 };
+  ok('同一局答题 key 稳定', H.viewKey() === 'quiz:web:s1');
+  H.S.session.idx = 3;
+  ok('切题不算换页，不触发过渡', H.viewKey() === 'quiz:web:s1');
+  H.S.view = 'result';
+  ok('交卷算换页', H.viewKey() === 'result:web:s1');
+  H.S.view = 'collection'; H.S.collectionType = 'wrong';
+  ok('错题集 key', H.viewKey() === 'collection:wrong');
+  H.S.collectionType = 'fav';
+  ok('收藏集 key 不同', H.viewKey() === 'collection:fav');
+  H.S.view = 'setup'; H.S.bankId = 'java';
+  ok('组卷页按题库区分', H.viewKey() === 'setup:java');
+
+  console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
+  process.exit(fail ? 1 : 0);
+})().catch(err => {
+  console.error(err);
+  process.exit(1);
+});
