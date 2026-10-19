@@ -24,7 +24,12 @@ const HOST = process.env.HOST || '127.0.0.1';
 const DEFAULT_STATE_FILE = path.join(ROOT, 'data', 'state.json');
 const STATE_FILE = path.resolve(process.env.POPIPA_STATE || DEFAULT_STATE_FILE);
 const STATE_BAK = STATE_FILE + '.bak';
-const MAX_BODY = 8 * 1024 * 1024;
+const MAX_BODY = 2 * 1024 * 1024;
+const MAX_KEY_LENGTH = 80;
+const MAX_VALUE_LENGTH = 2 * 1024 * 1024;
+const MAX_KEYS = 5000;
+const MAX_REQUEST_KEYS = 2000;
+const MAX_FUTURE_SKEW = 7 * 24 * 60 * 60 * 1000;
 const API_PATH = '/api/state';
 /* 数据文件不允许当静态资源下载：默认路径和 POPIPA_STATE 指向的路径都挡住，
    .bak / .tmp 一并挡（否则换数据文件时，默认路径的旧数据可能被直接下载）。 */
@@ -49,9 +54,13 @@ const MIME = {
    只保存需要跨浏览器共享的键：当前登录（popipa:user）和本机主题（popipa:theme）
    留在各自浏览器里，不落盘。 */
 function isSyncKey(k) {
-  return typeof k === 'string' && k.indexOf('popipa:') === 0 &&
-    k !== 'popipa:user' && k !== 'popipa:theme' && k !== 'popipa:sync' &&
-    k.indexOf('popipa:progress:') !== 0 && k !== 'popipa:records';
+  if (typeof k !== 'string' || k.length === 0 || k.length > MAX_KEY_LENGTH) return false;
+  if (k === 'popipa:users' || k === 'popipa:last') return true;
+  if (k.indexOf('popipa:u:') !== 0) return false;
+  const name = k.slice(9);
+  /* 每用户表只允许普通昵称，不允许控制字符、路径分隔符 */
+  return name.length > 0 && name.length <= 64 &&
+    !/[\u0000-\u001f\u007f/\\]/.test(name);
 }
 function emptyState() { return { version: 1, updatedAt: 0, keys: {} }; }
 function parseState(raw) {
@@ -118,7 +127,14 @@ function mergeKeys(incoming) {
     const at = Number(e.at);
     const v = e.v === null ? null : e.v;
     if (!Number.isFinite(at) || at < 0) return;
-    if (v !== null && (typeof v !== 'string' || v.length > 4 * 1024 * 1024)) return;
+    /* 防止恶意写入超远未来的时间戳，把 key 永久锁死 */
+    if (at > Date.now() + MAX_FUTURE_SKEW) return;
+    if (v !== null) {
+      if (typeof v !== 'string' || v.length > MAX_VALUE_LENGTH) return;
+      /* 业务值统一是 JSON 字符串；非法 JSON 直接拒绝 */
+      try { JSON.parse(v); } catch (e) { return; }
+    }
+    if (!state.keys[k] && Object.keys(state.keys).length >= MAX_KEYS) return;
     const prev = state.keys[k];
     if (prev && Number(prev.at) > at) return;
     if (prev && prev.at === at && prev.v === v) return;
@@ -185,6 +201,10 @@ http.createServer((req, res) => {
         if (!data || typeof data !== 'object' || !data.keys ||
             typeof data.keys !== 'object' || Array.isArray(data.keys)) {
           sendJson(res, 400, { ok: false, error: 'keys required' });
+          return;
+        }
+        if (Object.keys(data.keys).length > MAX_REQUEST_KEYS) {
+          sendJson(res, 413, { ok: false, error: 'too many keys' });
           return;
         }
         try {

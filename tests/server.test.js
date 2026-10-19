@@ -164,6 +164,22 @@ const json = r => { try { return JSON.parse(r.body); } catch (e) { return null; 
     ok('坏 JSON 返回 400', r.status === 400);
     r = await request(port, 'PUT', '/api/state', { nope: 1 });
     ok('缺少 keys 返回 400', r.status === 400);
+
+    const futureAt = Date.now() + 8 * 24 * 60 * 60 * 1000;
+    r = await request(port, 'PUT', '/api/state', {
+      keys: {
+        'popipa:hack': { v: '"x"', at: 5000 },
+        'popipa:u:bad/name': { v: '{"x":1}', at: 5000 },
+        'popipa:u:坏JSON': { v: 'not-json', at: 5000 },
+        'popipa:u:未来': { v: '{"x":1}', at: futureAt }
+      }
+    });
+    const safe = json(r).keys;
+    ok('未知 popipa 键被拒绝', !safe['popipa:hack']);
+    ok('带路径分隔符的用户键被拒绝', !safe['popipa:u:bad/name']);
+    ok('非法 JSON 值与超远未来时间戳被拒绝',
+       !safe['popipa:u:坏JSON'] && !safe['popipa:u:未来']);
+
     await stopServer(child);
 
     const badFile = path.join(tmpDir, 'bad.json');
