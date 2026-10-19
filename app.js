@@ -369,7 +369,9 @@ function apiFetch(opts) {
   if (typeof AbortController === 'function' && typeof setTimeout === 'function') {
     const ac = new AbortController();
     opt.signal = ac.signal;
-    const timer = setTimeout(() => { try { ac.abort(); } catch (e) {} }, 2000);
+    /* 75KB 快照经过 Cloudflare / 慢上传链路可能超过 2 秒，
+       太短会把真正的保存请求误杀。 */
+    const timer = setTimeout(() => { try { ac.abort(); } catch (e) {} }, 15000);
     return fetch(SYNC_URL, opt).then(r => { clearTimeout(timer); return r; },
       err => { clearTimeout(timer); throw err; });
   }
@@ -403,15 +405,16 @@ function hydrate() {
   ensureSyncTimestamps();
   return syncGet().then(remote => {
     const pulled = applyRemoteKeys(remote && remote.keys);
-    return syncPut(syncSnapshot()).then(res => {
-      const more = applyRemoteKeys(res && res.keys);
+    /* 先把服务器数据拉回来渲染首屏；把合并后的快照放后台推送。
+       慢网络下 PUT 75KB 可能要几秒，不能阻塞登录页出现。 */
+    syncPut(syncSnapshot()).then(res => {
+      applyRemoteKeys(res && res.keys);
       pushRetry = 0;
       updateSyncDot('ok');
-      return { pulled: pulled + more, pushed: true };
     }).catch(() => {
       updateSyncDot('error');
-      return { pulled: pulled, pushed: false };
     });
+    return { pulled: pulled, pushed: false, background: true };
   }).catch(err => {
     if (err && err.status === 404) { syncOff = true; updateSyncDot('off'); }
     else updateSyncDot('error');
@@ -3018,17 +3021,23 @@ function boot() {
     applyLocation();
     return;
   }
+
+  /* 先按本机数据渲染首屏：hydrate 的网络请求可能很慢，
+     不能让登录页一直空着等服务器。 */
+  migrateUsers();
+  applyTheme(theme());
   updateSyncDot('saving');
+  applyLocation();
+
   hydrate().then(res => {
     migrateUsers();
     applyTheme(theme());
-    applyLocation();
-    if (res && res.pulled) toast('已从本机服务器恢复 ' + res.pulled + ' 项数据');
+    if (res && res.pulled) {
+      applyLocation();     /* 拉到服务器数据后原地刷新当前视图 */
+      toast('已从本机服务器恢复 ' + res.pulled + ' 项数据');
+    }
   }).catch(() => {
-    /* 服务器临时不可用也照常进入：先用本机数据，写入时会自动重试推送 */
-    migrateUsers();
-    applyTheme(theme());
-    applyLocation();
+    /* 服务器临时不可用也照常使用本机数据；同步层会自己标记 error */
   });
 }
 boot();
