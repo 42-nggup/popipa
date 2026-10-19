@@ -8,6 +8,8 @@
 
 > 前端从 Bootstrap 迁移到 Tailwind 的盘点、修复项和渲染约束见
 > [FRONTEND.md](FRONTEND.md) 与 [前端重构总结.md](前端重构总结.md)。
+> 持久顶栏 / 侧边栏的 App Shell 小 demo 见
+> [demo/app-shell/README.md](demo/app-shell/README.md)。
 
 > 换设备 / 交接开发：先读 [HANDOFF.md](HANDOFF.md)；本轮对话与决策见 [CONVERSATION.md](CONVERSATION.md)。
 

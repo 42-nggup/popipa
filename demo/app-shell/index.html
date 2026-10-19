@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>popipa · App Shell Demo</title>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../vendor/bootstrap-icons.min.css">
+<link rel="stylesheet" href="../../assets/app.css">
+<link rel="stylesheet" href="demo.css">
+</head>
+<body class="flex min-h-screen flex-col" data-page="home" data-layout="app">
+
+<!--
+  关键结构：
+  1. #top 和 #side 都在 #app 外面，只创建一次。
+  2. #app 是唯一会被 render() 替换内容的区域。
+  3. 进入答题态时侧边栏只是 hidden，不会被删除。
+-->
+<header id="top" class="site-top">
+  <div class="app-shell site-top-inner">
+    <a class="brand" href="?view=home" data-go="home">
+      <span class="brand-logo">pi</span><span>popipa</span>
+    </a>
+    <span class="badge badge-muted ml-2 hidden sm:inline-flex">
+      Shell <b id="topInstance" class="ml-1 font-mono">…</b>
+    </span>
+    <div class="ml-auto flex items-center gap-2.5">
+      <span class="sync-dot" data-state="ok" title="Demo：假装同步正常">
+        <i class="bi bi-cloud-check"></i>
+      </span>
+      <button class="icon-btn" id="themeBtn" type="button"
+              title="切换深色 / 浅色" aria-label="切换深色 / 浅色"></button>
+      <span class="avatar">D</span>
+      <span class="hidden text-sm text-muted sm:inline">Demo 用户</span>
+    </div>
+  </div>
+</header>
+
+<div class="app-shell flex-1 pb-12">
+  <div class="home-wrap">
+
+    <aside id="side" class="side" aria-label="侧边栏">
+      <div class="side-brand">
+        <span class="brand-logo">pi</span><span>popipa</span>
+      </div>
+
+      <nav class="side-nav">
+        <a class="side-link" href="?view=home" data-nav="home">
+          <i class="bi bi-house-door"></i><span>学习概览</span>
+        </a>
+        <a class="side-link" href="?view=banks" data-nav="banks">
+          <i class="bi bi-play-circle"></i><span>题库 / 组卷</span>
+        </a>
+        <a class="side-link" href="?view=stats" data-nav="stats">
+          <i class="bi bi-graph-up-arrow"></i><span>学习报告</span>
+        </a>
+      </nav>
+
+      <div class="side-foot">
+        <div class="demo-instance">
+          侧边栏实例
+          <b id="sideInstance" class="font-mono">…</b>
+        </div>
+        <button class="btn btn-warm mt-2 w-full" type="button" data-go="quiz">
+          <i class="bi bi-play-circle"></i>进入答题态
+        </button>
+      </div>
+    </aside>
+
+    <main id="app" class="home-main"><!-- 只替换这里 --></main>
+
+  </div>
+</div>
+
+<script src="demo.js"></script>
+</body>
+</html>
