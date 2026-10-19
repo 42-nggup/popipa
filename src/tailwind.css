@@ -68,7 +68,7 @@
   }
 
   body {
-    @apply min-h-screen bg-paper font-sans text-ink antialiased;
+    @apply min-h-screen bg-paper pt-16 font-sans text-ink antialiased;
     background-image:
       radial-gradient(1000px 520px at 100% -10%, rgb(var(--c-brand-soft) / .65) 0, transparent 62%),
       radial-gradient(900px 500px at -10% 0, rgb(var(--c-info-soft) / .55) 0, transparent 58%);
@@ -113,7 +113,7 @@
   }
 
   .site-top {
-    @apply sticky top-0 z-40 border-b border-line/80 bg-paper/85 backdrop-blur-md;
+    @apply fixed inset-x-0 top-0 z-40 border-b border-line/80 bg-paper/85 backdrop-blur-md;
   }
 
   .site-top-inner {

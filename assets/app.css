@@ -617,6 +617,7 @@ body {
   min-height: 100vh;
   --tw-bg-opacity: 1;
   background-color: rgb(var(--c-paper) / var(--tw-bg-opacity, 1));
+  padding-top: 4rem;
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, Microsoft YaHei, sans-serif;
   --tw-text-opacity: 1;
   color: rgb(var(--c-ink) / var(--tw-text-opacity, 1));
@@ -693,7 +694,9 @@ a {
 }
 
 .site-top {
-  position: sticky;
+  position: fixed;
+  left: 0px;
+  right: 0px;
   top: 0px;
   z-index: 40;
   border-bottom-width: 1px;
