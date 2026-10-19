@@ -8,14 +8,14 @@
 
 > 前端从 Bootstrap 迁移到 Tailwind 的盘点、修复项和渲染约束见
 > [FRONTEND.md](FRONTEND.md) 与 [前端重构总结.md](前端重构总结.md)。
-> 持久顶栏 / 侧边栏的 App Shell 小 demo 见
-> [demo/app-shell/README.md](demo/app-shell/README.md)。
+> 正式 App Shell 迁移记录见 [APP_SHELL_MIGRATION.md](APP_SHELL_MIGRATION.md)；
+> 持久顶栏 / 侧边栏的小 demo 见 [demo/app-shell/README.md](demo/app-shell/README.md)。
 
 > 换设备 / 交接开发：先读 [HANDOFF.md](HANDOFF.md)；本轮对话与决策见 [CONVERSATION.md](CONVERSATION.md)。
 
 ## 运行
 
-推荐用本地服务器打开（多页面共享 localStorage，数据自动落盘）：
+推荐用本地服务器打开（同源页面共享 localStorage，数据自动落盘）：
 
 ```bash
 node server.js          # 默认 8000 端口，只监听 127.0.0.1
@@ -43,7 +43,7 @@ HOST=0.0.0.0 node server.js             # 允许局域网访问（接口也会�
 也可以直接双击 `index.html`。但浏览器在 `file://` 下会**按文件隔离
 localStorage**（登录态传不到下一个 HTML），所以此时 `app.js` 会自动退回
 “单页内视图切换”：功能完整，只是地址栏不会变成 `banks.html` / `quiz.html`，
-而且**不会落盘**（顶栏会显示灰色的“仅本机”图标）。想要三页跳转和自动持久化，
+而且**不会落盘**（顶栏会显示灰色的“仅本机”图标）。想要地址栏同步和自动持久化，
 请用 `node server.js`。用其他静态服务器打开时，页面仍可用，但检测不到
 `/api/state` 就自动退回纯 localStorage 模式。
 
@@ -92,10 +92,11 @@ tests/e2e.test.js   Firefox headless 端到端测试（登录 → 落盘 → 换
 vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除）
 ```
 
-`app.js` 用 `<body data-page="...">` 判断当前页；各页面共用同一份逻辑和样式，
-跳转由 `goPage()` 统一处理（登录 → `banks.html`，开始答题 → `quiz.html?bank=…`，
-返回题库 → `banks.html`，退出登录 → `index.html`）。`pageMode()` 决定模式：
-`http(s)` 走真实跳转，`file:` 退回页内切换。
+所有页面共用同一份 `app.js`。`#top` 和 `#side` 是持久 App Shell，
+`#app` 是唯一会被替换的主内容区域。`goPage()` 在 `http(s)` 下用 History API
+`pushState` + `render()`，不会重新加载文档；`file:` 下退回纯页内切换。
+启动和浏览器前进 / 后退都会通过 `applyLocation()` 从当前 URL 还原状态
+（`banks.html?bank=…&chapter=…&scope=…` 也支持直接打开）。
 
 ## 存储模型
 
@@ -190,8 +191,13 @@ vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除
 
 ## 界面过渡
 
-- 页面内切换（题库 ↔ 组卷、侧边栏各页）复用顶栏和侧边栏，只替换主内容；
-  真正换视图时主内容做 100ms 淡入 + 轻微上移。
+- 顶栏 / 侧边栏是持久 App Shell，站内切换只替换 `#app`，节点不重建。
+- 真正换视图时使用 View Transition：
+  - 旧内容快速向上滑出
+  - 新内容从下方滑入并减速到 0
+  - 进入 / 离开答题态时，侧栏向左滑出 / 从左侧滑入
+  - 顶栏单独命名并压在最上层，不会被内容快照盖住
+- 不支持 View Transition 时退回 100ms 淡入 + 轻微上移。
 - 同一视图的重绘（提交答案、切题、结果页切标签、排序、展开）**不播放过渡**，并保持滚动位置。
 - 答题页常驻 `#quizRoot`：提交只更新选项 / 反馈 / 状态条，切题只换题卡和答题卡格子，
   不再整块重建 `#app`；结果页切标签也只替换题目列表。

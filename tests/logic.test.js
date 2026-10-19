@@ -946,16 +946,17 @@ for (const pair of [['home.html', 'home'], ['summary.html', 'summary'],
 }
 H.S.user = '主页用户'; H.S.view = 'home'; H.render();
 const homeHtml = els['app'].innerHTML;
+const sideHtml = els['side'].innerHTML;
 ok('主页有侧边栏与欢迎语',
-   homeHtml.indexOf('home-wrap') >= 0 && homeHtml.indexOf('welcome-line') >= 0);
+   sideHtml.indexOf('side-link') >= 0 && homeHtml.indexOf('welcome-line') >= 0);
 ok('主页有每日目标与五项统计',
    homeHtml.indexOf('每日目标') >= 0 && homeHtml.indexOf('总写题数') >= 0 &&
    homeHtml.indexOf('总正确率') >= 0 && homeHtml.indexOf('总写题时间') >= 0);
 ok('侧边栏有开始练习（banks.html）入口',
-   /href="banks.html"[^>]*data-act="nav"/.test(homeHtml));
+   /href="banks.html"[^>]*data-act="nav"/.test(sideHtml));
 ok('侧边栏有每日热身与两个集合入口',
-   homeHtml.indexOf('每日热身') >= 0 && homeHtml.indexOf('错题本') >= 0 &&
-   homeHtml.indexOf('收藏集') >= 0);
+   sideHtml.indexOf('每日热身') >= 0 && sideHtml.indexOf('错题本') >= 0 &&
+   sideHtml.indexOf('收藏集') >= 0);
 ok('主页底部顺序：上次进度在近日统计之前',
    homeHtml.indexOf('上次进度') >= 0 &&
    homeHtml.indexOf('上次进度') < homeHtml.indexOf('近日统计'));
@@ -1119,15 +1120,15 @@ section('56. 题库页 / 组卷页与其他页面统一外壳');
 H.S.user = '主页用户';
 H.S.view = 'banks'; H.render();
 const b56 = els['app'].innerHTML;
-ok('题库列表有侧边栏', b56.indexOf('home-wrap') >= 0 && b56.indexOf('side-link') >= 0);
+const side56 = els['side'].innerHTML;
+ok('题库列表有侧边栏', side56.indexOf('side-link') >= 0);
 ok('侧边栏高亮「开始练习」',
-   /class="side-link active"[^>]*href="banks.html"/.test(b56));
+   /class="side-link active"[^>]*href="banks.html"/.test(side56));
 H.pickBank('web');
 const s56 = els['app'].innerHTML;
-ok('组卷页也有侧边栏',
-   s56.indexOf('home-wrap') >= 0 && s56.indexOf('setup-grid') >= 0);
+ok('组卷页主内容正常', s56.indexOf('setup-grid') >= 0);
 ok('组卷页侧边栏仍高亮「开始练习」',
-   /class="side-link active"[^>]*href="banks.html"/.test(s56));
+   /class="side-link active"[^>]*href="banks.html"/.test(els['side'].innerHTML));
 
 section('59. Tailwind 迁移 / 登录回车 / 原生弹窗');
 const tailwindSrc = fs.readFileSync(path.join(root, 'src/tailwind.css'), 'utf8');
@@ -1139,6 +1140,11 @@ ok('所有页面都加载 Tailwind 产物',
    allHtml.every(h => h.indexOf('assets/app.css') >= 0));
 ok('所有页面都不再加载 Bootstrap CSS / JS',
    allHtml.every(h => h.indexOf('bootstrap.min.css') < 0 && h.indexOf('bootstrap.bundle') < 0));
+ok('7 个页面都有持久 App Shell',
+   allHtml.every(h => /id="side"/.test(h) && /id="app"/.test(h) && /data-layout="/.test(h)));
+ok('侧边栏在 #app 之外',
+   allHtml.every(h => h.indexOf('id="side"') >= 0 &&
+     h.indexOf('id="side"') < h.indexOf('id="app"')));
 ok('登录页使用 form，支持回车提交',
    /<form[^>]*data-act="login-form"/.test(logicSrc) && /type="submit"/.test(logicSrc));
 ok('弹窗使用原生 dialog', /<dialog id="consentModal"/.test(allHtml[1]) &&

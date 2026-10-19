@@ -279,37 +279,66 @@ return true;
     `);
     ok('题库页加载完成', banksReady.ok);
 
-    const toSetup = await evalScript(ffA.client, `
-      const side = document.querySelector('.side');
-      if (side) side.dataset.probe = 'keep';
+    await evalScript(ffA.client, `
+      window.__shellTop = document.getElementById('top');
+      window.__shellSide = document.getElementById('side');
+      window.__vtCount = 0;
+      if (document.startViewTransition) {
+        const orig = document.startViewTransition.bind(document);
+        document.startViewTransition = function (cb) {
+          window.__vtCount++;
+          return orig(cb);
+        };
+      }
+      return true;
+    `);
+
+    const toSetup = await evalAsync(ffA.client, `
+      const cb = arguments[arguments.length - 1];
       const card = document.querySelector('.bank-card');
       if (card) card.click();
-      const side2 = document.querySelector('.side');
-      const main = document.querySelector('.home-main');
-      return {
-        same: !!(side2 && side2.dataset.probe === 'keep'),
-        entered: !!(main && main.classList.contains('view-enter')),
-        reduced: !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches),
-        setup: !!document.getElementById('setupCount')
-      };
+      const deadline = Date.now() + 4000;
+      (function tick() {
+        if (document.getElementById('setupCount')) {
+          cb({
+            same: document.getElementById('side') === window.__shellSide,
+            top: document.getElementById('top') === window.__shellTop,
+            vt: window.__vtCount,
+            reduced: !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+          });
+          return;
+        }
+        if (Date.now() > deadline) { cb({ ok: false }); return; }
+        setTimeout(tick, 25);
+      })();
     `);
-    ok('banks → setup 复用同一个侧边栏', toSetup.same && toSetup.setup);
-    ok('banks → setup 触发进入过渡', toSetup.reduced || toSetup.entered);
+    ok('banks → setup 复用同一个侧边栏', toSetup.same && toSetup.top);
+    ok('banks → setup 触发页面过渡', toSetup.reduced || toSetup.vt > 0);
 
-    const toBanks = await evalScript(ffA.client, `
+    await sleep(500);   /* 等这次 View Transition 结束，避免下一次被 transitionActive 挡住 */
+    const toBanks = await evalAsync(ffA.client, `
+      const cb = arguments[arguments.length - 1];
       const back = document.querySelector('[data-act="back-banks"]');
       if (back) back.click();
-      const side = document.querySelector('.side');
-      const main = document.querySelector('.home-main');
-      return {
-        same: !!(side && side.dataset.probe === 'keep'),
-        entered: !!(main && main.classList.contains('view-enter')),
-        reduced: !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches),
-        banks: !!document.querySelector('.bank-card')
-      };
+      const deadline = Date.now() + 4000;
+      (function tick() {
+        if (document.querySelector('.bank-card') && !document.getElementById('setupCount')) {
+          cb({
+            same: document.getElementById('side') === window.__shellSide,
+            top: document.getElementById('top') === window.__shellTop,
+            loads: performance.getEntriesByType('navigation').length,
+            vt: window.__vtCount,
+            reduced: !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+          });
+          return;
+        }
+        if (Date.now() > deadline) { cb({ ok: false }); return; }
+        setTimeout(tick, 25);
+      })();
     `);
-    ok('setup → banks 复用同一个侧边栏', toBanks.same && toBanks.banks);
-    ok('返回题库触发进入过渡', toBanks.reduced || toBanks.entered);
+    ok('setup → banks 复用同一个侧边栏', toBanks.same && toBanks.top);
+    ok('返回题库触发页面过渡', toBanks.reduced || toBanks.vt > 1);
+    ok('整个切换过程没有重新加载文档', toBanks.loads === 1);
 
     const sameView = await evalScript(ffA.client, `
       const main = document.querySelector('.home-main');
@@ -325,27 +354,42 @@ return true;
     ok('同视图重绘不触发过渡', sameView.canRender && sameView.banks && sameView.animated === false);
 
     /* 真开一局：提交和切题都只更新答题页局部，不换骨架 */
-    await evalScript(ffA.client, `
+    const startedQuiz = await evalAsync(ffA.client, `
+      const cb = arguments[arguments.length - 1];
       const card = document.querySelector('.bank-card');
       if (card) card.click();
-      setTimeout(function () {
+      const openDeadline = Date.now() + 4000;
+      (function openSetup() {
         const start = document.getElementById('setupStart');
-        if (start && !start.disabled) start.click();
-      }, 50);
-      return true;
-    `);
-    await sleep(1600);   /* 等页面跳到 quiz.html 并完成 hydrate */
-    const quizReady = await evalAsync(ffA.client, `
-      const cb = arguments[arguments.length - 1];
-      const deadline = Date.now() + 12000;
-      (function tick() {
-        if (document.getElementById('quizRoot') && document.getElementById('quizCard') &&
-            document.getElementById('qmap')) { cb({ ok: true }); return; }
-        if (Date.now() > deadline) { cb({ ok: false, href: location.href }); return; }
-        setTimeout(tick, 50);
+        if (start && !start.disabled) {
+          start.click();
+          waitQuiz();
+          return;
+        }
+        if (Date.now() > openDeadline) { cb({ ok: false, step: 'setup' }); return; }
+        setTimeout(openSetup, 25);
       })();
+      function waitQuiz() {
+        const deadline = Date.now() + 8000;
+        (function tick() {
+          if (document.getElementById('quizRoot') && document.getElementById('quizCard') &&
+              document.getElementById('qmap')) {
+            cb({
+              ok: true,
+              shell: document.getElementById('side') === window.__shellSide &&
+                document.getElementById('top') === window.__shellTop,
+              layout: document.body.dataset.layout,
+              vt: window.__vtCount
+            });
+            return;
+          }
+          if (Date.now() > deadline) { cb({ ok: false, step: 'quiz', href: location.href }); return; }
+          setTimeout(tick, 25);
+        })();
+      }
     `);
-    ok('进入答题页', quizReady.ok);
+    ok('进入答题页', startedQuiz.ok);
+    ok('答题页仍在同一个 Shell 内', startedQuiz.shell && startedQuiz.layout === 'focus');
 
     const submitted = await evalScript(ffA.client, `
       const app = document.getElementById('app');
@@ -406,10 +450,32 @@ return true;
     }
 
     /* 交卷 → 结果页：切标签也只换列表 */
-    const resultTabs = await evalScript(ffA.client, `
+    const finished = await evalAsync(ffA.client, `
+      const cb = arguments[arguments.length - 1];
       window.confirm = function () { return true; };
       const finishBtn = document.querySelector('[data-act="finish"]');
       if (finishBtn) finishBtn.click();
+      const deadline = Date.now() + 6000;
+      (function tick() {
+        const tabs = document.getElementById('resultTabs');
+        const list = document.getElementById('resultList');
+        if (tabs && list) {
+          cb({
+            ok: true,
+            shell: document.getElementById('side') === window.__shellSide &&
+              document.getElementById('top') === window.__shellTop,
+            layout: document.body.dataset.layout
+          });
+          return;
+        }
+        if (Date.now() > deadline) { cb({ ok: false, href: location.href }); return; }
+        setTimeout(tick, 25);
+      })();
+    `);
+    ok('交卷后进入结果页', finished.ok);
+    ok('结果页仍在同一个 Shell 内', finished.shell && finished.layout === 'focus');
+
+    const resultTabs = await evalScript(ffA.client, `
       const app = document.getElementById('app');
       if (app) app.classList.remove('view-enter');
       const tabs = document.getElementById('resultTabs');
@@ -433,7 +499,6 @@ return true;
         reduced: !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
       };
     `);
-    ok('交卷后进入结果页', resultTabs.ok);
     ok('结果页切标签不重建骨架', resultTabs.sameTabs && resultTabs.sameList);
     ok('切到错题只换列表并更新高亮', resultTabs.changed && resultTabs.active);
     ok('结果页同视图切标签不播放过渡', resultTabs.reduced || resultTabs.entered === false);

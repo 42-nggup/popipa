@@ -17,7 +17,7 @@ try{
 <link rel="stylesheet" href="vendor/bootstrap-icons.min.css">
 <link rel="stylesheet" href="assets/app.css">
 </head>
-<body class="flex min-h-screen flex-col" data-page="quiz">
+<body class="flex min-h-screen flex-col" data-layout="focus" data-page="quiz">
 
 <header class="site-top" id="top" hidden>
   <div class="app-shell site-top-inner">
@@ -39,7 +39,12 @@ try{
 </header>
 
 <!-- 做题页：答题 + 交卷结果（结果页在同一页内切换，不跳转） -->
-<main class="app-shell flex-1 pb-12" id="app"><!-- 由 app.js 渲染 --></main>
+<div class="app-shell flex-1 pb-12">
+  <div class="home-wrap">
+    <aside id="side" class="side" hidden></aside>
+    <main id="app" class="home-main"></main>
+  </div>
+</div>
 
 <!-- file:// 单页模式会在本文件内切到主页，同意弹窗也要有 -->
 <dialog id="consentModal" class="dialog" data-static>

@@ -48,7 +48,7 @@
 7. **表格窄屏**：历史成绩与排行榜统一 `.table-wrap`，窄屏可横向滚动；不再用 Bootstrap table 的响应式包裹类。
 8. **主题属性统一**：从 `data-bs-theme` 改为 `data-theme`，登录页首屏脚本同步更新，避免深色闪白。
 9. **重复动效/颜色 token**：颜色统一走 CSS 变量 + Tailwind theme，删除 Bootstrap 变量覆盖层。
-10. **侧边栏移动端**：横向滚动导航保留，但补 `scrollbar` 隐藏、按钮不换行和紧凑间距。
+10. **侧边栏移动端**：改为 3 列网格，底部每日热身单独一行，避免横向滚动截断。
 
 ## 3. Tailwind 结构
 
@@ -75,8 +75,10 @@ node server.js
 
 ## 4. 渲染约束（不要破坏）
 
-- `pageShell()` 复用 `.home-wrap` / `.side`，页面内切换只替换 `.home-main`。
+- `#top` / `#side` 是持久 App Shell，永远在 `#app` 外面；`pageShell()` 只替换 `#app`。
+- `goPage()` 在 HTTP 下走 History API，`applyLocation()` 负责首次加载 / 前进后退还原。
 - 答题页常驻 `#quizRoot`；提交走 `patchQuizAnswered()`，切题走 `patchQuiz()`。
 - 结果页切标签只替换 `#resultList`。
 - 所有动态状态类名保持语义化：`.opt.ok/no/sel/locked`、`.qmap b.ok/no/cur`、`.chip.on`、`.side-link.active`、`.tab.active`、`.rev.open`。
 - 不要给同视图重绘加 `.view-enter`；`render()` 的 `viewKey` 判断是唯一入口。
+- View Transition 只在 `viewKey` 变化时触发；顶栏 / 侧栏 / 内容分别有独立名字和 z-index。

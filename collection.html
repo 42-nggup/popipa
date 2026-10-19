@@ -17,7 +17,7 @@ try{
 <link rel="stylesheet" href="vendor/bootstrap-icons.min.css">
 <link rel="stylesheet" href="assets/app.css">
 </head>
-<body class="flex min-h-screen flex-col" data-page="collection">
+<body class="flex min-h-screen flex-col" data-layout="app" data-page="collection">
 
 <header class="site-top" id="top" hidden>
   <div class="app-shell site-top-inner">
@@ -38,7 +38,12 @@ try{
   </div>
 </header>
 
-<main class="app-shell flex-1 pb-12" id="app"><!-- 由 app.js 渲染 --></main>
+<div class="app-shell flex-1 pb-12">
+  <div class="home-wrap">
+    <aside id="side" class="side" hidden></aside>
+    <main id="app" class="home-main"></main>
+  </div>
+</div>
 
 <!-- file:// 单页模式会在本文件内切视图，弹窗需要常驻 -->
 <dialog id="consentModal" class="dialog" data-static>

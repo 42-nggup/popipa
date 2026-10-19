@@ -4,14 +4,15 @@
 > 工作区：`/home/42nggup/Projects/popipa`
 > 仓库：git，分支 `refactor/frontend`；迁移前可运行基线为 tag `OK-to-run`
 > 状态：前端迁移已提交，工作区应为干净状态。第 7 节是迁移前的历史快照。
-> 配套文档：`CONVERSATION.md`、`README.md`、`FRONTEND.md`、`前端重构总结.md`。
+> 配套文档：`CONVERSATION.md`、`README.md`、`FRONTEND.md`、`前端重构总结.md`、
+> `APP_SHELL_MIGRATION.md`（正式 App Shell / History API / 动画迁移记录）。
 
 > **2026-10-19 前端迁移说明**：`refactor/frontend` 分支已把前端从 Bootstrap 迁移到
 > Tailwind CSS 3.4，移除 Bootstrap CSS/JS，改用原生 `<dialog>`，并修复了登录回车、
 > 键盘可达性、同视图重绘动画等问题。迁移盘点见 `FRONTEND.md` 与 `前端重构总结.md`；
 > 下文中所有 Bootstrap / `app.css` 相关描述都按新结构理解：
 > `src/tailwind.css` → `assets/app.css`，Bootstrap Icons / html2canvas 仍在 `vendor/`。
-> 当前测试规模：**logic 274 + server 20 + e2e 29，全绿**。
+> 当前测试规模：**logic 276 + server 20 + e2e 32，全绿**。
 
 ---
 
@@ -40,10 +41,12 @@
   - 把浏览器 localStorage 里可共享的数据自动落盘到 `data/state.json`；
   - 打开页面时自动拉回，清缓存 / 换浏览器不丢。
 - 支持两种运行模式：
-  - `node server.js`：真正的多页面（`index.html` / `home.html` / `banks.html` / `quiz.html` …），localStorage 同源共享，自动落盘。
-  - 直接双击 `index.html`（`file://`）：浏览器按文件隔离 localStorage，所以 `app.js` 自动退回单页内视图切换；功能可用，但**不会落盘**。
+  - `node server.js`：持久 App Shell + History API。URL 仍是 `home.html` / `banks.html` / `quiz.html` …，
+    但站内切换只替换 `#app`，顶栏 / 侧边栏不重建，数据自动落盘。
+  - 直接双击 `index.html`（`file://`）：浏览器按文件隔离 localStorage，`app.js` 退回页内视图切换；
+    功能可用，但**不会落盘**，地址栏也不同步。
 
-当前测试规模：**logic 274 + server 20 + e2e 29，全绿**。
+当前测试规模：**logic 276 + server 20 + e2e 32，全绿**。
 
 ---
 
@@ -127,13 +130,19 @@ new.md                旧备注
 
 ### 4.1 页面与路由
 
-- 每个 HTML 的 `<body data-page="login|home|banks|quiz|summary|stats|collection">` 决定启动视图。
-- `app.js` 的 `boot()` 读取 `PAGE`，再决定渲染哪个页面。
+- 每个 HTML 都有持久 Shell：`header#top` + `aside#side` + `main#app`。
+- `#top` / `#side` 在 `#app` 外面，只创建一次；`render()` 只替换 `#app`。
 - `goPage(url, view)`：
-  - `http(s)`：真的改 `location.href`（多页面）。
+  - `http(s)`：`history.pushState` + `render()`（同文档切换）。
   - `file:`：`S.view = view; render()`（单页内切换）。
-- 侧边栏由 `sideBar(active)` 生成，链接是真实的 `.html` 地址；`pageShell(active, main)` 负责外壳。
-- 页面内切换（banks ↔ setup、home ↔ summary 等在 `file:` 模式）不会换文档。
+- `applyLocation()` 从当前 URL 还原状态；首次加载和 `popstate` 都走这里。
+- `data-layout`：
+  - `app`：普通页面，侧栏显示
+  - `focus`：答题 / 结果，侧栏隐藏但节点保留
+  - `plain`：登录页
+- 侧边栏由 `sideBarInner()` 生成一次，`refreshSideBar(active)` 只更新高亮 / 计数 / 用户信息。
+- 页面切换使用 View Transition：主内容上下滑动；进入 / 离开答题态时侧栏向左滑出 / 滑入；
+  顶栏单独命名并压在最上层。
 
 ### 4.2 存储与同步（本轮重点之一）
 
@@ -258,7 +267,7 @@ cp vendor/fonts/bootstrap-icons.woff2 dist/vendor/fonts/
 ### 6.2 跑测试
 
 ```bash
-node tests/logic.test.js     # 274 项，纯 Node + DOM 桩
+node tests/logic.test.js     # 276 项，纯 Node + DOM 桩
 node tests/server.test.js    # 20 项，起真实 server.js，临时端口 + 临时数据文件
 node tests/e2e.test.js       # 29 项，真实 Firefox headless + Marionette（需要 firefox）
 ```
@@ -345,9 +354,9 @@ M tests/logic.test.js
 
 | 套件 | 命令 | 结果 | 覆盖 |
 |---|---|---|---|
-| logic | `node tests/logic.test.js` | **274 通过** | 判分、重复提交幂等、组卷、收藏、成绩、成就、同步快照/墓碑/hydrate、viewKey、Tailwind/Dialog/回车登录 |
+| logic | `node tests/logic.test.js` | **276 通过** | 判分、重复提交幂等、组卷、收藏、成绩、成就、同步快照/墓碑/hydrate、viewKey、Tailwind/Dialog/回车登录 |
 | server | `node tests/server.test.js` | **20 通过** | GET/PUT、按 at 合并、墓碑、过滤、重启持久化、坏 JSON、`.bak` 恢复、数据文件 404 |
-| e2e | `node tests/e2e.test.js` | **29 通过** | 真实 Firefox：登录落盘；`banks ↔ setup` 侧边栏节点不重建；提交/切题骨架节点不重建；结果页切标签只换列表；换全新 profile 自动恢复 |
+| e2e | `node tests/e2e.test.js` | **32 通过** | 真实 Firefox：登录落盘；`banks ↔ setup` 侧边栏节点不重建；提交/切题骨架节点不重建；结果页切标签只换列表；换全新 profile 自动恢复 |
 
 E2E 的可视验证（本轮做过）：
 
@@ -415,7 +424,7 @@ Windows：PowerShell / cmd 里 `tar -xzf ...` 也可；或用 7-Zip 解 `.tar.gz
 
 ## 11. 常见坑
 
-1. **`file://` 下 localStorage 按文件隔离**：登录态传不到 `banks.html`，`app.js` 会退回单页内切换；也不会落盘。要持久化/多页跳转就用 `node server.js`。
+1. **`file://` 下 localStorage 按文件隔离**：登录态传不到 `banks.html`，`app.js` 会退回页内切换；也不会落盘。要持久化 / URL 同步就用 `node server.js`。
 2. **`localhost` vs `127.0.0.1`**：server 默认只监听 `127.0.0.1`；本机 `localhost` 可访问。局域网访问要 `HOST=0.0.0.0`，此时 `/api/state` 也会暴露，慎用。
 3. **测试不要碰真实数据**：`tests/server.test.js` 和 `tests/e2e.test.js` 都用临时 `POPIPA_STATE`；手动实验也请用临时路径。
 4. **`dist/` 容易和根目录不同步**：改完根文件记得 `cp`；`diff -q app.js dist/app.js`、`diff -q assets/app.css dist/assets/app.css` 可检查。

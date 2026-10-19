@@ -23,18 +23,32 @@
    同一份 app.js 在三个页面复用，靠 body[data-page] 决定启动视图。 */
 const PAGE = (document.body && document.body.dataset && document.body.dataset.page) || 'login';
 /* file:// 下浏览器按文件隔离 localStorage（登录态传不过去），所以退回单页内切换；
-   HTTP 下 localStorage 同源共享，才走真正的三页跳转。 */
+   HTTP 下用 History API 做真正的同文档切换，不再重新加载文档。 */
 function pageMode(protocol) { return protocol === 'file:' ? 'spa' : 'pages'; }
 const FILE_MODE = pageMode(typeof location !== 'undefined' && location ? location.protocol : '') === 'spa';
+function canUseHistory() {
+  return !FILE_MODE && typeof history !== 'undefined' &&
+    history && typeof history.pushState === 'function' &&
+    typeof location !== 'undefined' && location &&
+    (location.protocol === 'http:' || location.protocol === 'https:');
+}
 function goPage(url, view) {
-  if (!FILE_MODE && typeof location !== 'undefined' && location && typeof location.href === 'string') {
-    location.href = url;
-    return;
+  if (view) S.view = view;
+  if (canUseHistory()) {
+    try { history.pushState({ view: view || S.view }, '', url); } catch (e) {}
   }
-  if (view) { S.view = view; render(); }
+  render();
+}
+function replacePage(url, view) {
+  if (view) S.view = view;
+  if (canUseHistory()) {
+    try { history.replaceState({ view: view || S.view }, '', url); } catch (e) {}
+  }
+  render();
 }
 const app = document.getElementById('app');
 const topbar = document.getElementById('top');
+const sideEl = document.getElementById('side');
 const toastEl = document.getElementById('toast');
 const shareModalEl = document.getElementById('shareModal');
 const shareBodyEl = document.getElementById('shareBody');
@@ -853,6 +867,21 @@ function renderThemeBtn() {
   btn.title = tip;
   btn.setAttribute('aria-label', tip);
 }
+function setLayout(layout) {
+  if (document.body && document.body.dataset) document.body.dataset.layout = layout;
+  if (sideEl) sideEl.hidden = layout !== 'app';
+}
+function updatePageMeta() {
+  const page = { login: 'login', home: 'home', banks: 'banks', setup: 'banks',
+    quiz: 'quiz', result: 'quiz', summary: 'summary', stats: 'stats',
+    collection: 'collection' }[S.view] || 'home';
+  const title = { login: '登录', home: '学习概览', banks: '选择题库',
+    setup: '组卷', quiz: '答题', result: '答题结果', summary: '题库汇总',
+    stats: '学习报告', collection: S.collectionType === 'fav' ? '收藏集' : '错题本'
+  }[S.view] || 'popipa';
+  if (document.body && document.body.dataset) document.body.dataset.page = page;
+  document.title = 'popipa · ' + title;
+}
 
 /* ============ 6. 渲染 ============ */
 /* 页面切换的判定：视图 + 会改变页面骨架的上下文。
@@ -868,45 +897,81 @@ function viewKey() {
 }
 let lastViewKey = null;
 let hasPainted = false;
+let transitionActive = false;
+
+function reducedMotion() {
+  return typeof window !== 'undefined' && window &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+function layoutForView(view) {
+  if (view === 'login' || !S.user) return 'plain';
+  if (view === 'quiz' || view === 'result') return 'focus';
+  return 'app';
+}
+function canViewTransition() {
+  return typeof document !== 'undefined' &&
+    typeof document.startViewTransition === 'function' && !reducedMotion();
+}
 
 function render() {
   /* 切题会整页重绘，先把答题卡当前的滑动位置记下来，避免每次都从左端重新滑 */
   const qm = document.getElementById('qmap');
   if (qm && !S.qmapOpen && typeof qm.scrollLeft === 'number') S.qmapScroll = qm.scrollLeft;
 
-  const hadShell = !!(app.querySelector && app.querySelector('.home-main'));
   const key = viewKey();
   const changed = key !== lastViewKey;
   const first = !hasPainted;
   const y = (typeof window !== 'undefined' && window &&
     (typeof window.scrollY === 'number' ? window.scrollY : window.pageYOffset)) || 0;
+  const fromLayout = (document.body && document.body.dataset && document.body.dataset.layout) || 'app';
+  const toLayout = layoutForView(S.view);
+  const layoutChanging = fromLayout !== toLayout;
   lastViewKey = key;
   hasPainted = true;
 
-  renderDispatch();
+  const update = useVT => {
+    renderDispatch();
+    /* 同视图重绘保持滚动位置；换视图回到顶部 */
+    if (!first && typeof window !== 'undefined' && window &&
+        typeof window.scrollTo === 'function') {
+      window.scrollTo(0, changed ? 0 : y);
+    }
+    /* 没走 View Transition 时用旧的淡入兜底 */
+    if (changed && !first && !useVT) pulseView(app);
+  };
 
-  /* 同视图重绘保持滚动位置；换视图回到顶部 */
-  if (!first && typeof window !== 'undefined' && window &&
-      typeof window.scrollTo === 'function') {
-    window.scrollTo(0, changed ? 0 : y);
+  if (changed && !first && !transitionActive && canViewTransition()) {
+    transitionActive = true;
+    if (layoutChanging && sideEl && sideEl.classList) sideEl.classList.add('vt-sidebar');
+    try {
+      const vt = document.startViewTransition(() => update(true));
+      const cleanup = () => {
+        transitionActive = false;
+        if (sideEl && sideEl.classList) sideEl.classList.remove('vt-sidebar');
+      };
+      if (vt && vt.finished && vt.finished.finally) vt.finished.finally(cleanup);
+      else setTimeout(cleanup, 500);
+      return;
+    } catch (e) {
+      transitionActive = false;
+      if (sideEl && sideEl.classList) sideEl.classList.remove('vt-sidebar');
+    }
   }
-  if (changed) {
-    const hasShell = !!(app.querySelector && app.querySelector('.home-main'));
-    /* 骨架没变只淡入主内容（侧边栏不动）；骨架切换时整块过渡 */
-    const target = hadShell && hasShell && app.querySelector
-      ? app.querySelector('.home-main') : app;
-    pulseView(target);
-  }
+
+  update(false);
 }
 
 /* 只做 DOM 分发；过渡和滚动统一在外层 render() 里处理 */
 function renderDispatch() {
+  updatePageMeta();
   renderThemeBtn();
   if (S.view === 'login' || !S.user) return renderLogin();
   topbar.hidden = false;
   document.getElementById('whoBox').hidden = false;
   document.getElementById('whoName').textContent = S.user;
   document.getElementById('avatar').textContent = S.user.slice(0, 1).toUpperCase();
+  updateSideUser();
   if (S.view === 'home') { renderHome(); return; }
   if (S.view === 'summary') { renderSummary(); return; }
   if (S.view === 'stats') { renderStats(); return; }
@@ -944,6 +1009,7 @@ function pulseView(el) {
 let loginBusy = false;
 function renderLogin() {
   loginBusy = false;
+  setLayout('plain');
   topbar.hidden = false;                       /* 登录页也保留顶栏：主题开关在顶栏里 */
   document.getElementById('whoBox').hidden = true;
   const last = lastName();          /* 只用来回填昵称，不再列出"本机记录" */
@@ -1142,8 +1208,10 @@ function pickBank(id, scope) {
   S.favOnly = want === 'fav' && favIds(S.user, id).length > 0;
   if (want === 'wrong' && !S.wrongOnly) toast('错题集是空的，先按章节练一练');
   if (want === 'fav' && !S.favOnly) toast('收藏集是空的，先刷几道题吧');
-  S.view = 'setup';
-  render();
+  let url = 'banks.html?bank=' + encodeURIComponent(id);
+  if (S.wrongOnly) url += '&scope=wrong';
+  else if (S.favOnly) url += '&scope=fav';
+  goPage(url, 'setup');
 }
 
 /* ---- 6.3 组卷面板 ---- */
@@ -1555,6 +1623,7 @@ function patchQuizAnswered() {
 function renderQuiz() {
   const s = S.session;
   if (!s) { S.view = 'banks'; return render(); }
+  setLayout('focus');
 
   /* 同一局：只打补丁，不重建整个页面 */
   const root = document.getElementById('quizRoot');
@@ -1846,6 +1915,7 @@ function refreshResultTab() {
 function renderResult() {
   const s = S.session;
   if (!s) { S.view = 'banks'; return render(); }
+  setLayout('focus');
   const st = stats(s);
   const used = (s.finishedAt || Date.now()) - s.startedAt;
   const tone = st.rate >= 80 ? 'ok' : st.rate >= 60 ? 'warn' : 'bad';
@@ -2129,9 +2199,7 @@ document.addEventListener('click', function (e) {
     case 'back-banks':
       if (S.view === 'quiz' && !confirm('返回会保存当前进度，确定离开吗？')) return;
       S.session = null;
-      if (PAGE === 'quiz' && !FILE_MODE) { goPage('banks.html', 'banks'); break; }
-      if (PAGE === 'banks' || PAGE === 'login') { S.view = 'banks'; render(); break; }
-      goPage('home.html', 'home'); break;
+      goPage('banks.html', 'banks'); break;
     case 'start': startSession(); break;
     case 'resume': resumeSession(); break;
     case 'pick': pickKey(el.dataset.key); break;
@@ -2453,7 +2521,7 @@ function boardRows(sort) {
     : (b.answered - a.answered || b.rate - a.rate));
 }
 
-function sideBar(active) {
+function sideBarInner(active) {
   const wrongN = wrongIds(S.user).length, favN = favIds(S.user).length;
   const item = (key, view, href, icon, label, n, extra) =>
     '<a class="side-link' + (active === key ? ' active' : '') + '" href="' + href +
@@ -2463,11 +2531,10 @@ function sideBar(active) {
       (n != null ? '<span class="side-n"' +
         (key === 'wrong' || key === 'fav' ? ' data-count="' + key + '"' : '') + '>' + n + '</span>' : '') +
       '</a>';
-  return '<aside class="side">' +
-    '<div class="side-brand">' +
-      '<span class="avatar">' + esc((S.user || '?').slice(0, 1).toUpperCase()) + '</span>' +
+  return '<div class="side-brand">' +
+      '<span class="avatar" id="sideAvatar">' + esc((S.user || '?').slice(0, 1).toUpperCase()) + '</span>' +
       '<span class="min-w-0 leading-tight">' +
-        '<span class="block truncate text-[13px] font-bold text-ink">' + esc(S.user || '未登录') + '</span>' +
+        '<span id="sideName" class="block truncate text-[13px] font-bold text-ink">' + esc(S.user || '未登录') + '</span>' +
         '<span class="block text-[10px] font-normal text-muted">已登录</span>' +
       '</span>' +
     '</div>' +
@@ -2483,36 +2550,48 @@ function sideBar(active) {
       '<button class="btn btn-warm w-full" data-act="warmup">' +
         '<i class="bi bi-cup-hot mr-1"></i>每日热身' +
         '<span class="side-sub">随机 5 题</span></button>' +
-    '</div>' +
-  '</aside>';
+    '</div>';
 }
-/* 侧边栏只建一次：页面内切换时更新高亮 / 计数，不重建节点，
-   否则每次换页侧边栏都会消失再出现，看起来就是闪一下。 */
+let shellReady = false;
+function ensureShell() {
+  if (!sideEl || shellReady) return;
+  sideEl.innerHTML = sideBarInner();
+  shellReady = true;
+  updateSideUser();
+}
+function updateSideUser() {
+  if (!sideEl) return;
+  const avatar = document.getElementById('sideAvatar');
+  const name = document.getElementById('sideName');
+  if (avatar) avatar.textContent = S.user ? S.user.slice(0, 1).toUpperCase() : '?';
+  if (name) name.textContent = S.user || '未登录';
+}
+/* 侧边栏只建一次：页面内切换时更新高亮 / 计数，不重建节点。 */
 function refreshSideBar(active) {
-  if (!app.querySelectorAll) return;
-  Array.prototype.forEach.call(app.querySelectorAll('.side-link'), a => {
+  if (!sideEl) return;
+  /* 极简 DOM 桩没有 querySelectorAll：直接重建一次侧栏内容 */
+  if (!sideEl.querySelectorAll) {
+    sideEl.innerHTML = sideBarInner(active);
+    updateSideUser();
+    return;
+  }
+  Array.prototype.forEach.call(sideEl.querySelectorAll('.side-link'), a => {
     const on = a.dataset && a.dataset.nav === active;
     if (a.classList) a.classList.toggle('active', on);
     if (on && a.setAttribute) a.setAttribute('aria-current', 'page');
     else if (a.removeAttribute) a.removeAttribute('aria-current');
   });
-  const wrong = app.querySelector('[data-count="wrong"]');
+  updateSideUser();
+  const wrong = sideEl.querySelector('[data-count="wrong"]');
   if (wrong) wrong.textContent = String(wrongIds(S.user).length);
-  const fav = app.querySelector('[data-count="fav"]');
+  const fav = sideEl.querySelector('[data-count="fav"]');
   if (fav) fav.textContent = String(favIds(S.user).length);
 }
 function pageShell(active, main) {
-  const wrap = app.querySelector ? app.querySelector('.home-wrap') : null;
-  const mainEl = wrap && wrap.querySelector ? wrap.querySelector('.home-main') : null;
-  if (!mainEl) {
-    /* 第一次进带侧边栏的页面（或从登录 / 做题页回来）：建整壳 */
-    app.innerHTML = '<div class="home-wrap">' + sideBar(active) +
-      '<div class="home-main">' + main + '</div></div>';
-    return;
-  }
-  /* 页面内切换：保留侧边栏和滚动位置，只替换主区 */
+  ensureShell();
+  setLayout('app');
   refreshSideBar(active);
-  mainEl.innerHTML = main;
+  app.innerHTML = main;
 }
 
 /* ---- 8.1 学习概览 ---- */
@@ -2813,77 +2892,116 @@ function renderStats() {
   refreshStatsBoard();
 }
 
-/* ============ 8. 启动 ============ */
-/* 先把“从服务器恢复”跑完再渲染：这样清过缓存的浏览器打开时，
-   看到的就是恢复后的进度 / 错题 / 成绩，而不是空页面 */
-function bootViews() {
-  if (PAGE === 'login') { S.view = 'login'; render(); return; }
-  if (!S.user) {
-    if (FILE_MODE) { try { location.replace('index.html'); } catch (e) {} return; }
-    goPage('index.html', 'login');
+/* ============ 8. 启动 / 路由 ============ */
+function pageFromLocation() {
+  let p = PAGE || 'index.html';
+  try {
+    if (typeof location !== 'undefined' && location && location.pathname) {
+      const last = location.pathname.split('/').pop();
+      p = last || 'index.html';
+    }
+  } catch (e) {}
+  if (!p || p === '/' || !/\.html$/.test(p)) p = 'index.html';
+  return p;
+}
+
+function queryParam(name) {
+  try { return new URLSearchParams(location.search).get(name); } catch (e) { return null; }
+}
+
+/* 从当前 URL 还原页面状态：首次加载和浏览器前进/后退都走这里。 */
+function applyLocation() {
+  const page = pageFromLocation();
+  if (page === 'index.html') {
+    S.view = 'login';
+    S.session = null;
+    render();
     return;
   }
-  if (PAGE === 'home') { S.view = 'home'; render(); return; }
-  if (PAGE === 'summary') { S.view = 'summary'; render(); return; }
-  if (PAGE === 'stats') { S.view = 'stats'; render(); return; }
-  if (PAGE === 'collection') {
-    let t = 'wrong';
-    try { t = new URLSearchParams(location.search).get('type') || 'wrong'; } catch (e) {}
-    S.collectionType = t === 'fav' ? 'fav' : 'wrong';
-    S.view = 'collection'; render(); return;
+  if (!S.user) {
+    S.view = 'login';
+    S.session = null;
+    if (canUseHistory()) {
+      try { history.replaceState({ view: 'login' }, '', 'index.html'); } catch (e) {}
+    }
+    render();
+    return;
   }
-  if (PAGE === 'banks') {
+  if (page === 'home.html') { S.view = 'home'; S.session = null; render(); return; }
+  if (page === 'summary.html') { S.view = 'summary'; S.session = null; render(); return; }
+  if (page === 'stats.html') { S.view = 'stats'; S.session = null; render(); return; }
+  if (page === 'collection.html') {
+    S.collectionType = queryParam('type') === 'fav' ? 'fav' : 'wrong';
+    S.view = 'collection';
+    S.session = null;
+    render();
+    return;
+  }
+  if (page === 'banks.html') {
     /* 支持从汇总/收藏页带参数直达组卷面板 */
-    let bid = null, ch = null, scope = null;
-    try {
-      const q = new URLSearchParams(location.search);
-      bid = q.get('bank'); ch = q.get('chapter'); scope = q.get('scope');
-    } catch (e) {}
+    const bid = queryParam('bank'), ch = queryParam('chapter'), scope = queryParam('scope');
     if (bid && bankById(bid)) {
       S.bankId = bid;
       S.chapters = ch ? [ch] : bankById(bid).chapters.map(c => c.id);
       S.types = QTYPE_LIST.slice();
       S.mode = 'order';
-      S.wrongOnly = scope === 'wrong';
-      S.favOnly = scope === 'fav';
-      S.view = 'setup'; render(); return;
+      S.wrongOnly = scope === 'wrong' && wrongIds(S.user, bid).length > 0;
+      S.favOnly = scope === 'fav' && favIds(S.user, bid).length > 0;
+      S.view = 'setup';
+      render();
+      return;
     }
-    S.view = 'banks'; render(); return;
+    S.view = 'banks';
+    render();
+    return;
   }
-  if (PAGE === 'quiz') {
-    /* 做题页靠 ?bank= 找到这局没答完的进度；没有就回主界面 */
-    let bankId = null;
-    try { bankId = new URLSearchParams(location.search).get('bank'); } catch (e) {}
+  if (page === 'quiz.html') {
+    const bankId = queryParam('bank');
     const prog = bankId ? loadProgress(S.user, bankId) : null;
-    if (!prog) { goPage('banks.html', 'banks'); return; }
+    if (!prog) {
+      S.session = null;
+      replacePage('banks.html', 'banks');
+      return;
+    }
     S.qmapOpen = false;
     S.qmapScroll = 0;
     S.session = prog;
     S.view = 'quiz';
     render();
+    return;
   }
+  S.view = 'home';
+  replacePage('home.html', 'home');
 }
 function boot() {
   initDialogs();
+  ensureShell();
   clearLegacy();         /* 清掉被取代的本机键，保持轻量 */
+  if (canUseHistory() && typeof window !== 'undefined' && window &&
+      typeof window.addEventListener === 'function') {
+    window.addEventListener('popstate', function () {
+      transitionActive = false;
+      applyLocation();
+    });
+  }
   if (!syncEnabled()) {
     migrateUsers();        /* 旧用户表里的业务字段搬进每用户自己的表 */
     applyTheme(theme());   /* 页面一加载就把主题定下来，避免闪一下浅色 */
     updateSyncDot('local');
-    bootViews();
+    applyLocation();
     return;
   }
   updateSyncDot('saving');
   hydrate().then(res => {
     migrateUsers();
     applyTheme(theme());
-    bootViews();
+    applyLocation();
     if (res && res.pulled) toast('已从本机服务器恢复 ' + res.pulled + ' 项数据');
   }).catch(() => {
     /* 服务器临时不可用也照常进入：先用本机数据，写入时会自动重试推送 */
     migrateUsers();
     applyTheme(theme());
-    bootViews();
+    applyLocation();
   });
 }
 boot();

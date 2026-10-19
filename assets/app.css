@@ -1275,6 +1275,11 @@ a {
   }
 }
 
+body[data-layout="focus"] .home-wrap,
+  body[data-layout="plain"] .home-wrap {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .home-main {
   min-width: 0px;
 }
@@ -3987,6 +3992,121 @@ code {
    颜色全部走 CSS 变量；同视图重绘的组件（.opt / .qmap / .chip）
    保持语义类名，避免每次 patch 时重建整页。
    ========================================================= */
+
+/* =========================================================
+   同文档 View Transition
+   - #app 只换主内容
+   - #top 永在最上层
+   - 答题态切换时 #side 向左滑出 / 滑入
+   ========================================================= */
+
+#app {
+  view-transition-name: app-content;
+}
+
+#top {
+  view-transition-name: topbar;
+}
+
+.vt-sidebar {
+  view-transition-name: sidebar;
+}
+
+::view-transition-old(root),
+::view-transition-new(root),
+::view-transition-old(topbar),
+::view-transition-new(topbar) {
+  animation: none;
+}
+
+::view-transition-group(topbar) {
+  z-index: 100;
+}
+
+::view-transition-group(sidebar) {
+  z-index: 20;
+}
+
+::view-transition-group(app-content) {
+  z-index: 10;
+}
+
+::view-transition-group(root) {
+  z-index: 0;
+}
+
+::view-transition-old(app-content) {
+  animation: popipa-page-out .14s cubic-bezier(.4, 0, 1, 1) both;
+}
+
+::view-transition-new(app-content) {
+  animation: popipa-page-in .34s cubic-bezier(.16, 1, .3, 1) .08s both;
+}
+
+::view-transition-old(sidebar) {
+  animation: popipa-side-out .16s cubic-bezier(.4, 0, 1, 1) both;
+}
+
+::view-transition-new(sidebar) {
+  animation: popipa-side-in .34s cubic-bezier(.16, 1, .3, 1) .04s both;
+}
+
+@keyframes popipa-page-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-48px);
+  }
+}
+
+@keyframes popipa-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(48px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes popipa-side-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes popipa-side-in {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(app-content),
+  ::view-transition-new(app-content),
+  ::view-transition-old(sidebar),
+  ::view-transition-new(sidebar) {
+    animation: none !important;
+  }
+}
 
 @media (min-width: 640px) {
   .sm\:inline {
