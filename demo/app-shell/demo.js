@@ -245,7 +245,7 @@ function updateActiveNav(active) {
   });
 }
 
-function render(route) {
+function commit(route) {
   const def = ROUTES[route] || ROUTES.home;
   currentRoute = route in ROUTES ? route : 'home';
 
@@ -260,6 +260,54 @@ function render(route) {
   document.title = def.title + ' · popipa App Shell Demo';
 
   if (typeof window.scrollTo === 'function') window.scrollTo(0, 0);
+}
+
+function reducedMotion() {
+  return typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+let transitionActive = false;
+
+function render(route, options) {
+  const target = route in ROUTES ? route : 'home';
+  const changed = target !== currentRoute;
+  const noAnimate = !!(options && options.noAnimate);
+  const update = () => commit(target);
+
+  /* 只在普通 App Shell 视图之间做页面动效。
+     进入 / 离开答题态是 focus 布局，侧栏要隐藏 / 出现，不做滑动。 */
+  const fromLayout = currentRoute && ROUTES[currentRoute] ? ROUTES[currentRoute].layout : null;
+  const toLayout = ROUTES[target].layout;
+  const animate = changed && !noAnimate && fromLayout === 'app' && toLayout === 'app';
+
+  if (animate && !transitionActive &&
+      typeof document.startViewTransition === 'function' && !reducedMotion()) {
+    transitionActive = true;
+    try {
+      const vt = document.startViewTransition(update);
+      if (vt && vt.finished && vt.finished.finally) {
+        vt.finished.finally(() => { transitionActive = false; });
+      } else {
+        setTimeout(() => { transitionActive = false; }, 500);
+      }
+      return;
+    } catch (e) {
+      transitionActive = false;
+    }
+  }
+
+  update();
+
+  /* 不支持 View Transition 时的降级：新内容从下方滑入 */
+  if (animate && !reducedMotion()) {
+    app.classList.remove('page-enter');
+    void app.offsetWidth;
+    app.classList.add('page-enter');
+    app.addEventListener('animationend', function () {
+      app.classList.remove('page-enter');
+    }, { once: true });
+  }
 }
 
 function navigate(route, options) {
@@ -299,7 +347,7 @@ document.addEventListener('click', function (e) {
     else if (act === 'forward') goForward();
     else if (act === 'reload') location.reload();
     else if (act === 'check') {
-      render(currentRoute);
+      render(currentRoute, { noAnimate: true });
       if (typeof window.scrollTo === 'function') window.scrollTo(0, 0);
     }
     return;
@@ -336,7 +384,7 @@ themeBtn.addEventListener('click', function () {
     try { history.replaceState({ route: initial }, '', url.pathname + url.search); } catch (e) {}
   }
   applyTheme(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  render(initial);
+  render(initial, { noAnimate: true });
 })();
 
 window.__demo = {
