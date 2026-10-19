@@ -11,3 +11,6 @@ node_modules/
 
 # 私人对话记录，不进入仓库/历史
 对话记录.jsonl
+
+# Docker 运行时数据（真实答题数据）
+popipa-data/

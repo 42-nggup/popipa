@@ -1,0 +1,5 @@
+# 只把 Dockerfile 和 dist 送进构建上下文，避免把私人数据、日志、node_modules 带进去
+*
+!Dockerfile
+!dist/
+!dist/**

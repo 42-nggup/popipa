@@ -31,6 +31,17 @@ npm run build:css       # src/tailwind.css → assets/app.css
 npm run watch:css       # 开发时监听
 ```
 
+Docker 部署：
+
+```bash
+docker compose up -d --build
+# Node 只暴露在 127.0.0.1:3000，供 OpenResty 反向代理
+# 真实数据落在 ./popipa-data/state.json
+```
+
+用 1Panel + OpenResty 时，反向代理填 `http://127.0.0.1:3000` 即可；
+HTTPS 仍由 1Panel 的网站监听端口（例如 8000）负责。
+
 数据默认存到 `data/state.json`，每次改动后自动保存。换端口 / 换数据文件：
 
 ```bash

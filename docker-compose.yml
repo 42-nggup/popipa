@@ -1,0 +1,17 @@
+services:
+  popipa:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: popipa
+    restart: unless-stopped
+    ports:
+      # OpenResty 的 HTTPS 已经占用 8000，这里只把 Node 暴露给本机
+      - "127.0.0.1:3000:3000"
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3000"
+      POPIPA_STATE: /data/state.json
+    volumes:
+      # 真实数据留在宿主机，删容器不会丢
+      - ./popipa-data:/data
