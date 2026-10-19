@@ -2464,7 +2464,13 @@ function sideBar(active) {
         (key === 'wrong' || key === 'fav' ? ' data-count="' + key + '"' : '') + '>' + n + '</span>' : '') +
       '</a>';
   return '<aside class="side">' +
-    '<div class="side-brand"><span class="brand-logo">pi</span><span>popipa</span></div>' +
+    '<div class="side-brand">' +
+      '<span class="avatar">' + esc((S.user || '?').slice(0, 1).toUpperCase()) + '</span>' +
+      '<span class="min-w-0 leading-tight">' +
+        '<span class="block truncate text-[13px] font-bold text-ink">' + esc(S.user || '未登录') + '</span>' +
+        '<span class="block text-[10px] font-normal text-muted">已登录</span>' +
+      '</span>' +
+    '</div>' +
     '<nav class="side-nav">' +
       item('home', 'home', 'home.html', 'bi-house-door', '学习概览') +
       item('banks', 'banks', 'banks.html', 'bi-play-circle', '开始练习') +
