@@ -1140,6 +1140,9 @@ ok('所有页面都加载 Tailwind 产物',
    allHtml.every(h => h.indexOf('assets/app.css') >= 0));
 ok('所有页面都不再加载 Bootstrap CSS / JS',
    allHtml.every(h => h.indexOf('bootstrap.min.css') < 0 && h.indexOf('bootstrap.bundle') < 0));
+ok('所有页面顶栏都有 GitHub 仓库链接',
+   allHtml.every(h => h.indexOf('https://github.com/42-nggup/popipa') >= 0 &&
+     h.indexOf('bi-github') >= 0));
 ok('7 个页面都有持久 App Shell',
    allHtml.every(h => /id="side"/.test(h) && /id="app"/.test(h) && /data-layout="/.test(h)));
 ok('侧边栏在 #app 之外',
