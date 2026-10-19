@@ -1255,9 +1255,12 @@ a {
 /* ---------- 侧边栏 / 主页 ---------- */
 
 .home-wrap {
+  /* 固定顶栏高 64px，侧栏 sticky top 是 82px；
+       这里补 18px，让主内容和侧栏从同一条线开始。 */
   display: grid;
   align-items: flex-start;
   gap: 1.25rem;
+  padding-top: 18px;
 }
 
 @media (min-width: 1024px) {

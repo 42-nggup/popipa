@@ -206,7 +206,9 @@
 
   /* ---------- 侧边栏 / 主页 ---------- */
   .home-wrap {
-    @apply grid items-start gap-5 lg:grid-cols-[236px_minmax(0,1fr)];
+    /* 固定顶栏高 64px，侧栏 sticky top 是 82px；
+       这里补 18px，让主内容和侧栏从同一条线开始。 */
+    @apply grid items-start gap-5 pt-[18px] lg:grid-cols-[236px_minmax(0,1fr)];
   }
   .home-main { @apply min-w-0; }
 
