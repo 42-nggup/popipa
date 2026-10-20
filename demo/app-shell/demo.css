@@ -5,6 +5,10 @@ body[data-layout="focus"] .home-wrap {
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* 登录页：侧栏仍在 Shell 里，但未登录时只作为结构展示。 */
+.side.is-guest .side-link { opacity: .5; pointer-events: none; }
+.side.is-guest .side-foot { display: none; }
+
 /* ---------- 页面切换动效 ----------
    只给 #app 命名，topbar / sidebar 不参与。 */
 #app {
