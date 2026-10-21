@@ -1,7 +1,7 @@
 # popipa · 在线刷题
 
 一个刷题页面：登录 → 选题库 → 组卷 → 答题 → 交卷看结果。
-样式基于 **Tailwind CSS 3.4**（本地编译，运行时不依赖 CDN）。
+样式基于 **Tailwind CSS 3.4**。
 
 > 持久顶栏 / 侧边栏的小 demo 见 [demo/app-shell/README.md](demo/app-shell/README.md)。
 
@@ -13,6 +13,7 @@
 node server.js          # 默认 8000 端口，只监听 127.0.0.1
 # 打开 http://localhost:8000/
 ```
+
 也可以直接双击 `index.html`。但浏览器在 `file://` 下会**按文件隔离
 localStorage**（登录态传不到下一个 HTML），所以此时 `app.js` 会自动退回
 “单页内视图切换”：功能完整，只是地址栏不会变成 `banks.html` / `quiz.html`，
@@ -53,8 +54,7 @@ quiz.html        做题页（答题 + 交卷结果，同页切换）
 HTTP 模式下做题页地址需要带 `?bank=<题库 id>`（从主界面点「开始答题」
 会自动带上）；直接手输不带参数会回到主界面。
 
-`assets/app.css` 已编译并提交，直接运行不需要 `npm install`。
-只有修改 `src/tailwind.css` 或页面 class 时才需要重新构建：
+修改 `src/tailwind.css` 或页面 class 时需要重新构建：
 
 ```bash
 npm install
@@ -124,7 +124,7 @@ vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除
   浏览器。换浏览器后需要重新登录一次，昵称已自动回填。
 - **状态图标**：顶栏云图标绿色=已保存；黄色=暂时连不上、正在重试；灰色=纯本机
   模式（`file://`、普通静态服务器，或接口不可用）。
-- **数据文件**不会被静态服务暴露（直接访问 `/data/state.json` 返回 404）。
+- **数据文件**不会被暴露
   想手动备份就复制 `data/state.json`；要换位置用 `POPIPA_STATE=/path/to/state.json`。
 
 ## 答题规则
@@ -144,8 +144,7 @@ vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除
   连续 7 天），解锁时间存 `ach`，之后一直保留。
 - **主题**：浅色走浅墨绿，暗色走 Tokyo Night；点导航栏的 popipa 回新主页。
 - **再练一遍没做对的**：交卷后出现在结果页，把这一轮「没做对」的题抽出来开新的一轮。
-  新一轮是独立记录（新的 session id），原先那一轮的成绩、逐题记录、用时、进度
-  都原样保留在 `rounds` 里，数字不会被覆盖。
+  新一轮是独立记录（新的 session id）
   全对时按钮禁用（`title` 提示"这一轮没有答错的题"）。
 
 ### 收藏集 / 错题集
@@ -154,20 +153,12 @@ vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除
 进入组卷页，并**自动勾选**「只练错题集」或「只练收藏集」。开始答题时就只出这部分题
 （组卷页里仍可继续按章节、题型筛选），轮次标题会标成「· 错题集 / · 收藏集」。集合为空时入口禁用；带空集合进入会退回按章节练。
 
-### 「没做对」的定义
-
-**已提交且判错**的题。
-
-- 选了答案但没提交：不算「没做对」（它仍算未作答）。
-- 完全没碰过的题：不算「没做对」。
-
 ## 导出分享图
 
 结果页「导出分享图」用 html2canvas 截一张离屏绘制的成绩卡（品牌 / 正确率环 /
-得分 / 用时 / 总题数·答对·答错·未答），落款是「用户名。📢U咩哇帕瓦📢」，
+得分 / 用时 / 总题数·答对·答错·未答），落款是「📢U咩哇帕瓦📢」，
 在原生 `<dialog>` 里预览后可下载 PNG。
 卡片颜色走 Tailwind 主题变量，深色模式下导出的是深底。
-`html2canvas` 未加载或渲染失败时会给出提示，不会白屏。
 
 ## 历史轮次回看
 
@@ -176,7 +167,6 @@ vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除
 - 表格列：`题号 / 用户答案 / 正确答案 / 解析`
 - **只列已作答的题**，未作答的不出现
 - 最后一行汇总：`总题数 / 答错 / 答对 / 未答 / 正确率`
-- 数字全部取自 `rounds` 里的快照，题库之后改版也不会变
 
 ## 界面过渡
 
@@ -186,11 +176,9 @@ vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除
   - 新内容从下方滑入并减速到 0
   - 进入 / 离开答题态时，侧栏向左滑出 / 从左侧滑入
   - 顶栏单独命名并压在最上层，不会被内容快照盖住
-- 不支持 View Transition 时退回 100ms 淡入 + 轻微上移。
 - 同一视图的重绘（提交答案、切题、结果页切标签、排序、展开）**不播放过渡**，并保持滚动位置。
 - 答题页常驻 `#quizRoot`：提交只更新选项 / 反馈 / 状态条，切题只换题卡和答题卡格子，
   不再整块重建 `#app`；结果页切标签也只替换题目列表。
-- 尊重 `prefers-reduced-motion: reduce`（系统开启减少动态时不做动画）。
 
 例如 `http://localhost:8000/home.html?brand=umewa`。
 
@@ -201,5 +189,3 @@ vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除
 - 数据只落在本机 `data/state.json`，没有云端同步；换机器需要手动拷贝该文件。
 - 服务默认只监听 `127.0.0.1`；手机 / 局域网访问要 `HOST=0.0.0.0`，
   此时 `/api/state` 也会暴露在局域网里，请自行权衡。
-- 开发记录见 `整改需求.md`、`第二次需求整改.md`、`追加需求.md`。
-
