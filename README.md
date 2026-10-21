@@ -1,17 +1,9 @@
 # popipa · 在线刷题
 
 一个刷题页面：登录 → 选题库 → 组卷 → 答题 → 交卷看结果。
-数据来自 `data/raw/*.md`，由 `scripts/parse-banks.js` 解析成 `app.data.js`；
 样式基于 **Tailwind CSS 3.4**（本地编译，运行时不依赖 CDN）。
-附带一个零依赖的本地服务器：除了提供页面，还会把浏览器里的数据自动落盘，
-清缓存 / 换浏览器后打开就能恢复。
 
-> 前端从 Bootstrap 迁移到 Tailwind 的盘点、修复项和渲染约束见
-> [FRONTEND.md](FRONTEND.md) 与 [前端重构总结.md](前端重构总结.md)。
-> 正式 App Shell 迁移记录见 [APP_SHELL_MIGRATION.md](APP_SHELL_MIGRATION.md)；
 > 持久顶栏 / 侧边栏的小 demo 见 [demo/app-shell/README.md](demo/app-shell/README.md)。
-
-> 换设备 / 交接开发：先读 [HANDOFF.md](HANDOFF.md)；本轮对话与决策见 [CONVERSATION.md](CONVERSATION.md)。
 
 ## 运行
 
@@ -21,15 +13,12 @@
 node server.js          # 默认 8000 端口，只监听 127.0.0.1
 # 打开 http://localhost:8000/
 ```
-
-`assets/app.css` 已编译并提交，直接运行不需要 `npm install`。
-只有修改 `src/tailwind.css` 或页面 class 时才需要重新构建：
-
-```bash
-npm install
-npm run build:css       # src/tailwind.css → assets/app.css
-npm run watch:css       # 开发时监听
-```
+也可以直接双击 `index.html`。但浏览器在 `file://` 下会**按文件隔离
+localStorage**（登录态传不到下一个 HTML），所以此时 `app.js` 会自动退回
+“单页内视图切换”：功能完整，只是地址栏不会变成 `banks.html` / `quiz.html`，
+而且**不会落盘**（顶栏会显示灰色的“仅本机”图标）。想要地址栏同步和自动持久化，
+请用 `node server.js`。用其他静态服务器打开时，页面仍可用，但检测不到
+`/api/state` 就自动退回纯 localStorage 模式。
 
 Docker 部署：
 
@@ -51,13 +40,6 @@ POPIPA_STATE=/path/to/state.json node server.js   # 换数据文件
 HOST=0.0.0.0 node server.js             # 允许局域网访问（接口也会暴露，慎用）
 ```
 
-也可以直接双击 `index.html`。但浏览器在 `file://` 下会**按文件隔离
-localStorage**（登录态传不到下一个 HTML），所以此时 `app.js` 会自动退回
-“单页内视图切换”：功能完整，只是地址栏不会变成 `banks.html` / `quiz.html`，
-而且**不会落盘**（顶栏会显示灰色的“仅本机”图标）。想要地址栏同步和自动持久化，
-请用 `node server.js`。用其他静态服务器打开时，页面仍可用，但检测不到
-`/api/state` 就自动退回纯 localStorage 模式。
-
 ```
 index.html       登录页
 home.html        新主页：侧边栏 + 欢迎语 + 每日目标 + 五项统计 + 上次进度 / 近日统计
@@ -70,12 +52,14 @@ quiz.html        做题页（答题 + 交卷结果，同页切换）
 
 HTTP 模式下做题页地址需要带 `?bank=<题库 id>`（从主界面点「开始答题」
 会自动带上）；直接手输不带参数会回到主界面。
-测试：
+
+`assets/app.css` 已编译并提交，直接运行不需要 `npm install`。
+只有修改 `src/tailwind.css` 或页面 class 时才需要重新构建：
 
 ```bash
-node tests/logic.test.js    # 逻辑自测（Node + DOM 桩）
-node tests/server.test.js   # 起真的 server.js，测 /api/state 读写与落盘
-node tests/e2e.test.js      # 真实 Firefox：登录 → 落盘 → 换 profile 自动恢复
+npm install
+npm run build:css       # src/tailwind.css → assets/app.css
+npm run watch:css       # 开发时监听
 ```
 
 ## 目录
@@ -97,9 +81,6 @@ app.js              全部逻辑（页面路由 / 渲染 / 判分 / 存储 / 同
 app.data.js         题库（自动生成，勿手改）
 data/               题库源文件与解析产物；运行时数据在 data/state.json（已 gitignore）
 scripts/            Markdown → JSON 的解析脚本
-tests/logic.test.js Node 逻辑自测（极简 DOM 桩 + Tailwind / Dialog）
-tests/server.test.js 服务端 /api/state 落盘测试（临时端口 + 临时文件）
-tests/e2e.test.js   Firefox headless 端到端测试（登录 → 落盘 → 换浏览器恢复）
 vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除）
 ```
 
@@ -128,9 +109,6 @@ vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除
   - `rounds[]` 逐轮记录：逐题作答（`order/answers/submitted`）、
     起止时间与用时（`startedAt/finishedAt/seconds`）、汇总
     （`total/correct/wrong/unanswered/rate/score`），最多保留 20 轮
-- 旧版本把业务字段直接塞在 `popipa:users` 里，启动时 `migrateUsers()`
-  会自动搬进各用户自己的表，用户表只留身份字段（幂等）。
-- 更早的 `popipa:progress:*` / `popipa:records` 启动时直接删除。
 
 ### 自动落盘（node server.js）
 
@@ -213,22 +191,6 @@ vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除
 - 答题页常驻 `#quizRoot`：提交只更新选项 / 反馈 / 状态条，切题只换题卡和答题卡格子，
   不再整块重建 `#app`；结果页切标签也只替换题目列表。
 - 尊重 `prefers-reduced-motion: reduce`（系统开启减少动态时不做动画）。
-
-## 彩蛋
-
-每次硬加载独立随机：
-
-- **49%** 概率把品牌显示成 `pipopa`
-- **2%** 概率显示成 `📢U咩哇帕瓦📢`
-- **49%** 概率显示 `popipa`
-
-影响顶栏品牌、登录页大标题、分享卡品牌和页面标题。调试时可以强制：
-
-```text
-?brand=popipa
-?brand=pipopa
-?brand=umewa
-```
 
 例如 `http://localhost:8000/home.html?brand=umewa`。
 
