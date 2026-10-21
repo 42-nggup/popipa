@@ -4,12 +4,12 @@
 
 ## 运行
 
-从仓库根目录构建并启动：
+这个目录只用于本地开发演示，不进入 `dist/`，也不会部署。
+
+从仓库根目录启动源码目录：
 
 ```bash
-npm install
-npm run build
-node server.js
+POPIPA_ROOT=src node server.js
 ```
 
 打开：

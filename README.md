@@ -3,7 +3,8 @@
 一个刷题页面：登录 → 选题库 → 组卷 → 答题 → 交卷看结果。
 样式基于 **Tailwind CSS 3.4**。
 
-> 持久顶栏 / 侧边栏的小 demo 见 [src/demo/app-shell/README.md](src/demo/app-shell/README.md)。
+> 持久顶栏 / 侧边栏的小 demo 见 [src/demo/app-shell/README.md](src/demo/app-shell/README.md)，
+> 仅用于本地开发，不进入部署产物。
 
 ## 运行
 
@@ -73,7 +74,7 @@ src/
   tailwind.css      Tailwind 源文件
   assets/           编译后的 CSS、站点图标
   vendor/           Bootstrap Icons、html2canvas
-  demo/app-shell/   持久 App Shell 演示
+  demo/app-shell/   持久 App Shell 演示（仅开发，不部署）
 
 server.js           零依赖静态服务器 + /api/state 数据落盘
 tailwind.config.js  主题、字体、阴影、dark 选择器
