@@ -41,16 +41,6 @@ POPIPA_STATE=/path/to/state.json node server.js   # 换数据文件
 HOST=0.0.0.0 node server.js             # 允许局域网访问（接口也会暴露，慎用）
 ```
 
-```
-index.html       登录页
-home.html        新主页：侧边栏 + 欢迎语 + 每日目标 + 五项统计 + 上次进度 / 近日统计
-summary.html     题库汇总：题库 → 章节 → 题型，可展开看题、只练这一章
-stats.html       学习报告：个人答题曲线 + 仅同意者的排行榜
-collection.html  错题本 / 收藏集（?type=wrong|fav），按题库列出
-banks.html       题库列表 + 组卷面板（同页切换）
-quiz.html        做题页（答题 + 交卷结果，同页切换）
-```
-
 HTTP 模式下做题页地址需要带 `?bank=<题库 id>`（从主界面点「开始答题」
 会自动带上）；直接手输不带参数会回到主界面。
 
