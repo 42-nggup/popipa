@@ -11,7 +11,7 @@
 ```bash
 npm install
 npm run vendor
-POPIPA_ROOT=src node server.js
+POPIPA_ROOT=. node server.js
 ```
 
 打开：
@@ -20,7 +20,7 @@ POPIPA_ROOT=src node server.js
 http://localhost:8000/demo/app-shell/index.html
 ```
 
-> 也可以直接打开 `src/demo/app-shell/index.html`，但 `file://` 下部分浏览器不允许
+> 也可以直接打开 `demo/app-shell/index.html`，但 `file://` 下部分浏览器不允许
 > `history.pushState`，此时仍能切视图，只是地址栏和前进/后退不可用。
 
 ## 观察点
@@ -52,7 +52,7 @@ http://localhost:8000/demo/app-shell/index.html
 ## 文件
 
 ```text
-src/demo/app-shell/
+demo/app-shell/
   index.html   静态 Shell（#top / #side 都在 #app 外面）
   demo.js      路由、render(#app)、popstate、主题切换
   demo.css     演示专用样式（答题态单列布局等）

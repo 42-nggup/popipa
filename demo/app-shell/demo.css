@@ -1,4 +1,4 @@
-/* 这个 demo 只加少量演示样式，主要视觉复用 ../../assets/app.css */
+/* 这个 demo 只加少量演示样式，主要视觉复用 ../../src/assets/app.css */
 
 /* 答题态：侧边栏 hidden 后，主内容占满整行 */
 body[data-layout="focus"] .home-wrap {

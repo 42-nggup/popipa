@@ -16,7 +16,6 @@ fs.mkdirSync(DIST, { recursive: true });
 
 for (const name of fs.readdirSync(SRC)) {
   if (name === 'tailwind.css') continue;   // 源样式不进入部署产物
-  if (name === 'demo') continue;           // app-shell 只用于本地开发演示
   fs.cpSync(path.join(SRC, name), path.join(DIST, name), { recursive: true });
 }
 

@@ -8,5 +8,6 @@ popipa-data
 data
 docs
 tests
+demo
 *.log
 .env
