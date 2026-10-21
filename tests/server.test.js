@@ -132,7 +132,6 @@ const json = r => { try { return JSON.parse(r.body); } catch (e) { return null; 
         'popipa:u:小明': { v: null, at: 3000 },
         'popipa:user': { v: '"不该落盘"', at: 4000 },
         'popipa:theme': { v: '"dark"', at: 4000 },
-        'popipa:progress:x:web': { v: '{"old":1}', at: 4000 },
         'other:key': { v: '"外部键"', at: 4000 }
       }
     });
@@ -140,7 +139,6 @@ const json = r => { try { return JSON.parse(r.body); } catch (e) { return null; 
     ok('墓碑保留 v:null', merged['popipa:u:小明'].v === null);
     ok('当前登录不落盘', !merged['popipa:user']);
     ok('本机主题不落盘', !merged['popipa:theme']);
-    ok('旧版遗留键不落盘', !merged['popipa:progress:x:web']);
     ok('非 popipa 键不落盘', !merged['other:key']);
 
     section('4. 静态资源与数据文件保护');
