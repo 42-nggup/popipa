@@ -28,8 +28,42 @@ window.__shellProbe = {
 };
 
 let currentRoute = 'home';
+let demoUser = 'Demo 用户';
+
+function esc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function setShellUser(user) {
+  const guest = !user;
+  const whoBox = document.getElementById('whoBox');
+  const guestPill = document.getElementById('guestPill');
+  if (whoBox) whoBox.hidden = guest;
+  if (guestPill) guestPill.hidden = !guest;
+
+  const topAvatar = document.getElementById('topAvatar');
+  const topName = document.getElementById('topName');
+  const sideAvatar = document.getElementById('sideAvatar');
+  const sideName = document.getElementById('sideName');
+  const sideStatus = document.getElementById('sideStatus');
+  if (topAvatar) topAvatar.textContent = (user || '?').slice(0, 1).toUpperCase();
+  if (topName) topName.textContent = user || '';
+  if (sideAvatar) sideAvatar.textContent = (user || '?').slice(0, 1).toUpperCase();
+  if (sideName) sideName.textContent = user || '未登录';
+  if (sideStatus) sideStatus.textContent = user ? '已登录' : '登录后保存进度';
+  if (side && side.classList) side.classList.toggle('is-guest', guest);
+}
 
 const ROUTES = {
+  login: {
+    title: '登录',
+    page: 'login',
+    layout: 'app',
+    active: '',
+    view: viewLogin
+  },
   home: {
     title: '学习概览',
     page: 'home',
@@ -99,6 +133,26 @@ function debugCard(route) {
         '</div>' +
       '</div>' +
     '</section>';
+}
+
+function viewLogin() {
+  return '<section class="login-hero">' +
+      '<div class="logo-big"><i class="bi bi-lightning-charge-fill"></i></div>' +
+      '<p class="eyebrow">POPIPA · PRACTICE</p>' +
+      '<h1 class="login-title">popipa</h1>' +
+      '<p class="login-sub">挑一套题库，答完立刻知道对错，随时看得见自己的进度。</p>' +
+    '</section>' +
+    '<form class="card login-box" id="demoLoginForm" novalidate>' +
+      '<div class="card-body p-5 sm:p-6">' +
+        '<label class="form-label" for="demoNick">你的昵称</label>' +
+        '<input class="form-input" id="demoNick" maxlength="16" placeholder="例如：小明"' +
+          ' autocomplete="nickname" aria-describedby="demoNickErr" value="' + esc(demoUser) + '">' +
+        '<p class="form-error" id="demoNickErr" hidden>请输入 1~16 个字符的昵称</p>' +
+        '<button class="btn btn-primary btn-lg mt-4 w-full" type="submit">' +
+          '<i class="bi bi-box-arrow-in-right"></i>开始刷题</button>' +
+        '<p class="mb-0 mt-3 text-center text-[11px] text-muted">演示登录：Shell 顶栏和侧栏不会重建。</p>' +
+      '</div>' +
+    '</form>';
 }
 
 function viewHome() {
@@ -234,7 +288,7 @@ function viewQuiz() {
     debugCard('quiz');
 }
 
-const VIEWS = { home: viewHome, banks: viewBanks, stats: viewStats, quiz: viewQuiz };
+const VIEWS = { login: viewLogin, home: viewHome, banks: viewBanks, stats: viewStats, quiz: viewQuiz };
 
 function updateActiveNav(active) {
   Array.prototype.forEach.call(document.querySelectorAll('.side-link[data-nav]'), a => {
@@ -248,6 +302,9 @@ function updateActiveNav(active) {
 function commit(route) {
   const def = ROUTES[route] || ROUTES.home;
   currentRoute = route in ROUTES ? route : 'home';
+
+  /* 登录页用访客态；离开登录页恢复演示用户，Shell 节点本身不动。 */
+  setShellUser(currentRoute === 'login' ? null : demoUser);
 
   document.body.dataset.page = def.page;
   document.body.dataset.layout = def.layout;
@@ -353,6 +410,7 @@ document.addEventListener('click', function (e) {
     if (act === 'back') goBack();
     else if (act === 'forward') goForward();
     else if (act === 'reload') location.reload();
+    else if (act === 'logout') navigate('login');
     else if (act === 'check') {
       render(currentRoute, { noAnimate: true });
       if (typeof window.scrollTo === 'function') window.scrollTo(0, 0);
@@ -364,6 +422,28 @@ document.addEventListener('click', function (e) {
   if (!target) return;
   e.preventDefault();
   navigate(target.dataset.go || target.dataset.nav);
+});
+
+/* 演示登录：提交后只切 #app，顶栏 / 侧栏保持原节点。 */
+document.addEventListener('submit', function (e) {
+  const form = e.target;
+  if (!form || form.id !== 'demoLoginForm') return;
+  e.preventDefault();
+  const input = document.getElementById('demoNick');
+  const err = document.getElementById('demoNickErr');
+  const value = input ? (input.value || '').trim() : '';
+  if (!value || value.length > 16) {
+    if (err) err.hidden = false;
+    if (input) {
+      input.classList.add('is-invalid');
+      input.setAttribute('aria-invalid', 'true');
+      input.focus();
+    }
+    return;
+  }
+  demoUser = value;
+  if (err) err.hidden = true;
+  navigate('home');
 });
 
 window.addEventListener('popstate', function () {

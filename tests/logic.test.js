@@ -66,7 +66,7 @@ vm.runInContext(dataSrc + '\n' + logicSrc + `
 globalThis.__hook = { S, stats, isCorrect, hasAnswer, startSession, pickKey, submitCurrent, redoCurrent,
   jump, go, step, finish, pickBank, doLogin, retryWrong,
   tickAuto, QMAP, BANKS, bankById, bankQuestionIds, LETTERS, render, renderQuiz, roundDone,
-  store, KEY, userOf, users, userTable, migrateUsers, roundsOf, pushRound,
+  store, KEY, userOf, users, userTable, roundsOf, pushRound,
   favIds, isFav, toggleFavId, toggleFav,
   wrongIds, sanitizeSession, historyOf, loadProgress, lastName,
   applyTheme, theme, toggleTheme, navTargetScroll, scrollNavToCurrent, toggleQmap, restoreQmapScroll, pageMode,
@@ -417,24 +417,6 @@ ok('快照是独立副本：改动当前会话不影响已存记录',
      delete H.S.session.answers[r0.order[0]];
      return same;
    })());
-
-section('23. 旧结构迁移：业务字段搬进每用户表');
-const legacy = {};
-legacy['老用户'] = {
-  name: '老用户', lastLogin: 123, theme: 'dark',
-  books: { web: { order: ['x'] } }, wrong: { q1: 1 },
-  history: [{ rate: 50 }], fav: { q2: 2 }
-};
-H.store.set(H.KEY.users, legacy);
-H.migrateUsers();
-ok('用户表只剩身份字段',
-   Object.keys(H.users()['老用户']).sort().join(',') === 'lastLogin,name');
-const tOld = H.userTable('老用户');
-ok('主题/进度/错题/收藏/成绩都搬进了每用户表',
-   tOld.theme === 'dark' && !!tOld.books.web && tOld.wrong.q1 === 1 &&
-   tOld.fav.q2 === 2 && tOld.history.length === 1);
-ok('再跑一次迁移不会重复搬', H.migrateUsers() === false);
-
 
 section('24. 收藏写进每用户表，跨场次保留');
 H.S.user = '小明'; H.S.view = 'setup'; H.S.bankId = 'web';
@@ -1187,8 +1169,6 @@ H.S.user = '小明'; H.S.view = 'banks';
   ok('http 环境下同步开启', H.syncEnabled() === true);
   ok('登录态 / 本机主题 / 同步元数据不同步',
      !H.isSyncKey('popipa:user') && !H.isSyncKey('popipa:theme') && !H.isSyncKey('popipa:sync'));
-  ok('旧版遗留键不同步',
-     !H.isSyncKey('popipa:progress:小明:web') && !H.isSyncKey('popipa:records'));
 
   H.store.set('popipa:u:同步测试', { name: '同步测试', wrong: { 'web-1': 1 } });
   ok('写入后记录 at 时间戳', typeof H.readSyncMeta().at['popipa:u:同步测试'] === 'number');

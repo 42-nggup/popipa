@@ -229,9 +229,8 @@ function stats(s) {
                      wrong[qid]        错题本，答对后自动移除
                      history[]         历次成绩
      popipa:last   最近一次登录的昵称（退出登录也不清，用于回填表单）
-   之前那套 popipa:progress:<user>:<bank> 已经废弃：它不会校验题号，
-   题库一换版本，残留的旧题号就会让 stats() 里的 QMAP[id] 变成 undefined
-   而报错。现在统一收进用户表，并在读取时校验题号。 */
+   进度统一收进用户表，并在读取时校验题号，避免旧题号让 QMAP[id] 变成
+   undefined 而报错。 */
 const KEY = {
   user: 'popipa:user',    /* 当前登录的是谁（退出登录会清）*/
   last: 'popipa:last',    /* 最近一次登录过谁（不清）*/
@@ -278,8 +277,7 @@ let pushTimer = null, pushInFlight = false, pushQueued = false, pushRetry = 0;
 
 function isSyncKey(k) {
   return typeof k === 'string' && k.indexOf('popipa:') === 0 &&
-    k !== KEY.user && k !== KEY.theme && k !== SYNC_META &&
-    k.indexOf('popipa:progress:') !== 0 && k !== 'popipa:records';
+    k !== KEY.user && k !== KEY.theme && k !== SYNC_META;
 }
 function syncEnabled() {
   return !syncOff && !FILE_MODE && typeof fetch === 'function' &&
@@ -512,20 +510,6 @@ function touchSync(k, dead) {
   writeSyncMeta(meta);
   schedulePush();
 }
-/* 轻量化：清掉已经被取代的本机键。老版的进度是 popipa:progress:<用户>:<题库>，
-   旧版"本机记录"是 popipa:records——现在都收进用户表了，留着只会占地方。 */
-function clearLegacy() {
-  const kill = [];
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && (k.indexOf('popipa:progress:') === 0 || k === 'popipa:records')) kill.push(k);
-    }
-    kill.forEach(k => localStorage.removeItem(k));
-  } catch (e) { /* 隐私模式下 localStorage 不可用，忽略 */ }
-  return kill;
-}
-
 /* ---- 用户表 ---- */
 function blankUser(name) {
   return {
@@ -585,31 +569,6 @@ function saveUser(name, u) {
   const t = {};
   USER_FIELDS.forEach(k => { t[k] = u[k]; });
   saveUserTable(name, t);
-}
-/* 旧结构迁移：业务字段从 popipa:users 搬到 popipa:u:<昵称>，用户表只留身份 */
-function migrateUsers() {
-  const all = users();
-  let changed = false;
-  Object.keys(all).forEach(name => {
-    const rec = all[name];
-    if (!rec || typeof rec !== 'object') return;
-    const t = userTable(name);
-    let moved = false;
-    USER_FIELDS.forEach(k => {
-      if (rec[k] !== undefined) {
-        if (t[k] === undefined) t[k] = rec[k];
-        delete rec[k];
-        moved = true;
-      }
-    });
-    if (moved) {
-      saveUserTable(name, t);
-      all[name] = { name: rec.name || name, lastLogin: rec.lastLogin || 0 };
-      changed = true;
-    }
-  });
-  if (changed) store.set(KEY.users, all);
-  return changed;
 }
 /* 登录：记下"最近一次谁登录了" */
 function rememberLogin(name) {
@@ -2082,10 +2041,30 @@ function shareRecord() {
     date: dateStamp(Date.now())
   };
 }
-function exportPng() {
+let html2canvasPromise = null;
+function loadHtml2Canvas() {
+  if (typeof html2canvas === 'function') return Promise.resolve();
+  if (html2canvasPromise) return html2canvasPromise;
+  if (typeof document === 'undefined' || !document.head || !document.head.appendChild) {
+    return Promise.reject(new Error('no document head'));
+  }
+  html2canvasPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'vendor/html2canvas.min.js';
+    script.async = true;
+    script.onload = () => {
+      if (typeof html2canvas === 'function') resolve();
+      else reject(new Error('html2canvas missing'));
+    };
+    script.onerror = () => reject(new Error('html2canvas load failed'));
+    document.head.appendChild(script);
+  });
+  html2canvasPromise.catch(() => { html2canvasPromise = null; });
+  return html2canvasPromise;
+}
+function runExportPng() {
   const s = S.session;
   if (!s) { toast('没有可导出的成绩'); return; }
-  if (typeof html2canvas !== 'function') { toast('分享图组件没加载，请检查 vendor/html2canvas.min.js'); return; }
   const rec = shareRecord();
   const holder = document.createElement('div');
   holder.innerHTML = shareCardHtml(rec);
@@ -2116,6 +2095,20 @@ function exportPng() {
     if (p && typeof p.then === 'function') p.then(cv => done(cv.toDataURL('image/png'))).catch(fail);
     else done(p.toDataURL('image/png'));
   } catch (e) { fail(); }
+}
+function exportPng() {
+  if (!S.session) { toast('没有可导出的成绩'); return; }
+  if (typeof html2canvas === 'function') { runExportPng(); return; }
+  /* App Shell 是单文档切换：如果从首页进入答题页，quiz.html 里的
+     html2canvas 不会自动加载，这里按需补一次。 */
+  if (typeof document === 'undefined' || !document.head || !document.head.appendChild) {
+    toast('分享图组件没加载，请检查 vendor/html2canvas.min.js');
+    return;
+  }
+  toast('正在加载分享图组件…');
+  loadHtml2Canvas().then(runExportPng).catch(() => {
+    toast('分享图组件加载失败，请重试');
+  });
 }
 
 /* ---- 6.8 计时器 ---- */
@@ -3006,7 +2999,6 @@ function boot() {
   applyBrand();
   initDialogs();
   ensureShell();
-  clearLegacy();         /* 清掉被取代的本机键，保持轻量 */
   if (canUseHistory() && typeof window !== 'undefined' && window &&
       typeof window.addEventListener === 'function') {
     window.addEventListener('popstate', function () {
@@ -3015,7 +3007,6 @@ function boot() {
     });
   }
   if (!syncEnabled()) {
-    migrateUsers();        /* 旧用户表里的业务字段搬进每用户自己的表 */
     applyTheme(theme());   /* 页面一加载就把主题定下来，避免闪一下浅色 */
     updateSyncDot('local');
     applyLocation();
@@ -3024,13 +3015,11 @@ function boot() {
 
   /* 先按本机数据渲染首屏：hydrate 的网络请求可能很慢，
      不能让登录页一直空着等服务器。 */
-  migrateUsers();
   applyTheme(theme());
   updateSyncDot('saving');
   applyLocation();
 
   hydrate().then(res => {
-    migrateUsers();
     applyTheme(theme());
     if (res && res.pulled) {
       applyLocation();     /* 拉到服务器数据后原地刷新当前视图 */
