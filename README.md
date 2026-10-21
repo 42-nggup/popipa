@@ -1,17 +1,9 @@
 # popipa · 在线刷题
 
 一个刷题页面：登录 → 选题库 → 组卷 → 答题 → 交卷看结果。
-数据来自 `data/raw/*.md`，由 `scripts/parse-banks.js` 解析成 `app.data.js`；
-样式基于 **Tailwind CSS 3.4**（本地编译，运行时不依赖 CDN）。
-附带一个零依赖的本地服务器：除了提供页面，还会把浏览器里的数据自动落盘，
-清缓存 / 换浏览器后打开就能恢复。
+样式基于 **Tailwind CSS 3.4**。
 
-> 前端从 Bootstrap 迁移到 Tailwind 的盘点、修复项和渲染约束见
-> [FRONTEND.md](FRONTEND.md) 与 [前端重构总结.md](前端重构总结.md)。
-> 正式 App Shell 迁移记录见 [APP_SHELL_MIGRATION.md](APP_SHELL_MIGRATION.md)；
 > 持久顶栏 / 侧边栏的小 demo 见 [demo/app-shell/README.md](demo/app-shell/README.md)。
-
-> 换设备 / 交接开发：先读 [HANDOFF.md](HANDOFF.md)；本轮对话与决策见 [CONVERSATION.md](CONVERSATION.md)。
 
 ## 运行
 
@@ -22,14 +14,12 @@ node server.js          # 默认 8000 端口，只监听 127.0.0.1
 # 打开 http://localhost:8000/
 ```
 
-`assets/app.css` 已编译并提交，直接运行不需要 `npm install`。
-只有修改 `src/tailwind.css` 或页面 class 时才需要重新构建：
-
-```bash
-npm install
-npm run build:css       # src/tailwind.css → assets/app.css
-npm run watch:css       # 开发时监听
-```
+也可以直接双击 `index.html`。但浏览器在 `file://` 下会**按文件隔离
+localStorage**（登录态传不到下一个 HTML），所以此时 `app.js` 会自动退回
+“单页内视图切换”：功能完整，只是地址栏不会变成 `banks.html` / `quiz.html`，
+而且**不会落盘**（顶栏会显示灰色的“仅本机”图标）。想要地址栏同步和自动持久化，
+请用 `node server.js`。用其他静态服务器打开时，页面仍可用，但检测不到
+`/api/state` 就自动退回纯 localStorage 模式。
 
 Docker 部署：
 
@@ -51,13 +41,6 @@ POPIPA_STATE=/path/to/state.json node server.js   # 换数据文件
 HOST=0.0.0.0 node server.js             # 允许局域网访问（接口也会暴露，慎用）
 ```
 
-也可以直接双击 `index.html`。但浏览器在 `file://` 下会**按文件隔离
-localStorage**（登录态传不到下一个 HTML），所以此时 `app.js` 会自动退回
-“单页内视图切换”：功能完整，只是地址栏不会变成 `banks.html` / `quiz.html`，
-而且**不会落盘**（顶栏会显示灰色的“仅本机”图标）。想要地址栏同步和自动持久化，
-请用 `node server.js`。用其他静态服务器打开时，页面仍可用，但检测不到
-`/api/state` 就自动退回纯 localStorage 模式。
-
 ```
 index.html       登录页
 home.html        新主页：侧边栏 + 欢迎语 + 每日目标 + 五项统计 + 上次进度 / 近日统计
@@ -70,12 +53,13 @@ quiz.html        做题页（答题 + 交卷结果，同页切换）
 
 HTTP 模式下做题页地址需要带 `?bank=<题库 id>`（从主界面点「开始答题」
 会自动带上）；直接手输不带参数会回到主界面。
-测试：
+
+修改 `src/tailwind.css` 或页面 class 时需要重新构建：
 
 ```bash
-node tests/logic.test.js    # 逻辑自测（Node + DOM 桩）
-node tests/server.test.js   # 起真的 server.js，测 /api/state 读写与落盘
-node tests/e2e.test.js      # 真实 Firefox：登录 → 落盘 → 换 profile 自动恢复
+npm install
+npm run build:css       # src/tailwind.css → assets/app.css
+npm run watch:css       # 开发时监听
 ```
 
 ## 目录
@@ -97,9 +81,6 @@ app.js              全部逻辑（页面路由 / 渲染 / 判分 / 存储 / 同
 app.data.js         题库（自动生成，勿手改）
 data/               题库源文件与解析产物；运行时数据在 data/state.json（已 gitignore）
 scripts/            Markdown → JSON 的解析脚本
-tests/logic.test.js Node 逻辑自测（极简 DOM 桩 + Tailwind / Dialog）
-tests/server.test.js 服务端 /api/state 落盘测试（临时端口 + 临时文件）
-tests/e2e.test.js   Firefox headless 端到端测试（登录 → 落盘 → 换浏览器恢复）
 vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除）
 ```
 
@@ -128,9 +109,6 @@ vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除
   - `rounds[]` 逐轮记录：逐题作答（`order/answers/submitted`）、
     起止时间与用时（`startedAt/finishedAt/seconds`）、汇总
     （`total/correct/wrong/unanswered/rate/score`），最多保留 20 轮
-- 旧版本把业务字段直接塞在 `popipa:users` 里，启动时 `migrateUsers()`
-  会自动搬进各用户自己的表，用户表只留身份字段（幂等）。
-- 更早的 `popipa:progress:*` / `popipa:records` 启动时直接删除。
 
 ### 自动落盘（node server.js）
 
@@ -146,7 +124,7 @@ vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除
   浏览器。换浏览器后需要重新登录一次，昵称已自动回填。
 - **状态图标**：顶栏云图标绿色=已保存；黄色=暂时连不上、正在重试；灰色=纯本机
   模式（`file://`、普通静态服务器，或接口不可用）。
-- **数据文件**不会被静态服务暴露（直接访问 `/data/state.json` 返回 404）。
+- **数据文件**不会被暴露
   想手动备份就复制 `data/state.json`；要换位置用 `POPIPA_STATE=/path/to/state.json`。
 
 ## 答题规则
@@ -166,8 +144,7 @@ vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除
   连续 7 天），解锁时间存 `ach`，之后一直保留。
 - **主题**：浅色走浅墨绿，暗色走 Tokyo Night；点导航栏的 popipa 回新主页。
 - **再练一遍没做对的**：交卷后出现在结果页，把这一轮「没做对」的题抽出来开新的一轮。
-  新一轮是独立记录（新的 session id），原先那一轮的成绩、逐题记录、用时、进度
-  都原样保留在 `rounds` 里，数字不会被覆盖。
+  新一轮是独立记录（新的 session id）
   全对时按钮禁用（`title` 提示"这一轮没有答错的题"）。
 
 ### 收藏集 / 错题集
@@ -176,20 +153,12 @@ vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除
 进入组卷页，并**自动勾选**「只练错题集」或「只练收藏集」。开始答题时就只出这部分题
 （组卷页里仍可继续按章节、题型筛选），轮次标题会标成「· 错题集 / · 收藏集」。集合为空时入口禁用；带空集合进入会退回按章节练。
 
-### 「没做对」的定义
-
-**已提交且判错**的题。
-
-- 选了答案但没提交：不算「没做对」（它仍算未作答）。
-- 完全没碰过的题：不算「没做对」。
-
 ## 导出分享图
 
 结果页「导出分享图」用 html2canvas 截一张离屏绘制的成绩卡（品牌 / 正确率环 /
-得分 / 用时 / 总题数·答对·答错·未答），落款是「用户名。📢U咩哇帕瓦📢」，
+得分 / 用时 / 总题数·答对·答错·未答），落款是「📢U咩哇帕瓦📢」，
 在原生 `<dialog>` 里预览后可下载 PNG。
 卡片颜色走 Tailwind 主题变量，深色模式下导出的是深底。
-`html2canvas` 未加载或渲染失败时会给出提示，不会白屏。
 
 ## 历史轮次回看
 
@@ -198,7 +167,6 @@ vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除
 - 表格列：`题号 / 用户答案 / 正确答案 / 解析`
 - **只列已作答的题**，未作答的不出现
 - 最后一行汇总：`总题数 / 答错 / 答对 / 未答 / 正确率`
-- 数字全部取自 `rounds` 里的快照，题库之后改版也不会变
 
 ## 界面过渡
 
@@ -208,27 +176,9 @@ vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除
   - 新内容从下方滑入并减速到 0
   - 进入 / 离开答题态时，侧栏向左滑出 / 从左侧滑入
   - 顶栏单独命名并压在最上层，不会被内容快照盖住
-- 不支持 View Transition 时退回 100ms 淡入 + 轻微上移。
 - 同一视图的重绘（提交答案、切题、结果页切标签、排序、展开）**不播放过渡**，并保持滚动位置。
 - 答题页常驻 `#quizRoot`：提交只更新选项 / 反馈 / 状态条，切题只换题卡和答题卡格子，
   不再整块重建 `#app`；结果页切标签也只替换题目列表。
-- 尊重 `prefers-reduced-motion: reduce`（系统开启减少动态时不做动画）。
-
-## 彩蛋
-
-每次硬加载独立随机：
-
-- **49%** 概率把品牌显示成 `pipopa`
-- **2%** 概率显示成 `📢U咩哇帕瓦📢`
-- **49%** 概率显示 `popipa`
-
-影响顶栏品牌、登录页大标题、分享卡品牌和页面标题。调试时可以强制：
-
-```text
-?brand=popipa
-?brand=pipopa
-?brand=umewa
-```
 
 例如 `http://localhost:8000/home.html?brand=umewa`。
 
@@ -239,5 +189,3 @@ vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除
 - 数据只落在本机 `data/state.json`，没有云端同步；换机器需要手动拷贝该文件。
 - 服务默认只监听 `127.0.0.1`；手机 / 局域网访问要 `HOST=0.0.0.0`，
   此时 `/api/state` 也会暴露在局域网里，请自行权衡。
-- 开发记录见 `整改需求.md`、`第二次需求整改.md`、`追加需求.md`。
-
