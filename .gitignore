@@ -10,7 +10,7 @@ src/vendor/
 # Tailwind 构建依赖
 node_modules/
 
-# 私人对话记录，不进入仓库/历史
+# 私人对话记录，不进入仓库
 对话记录.jsonl
 
 # Docker 运行时数据（真实答题数据）

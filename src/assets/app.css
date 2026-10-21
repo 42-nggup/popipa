@@ -556,7 +556,7 @@ video {
 
 :root {
   color-scheme: light;
-  /* 浅色：浅墨绿，不再有棕色 */
+  /* 浅色：浅墨绿 */
   --c-paper: 238 243 238;
   --c-surface: 248 251 248;
   --c-raise: 226 235 229;
@@ -3625,10 +3625,6 @@ code {
 
 .view-enter {
   animation: view-in .1s cubic-bezier(.2,.8,.2,1) both;
-}
-
-.collapse {
-  visibility: collapse;
 }
 
 .fixed {

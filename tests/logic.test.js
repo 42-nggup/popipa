@@ -31,7 +31,7 @@ const mkEl = id => {
     remove() {}, appendChild() {}, querySelector: () => null
   };
 };
-/* 假 bootstrap.Modal：真组件靠 .show 类 + hidden.bs.modal 事件，这里只模仿类切换 */
+/* Modal 测试桩：模拟 .show 类切换 */
 function FakeModal(el) {
   this.el = el;
   this.show = () => el.classList.add('show');
@@ -334,7 +334,7 @@ ok('回填了上次登录的昵称', els['app'].innerHTML.indexOf('value="小明
 ok('主题按钮不在登陆页消失', els['themeBtn'].innerHTML.indexOf('bi-') >= 0);
 
 
-/* ===================== 本轮三项 ===================== */
+/* ===================== 答题交互 ===================== */
 
 section('18. 答题卡右侧的展开按钮');
 H.S.user = '小明'; H.S.view = 'setup'; H.S.bankId = 'web';
@@ -384,7 +384,7 @@ ok('预览里是 PNG dataURL', H.shareHtml().indexOf('data:image/png;base64') >=
 ok('预览里有下载按钮', H.shareHtml().indexOf('download="popipa-') >= 0);
 
 
-/* ===================== 分支 B：用户表拆分 ===================== */
+/* ===================== 用户表与每用户表 ===================== */
 
 section('21. 用户表只记身份，业务数据进每用户表');
 const idx = H.users();
@@ -1182,7 +1182,7 @@ H.S.user = '小明'; H.S.view = 'banks';
   ok('快照不含登录态 / 本机主题 / 同步元数据',
      !snap['popipa:user'] && !snap['popipa:theme'] && !snap['popipa:sync']);
 
-  /* 升级前就存在的老键没有 at：补一个当前时间，避免被旧服务器副本覆盖 */
+  /* 缺少 at 的键补当前时间，避免被服务器副本覆盖 */
   sandbox.localStorage.setItem('popipa:u:老数据', '{"name":"老数据"}');
   H.ensureSyncTimestamps();
   ok('升级前的老键补上时间戳', typeof H.readSyncMeta().at['popipa:u:老数据'] === 'number');
@@ -1197,7 +1197,7 @@ H.S.user = '小明'; H.S.view = 'banks';
      !!sandbox.localStorage.getItem('popipa:u:远端用户'));
   ok('hydrate 不会冲掉本机更新的数据', !!sandbox.localStorage.getItem('popipa:u:同步测试'));
 
-  /* 更旧的服务器副本不能覆盖本机 */
+  /* 较旧的服务器副本不能覆盖本机 */
   const localAt = H.readSyncMeta().at['popipa:u:同步测试'];
   const before = sandbox.localStorage.getItem('popipa:u:同步测试');
   H.applyRemoteKeys({ 'popipa:u:同步测试': { v: '{"old":1}', at: localAt - 1 } });
@@ -1218,7 +1218,7 @@ H.S.user = '小明'; H.S.view = 'banks';
   const pushed = await H.pushNow();
   ok('pushNow 推送成功', pushed === true && !!server.keys['popipa:u:推送测试']);
 
-  /* 普通静态服务器没有 /api/state：退回纯本机模式，不再重试 */
+  /* 普通静态服务器没有 /api/state：退回纯本机模式 */
   sandbox.fetch = async () => ({ ok: false, status: 404, headers: { get: () => 'text/html' } });
   await H.hydrate();
   ok('接口不存在时退回本机模式', H.syncEnabled() === false);

@@ -1,15 +1,14 @@
 /* =========================================================
-   popipa · 演示页逻辑
+   popipa · 应用逻辑
    ---------------------------------------------------------
-   模块划分（同一事实只写一处）：
-     1. 工具函数        util
-     2. 判分            grade   —— 全站唯一的对错判断来源
-     3. 统计            stats   —— 由答题状态推导，不做累加
-     4. 存储            store   —— localStorage
-     5. 状态            S
-     6. 渲染            renderLogin / renderBanks / renderSetup
-                        / renderQuiz / renderResult
-     7. 交互规则        rules   —— 未提交就切题怎么办 / 提交后自动跳转
+   模块划分：
+     1. 页面路由与工具函数
+     2. 判分           全站唯一的对错判断来源
+     3. 统计           由答题状态推导，不做累加
+     4. 存储           localStorage 与同步
+     5. 状态           S
+     6. 渲染           页面与组件
+     7. 交互规则       切题、提交、自动跳转
      8. 事件与初始化
    ========================================================= */
 'use strict';
@@ -17,13 +16,11 @@
 /* 说明：本文件是一个整体脚本，所有函数共享同一个作用域，
    便于答题页 / 结果页 / 事件处理复用同一套判分与统计逻辑。 */
 
-/* ============ 1. 工具函数 ============ */
-/* ============ 0. 页面路由 ============
-   index.html = 登录页；banks.html = 主界面 + 选题页；quiz.html = 做题页（含结果）。
-   同一份 app.js 在三个页面复用，靠 body[data-page] 决定启动视图。 */
+/* ============ 1. 页面路由 ============
+   页面通过 body[data-page] 决定启动视图；同一份 app.js 服务所有页面。 */
 const PAGE = (document.body && document.body.dataset && document.body.dataset.page) || 'login';
-/* file:// 下浏览器按文件隔离 localStorage（登录态传不过去），所以退回单页内切换；
-   HTTP 下用 History API 做真正的同文档切换，不再重新加载文档。 */
+/* file:// 下浏览器按文件隔离 localStorage（登录态传不过去），使用单页内切换；
+   HTTP 下用 History API 做同文档切换。 */
 function pageMode(protocol) { return protocol === 'file:' ? 'spa' : 'pages'; }
 const FILE_MODE = pageMode(typeof location !== 'undefined' && location ? location.protocol : '') === 'spa';
 /* 彩蛋（每次硬加载独立随机）：
@@ -116,7 +113,7 @@ function toast(msg) {
   toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
 }
 
-/* 原生 <dialog>：不再依赖 Bootstrap JS。
+/* 原生 <dialog> 弹窗。
    data-static 的弹窗（数据收集）不允许点遮罩 / Esc 关闭，必须明确选择。 */
 function openModal(target) {
   const el = typeof target === 'string' ? document.getElementById(target) : target;
@@ -229,8 +226,8 @@ function stats(s) {
                      wrong[qid]        错题本，答对后自动移除
                      history[]         历次成绩
      popipa:last   最近一次登录的昵称（退出登录也不清，用于回填表单）
-   进度统一收进用户表，并在读取时校验题号，避免旧题号让 QMAP[id] 变成
-   undefined 而报错。 */
+   进度统一收进用户表，并在读取时校验题号，避免无效题号让 QMAP[id]
+   变成 undefined 而报错。 */
 const KEY = {
   user: 'popipa:user',    /* 当前登录的是谁（退出登录会清）*/
   last: 'popipa:last',    /* 最近一次登录过谁（不清）*/
@@ -258,7 +255,7 @@ const store = {
 };
 
 /* ---- 4.1 服务端持久化 ----
-   浏览器 localStorage 仍是读写入口（同步 API，页面逻辑不用改），
+   浏览器 localStorage 是同步读写入口，
    每次写入都会把快照推给本地 server.js，由它落盘到 data/state.json；
    打开页面时先拉一次，按 key 的写入时间 at 做 last-write-wins 合并。
    当前登录（popipa:user）和本机主题（popipa:theme）留在各自浏览器，不参与同步；
@@ -272,7 +269,7 @@ const SYNC_TIPS = {
   off: '这个服务器没有数据落盘接口，数据只在这个浏览器里',
   local: '数据只保存在这个浏览器里；用 node server.js 打开可自动落盘'
 };
-let syncOff = false;   /* 服务器明确不支持接口时，本页不再重试 */
+let syncOff = false;   /* 服务器明确不支持接口时，本页停止重试 */
 let pushTimer = null, pushInFlight = false, pushQueued = false, pushRetry = 0;
 
 function isSyncKey(k) {
@@ -311,7 +308,7 @@ function syncKeys() {
   } catch (e) {}
   return out;
 }
-/* 升级前就存在的键没有时间戳：补一个“现在”，保证本机数据不会被旧的服务器副本盖掉 */
+/* 没有同步时间戳的键补当前时间，避免被服务器副本覆盖 */
 function ensureSyncTimestamps() {
   if (!syncEnabled()) return 0;
   const meta = readSyncMeta();
@@ -500,8 +497,8 @@ if (typeof document !== 'undefined' && document.addEventListener) {
     else if (syncEnabled() && !pushTimer) schedulePush(0);
   });
 }
-/* 每次写入只记时间戳并排一次防抖推送；即使当前不能同步（file://）也记，
-   这样离线期间的改动以后按真实时间合并，而不是统一按“现在”算。 */
+/* 每次写入记录时间戳并安排一次防抖推送；即使当前不能同步（file://）也记录，
+   离线期间的改动按真实时间合并。 */
 function touchSync(k, dead) {
   if (!isSyncKey(k)) return;
   const meta = readSyncMeta();
@@ -539,7 +536,7 @@ function userOf(name) {
   const rec = users()[name] || {};
   const t = userTable(name);
   const base = blankUser(name);
-  /* 补齐字段，旧数据少字段也不会崩 */
+  /* 补齐缺失字段，避免读取不完整记录时崩溃 */
   return Object.assign(base, t, {
     name: name,
     lastLogin: rec.lastLogin || 0,
@@ -598,8 +595,8 @@ function clearProgress(bankId) {
   delete u.books[bankId];
   saveUser(S.user, u);
 }
-/* 读取进度时按当前题库校验题号：换题库 / 换版本后残留的旧题号必须丢掉，
-   否则 QMAP[id] 是 undefined，一进选题页就会报错（用户名 "11" 那个 bug）。*/
+/* 读取进度时按当前题库校验题号：题库版本变化后无效的题号必须丢掉，
+   否则 QMAP[id] 是 undefined，一进选题页就会报错。 */
 function sanitizeSession(p, bankId) {
   if (!p || !Array.isArray(p.order)) return null;
   const order = p.order.filter(id => QMAP[id] &&
@@ -713,7 +710,7 @@ function pushRound(user, session) {
   /* 终身累计与按天累计：不随 rounds 的截断而丢失 */
   const answered = Math.max(0, rec.total - rec.unanswered);
   let life = u.lifetime || { answered: 0, correct: 0, seconds: 0 };
-  /* 老用户没有 lifetime：先用已有 rounds 补种，避免第一次交卷把历史清零 */
+  /* lifetime 缺失时从已有 rounds 补算，避免首次交卷丢失累计 */
   if (!life.answered && !life.seconds && (u.rounds || []).length) {
     const seed = { answered: 0, correct: 0, seconds: 0 };
     u.rounds.forEach(r => {
@@ -740,7 +737,7 @@ function pushRound(user, session) {
 }
 function roundsOf(user) { return userOf(user).rounds || []; }
 
-/* ---- 成绩历史（现在是每人一份，不再是一个本机大杂烩）---- */
+/* ---- 成绩历史：每人一份 ---- */
 function historyOf(user) { return userOf(user).history; }
 function pushHistory(user, rec) {
   const u = userOf(user);
@@ -764,7 +761,7 @@ function applyTheme(t) {
   if (S.user) {
     const u = userOf(S.user);
     /* 主题没变就别重写用户表：每次开页面都写一次会把同步时间戳顶新，
-       服务器上别处更新的数据反而会被这份旧副本盖掉 */
+       服务器上别处更新的数据反而会被本机副本盖掉 */
     if (u.theme !== S.theme) { u.theme = S.theme; saveUser(S.user, u); }
   }
   renderThemeBtn();
@@ -787,7 +784,7 @@ const QPOS = {};   // qid -> { bankId, bankName, chapterId, chapterName }
 });
 
 /* 题库索引：bankId -> { all, byChapter, byType }，值都是题号数组。
-   组卷页筛选、chips 计数都走这里，不再每次遍历全题库。 */
+   组卷筛选和 chips 计数通过索引查询。 */
 const QINDEX = {};
 (BANKS || []).forEach(bank => {
   const idx = { all: [], byChapter: {}, byType: {} };
@@ -820,8 +817,7 @@ function countLegacy(bank) {
   return n;
 }
 
-/* 当前登录的是谁。老数据里可能是数字（比如以前把 11 存成了 number），
-   统一转成字符串，免得后面 S.user.slice 之类的地方挂掉 */
+/* 当前登录用户；昵称统一转成字符串，避免字符串方法报错。 */
 function nameOrNull(v) { return v == null || v === '' ? null : String(v); }
 
 const S = {
@@ -925,7 +921,7 @@ function render() {
         typeof window.scrollTo === 'function') {
       window.scrollTo(0, changed ? 0 : y);
     }
-    /* 没走 View Transition 时用旧的淡入兜底 */
+    /* 未使用 View Transition 时用淡入兜底 */
     if (changed && !first && !useVT) pulseView(app);
   };
 
@@ -1000,7 +996,7 @@ function renderLogin() {
   setLayout('plain');
   topbar.hidden = false;                       /* 登录页也保留顶栏：主题开关在顶栏里 */
   document.getElementById('whoBox').hidden = true;
-  const last = lastName();          /* 只用来回填昵称，不再列出"本机记录" */
+  const last = lastName();          /* 用于回填昵称 */
   app.innerHTML =
     '<section class="login-hero">' +
       '<div class="logo-big"><i class="bi bi-lightning-charge-fill"></i></div>' +
@@ -1044,7 +1040,6 @@ function doLogin() {
   goPage('home.html', 'home');
 }
 
-/* ---- 6.2 选题界面 ---- */
 function rateBadge(rate) {
   return rate >= 80 ? 'badge-ok' : rate >= 60 ? 'badge-warn' : 'badge-bad';
 }
@@ -1202,7 +1197,6 @@ function pickBank(id, scope) {
   goPage(url, 'setup');
 }
 
-/* ---- 6.3 组卷面板 ---- */
 /* ---- 6.3 组卷面板 ---- */
 function setupPicked(bank) {
   if (S.wrongOnly || S.favOnly) return collectionIds(bank.id).length;
@@ -1415,10 +1409,9 @@ function resumeSession() {
   toast('已回到上次的位置');
 }
 
-/* ---- 6.5 答题界面 ---- */
 /* ---- 6.5 答题界面 ----
-   答题页用常驻的 #quizRoot：切题只换题卡和状态条，提交只改选项 + 插反馈，
-   不再每次把整个 #app 重建成新字符串——整页重绘正是闪烁的来源。 */
+   答题页使用常驻的 #quizRoot：切题只换题卡和状态条，提交只改选项并插入反馈，
+   避免整页重绘造成闪烁。 */
 function quizBarHtml(s, st) {
   st = st || stats(s);
   return '<span class="stat">第 <b>' + (s.idx + 1) + '</b> / ' + s.order.length + ' 题</span>' +
@@ -1457,7 +1450,7 @@ function quizActionsHtml(s, done) {
     : '<button class="btn btn-primary flex-1" data-act="submit">提交答案</button>') +
     '<button class="btn btn-outline" data-act="prev" ' + (isFirst ? 'disabled' : '') + '>上一题</button>' +
     (isLast
-      /* 最后一题没有下一题：只留一个「交卷」，放在下一题的位置；不再重复放两个交卷按钮 */
+      /* 最后一题没有下一题：只保留一个「交卷」按钮 */
       ? '<button class="btn btn-primary" data-act="finish">交卷</button>'
       : '<button class="btn btn-outline" data-act="next">下一题</button>' +
         '<button class="btn btn-outline" data-act="finish">交卷</button>');
@@ -1680,7 +1673,7 @@ function scrollNavToCurrent() {
 /* ---- 6.6 答题操作 ---- */
 function pickKey(k) {
   const s = S.session, qid = s.order[s.idx], q = QMAP[qid];
-  if (s.submitted[qid]) return;               /* 已提交则锁定，改不了也重复加分不了 */
+  if (s.submitted[qid]) return;               /* 已提交则锁定，不能修改或重复计分 */
   if (q.type === 'multiple') {
     const a = Array.isArray(s.answers[qid]) ? s.answers[qid].slice() : [];
     const i = a.indexOf(k);
@@ -1765,7 +1758,7 @@ function toggleQmap() {
 function go(delta) {
   const s = S.session;
   const n = s.idx + delta;
-  if (n < 0 || n >= s.order.length) return;   /* 边界检查，修掉原型越界的崩溃 */
+  if (n < 0 || n >= s.order.length) return;   /* 边界检查，避免越界 */
   autoJump = null;
   s.idx = n;
   saveProgress();
@@ -1841,7 +1834,7 @@ function finish() {
   });
   pushRound(S.user, s);      /* 逐轮记录：逐题作答 + 用时 + 汇总，供回看 */
   syncWrong(S.user, s);      /* 错题本：答错的记下，答对的移除 */
-  clearProgress(s.bankId);   /* 交了卷就不再是"上次答到哪" */
+  clearProgress(s.bankId);   /* 交卷后清除未完成进度 */
   S.view = 'result';
   S.reviewTab = 'all';
   S.reviewOpen = {};
@@ -2256,7 +2249,7 @@ document.addEventListener('click', function (e) {
       const id = el.dataset.round;
       if (S.roundOpen[id]) delete S.roundOpen[id]; else S.roundOpen[id] = true;
       const open = !!S.roundOpen[id];
-      /* 直接控制内容显隐，不再依赖 Bootstrap collapse */
+      /* 通过 class 控制内容显隐 */
       const card = el.closest ? el.closest('.round-card') : el.parentNode;
       const box = card && card.querySelector ? card.querySelector('.round-body') : null;
       if (box) {
@@ -2274,7 +2267,7 @@ document.addEventListener('click', function (e) {
   }
 });
 
-/* 登录表单：Enter 直接提交（旧版只有按钮 click） */
+/* 登录表单支持 Enter 提交 */
 document.addEventListener('submit', function (e) {
   const form = e.target && e.target.closest ? e.target.closest('[data-act="login-form"]') : null;
   if (!form) return;
@@ -2347,7 +2340,7 @@ function fmtDur(sec) {
   if (m) return m + ' 分';
   return sec + ' 秒';
 }
-/* 终身统计：优先用 lifetime；旧用户从 rounds 里补算 */
+/* 终身统计：优先使用 lifetime，缺失时从 rounds 补算 */
 function totalsOf(user) {
   const u = userOf(user);
   let answered = 0, correct = 0, seconds = 0;

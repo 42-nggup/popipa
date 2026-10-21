@@ -42,7 +42,7 @@ const MAX_REQUEST_KEYS = 2000;
 const MAX_FUTURE_SKEW = 7 * 24 * 60 * 60 * 1000;
 const API_PATH = '/api/state';
 /* 数据文件不允许当静态资源下载：默认路径和 POPIPA_STATE 指向的路径都挡住，
-   .bak / .tmp 一并挡（否则换数据文件时，默认路径的旧数据可能被直接下载）。 */
+   .bak / .tmp 一并挡住，避免数据文件被直接下载。 */
 function isStateFile(file) {
   return [STATE_FILE, DEFAULT_STATE_FILE].some(f =>
     file === f || file === f + '.bak' || file === f + '.tmp');

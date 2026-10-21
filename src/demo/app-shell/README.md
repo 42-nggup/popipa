@@ -58,5 +58,4 @@ src/demo/app-shell/
   demo.css     演示专用样式（答题态单列布局等）
 ```
 
-正式迁移时，`index.html` 里的静态 Shell 会由模板生成到现有 7 个页面；
-`demo.js` 中的 `navigate()` / `popstate` 逻辑会合并进 `app.js`。
+这个 demo 用于验证持久 App Shell 的结构；生产页面共用 `src/app.js` 中的路由逻辑。

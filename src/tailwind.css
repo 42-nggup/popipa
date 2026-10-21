@@ -11,7 +11,7 @@
 @layer base {
   :root {
     color-scheme: light;
-    /* 浅色：浅墨绿，不再有棕色 */
+    /* 浅色：浅墨绿 */
     --c-paper: 238 243 238;
     --c-surface: 248 251 248;
     --c-raise: 226 235 229;

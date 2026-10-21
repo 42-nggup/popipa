@@ -315,7 +315,7 @@ return true;
     ok('banks → setup 复用同一个侧边栏', toSetup.same && toSetup.top);
     ok('banks → setup 触发页面过渡', toSetup.reduced || toSetup.vt > 0);
 
-    await sleep(500);   /* 等这次 View Transition 结束，避免下一次被 transitionActive 挡住 */
+    await sleep(500);   /* 等待当前 View Transition 结束，避免下一次被 transitionActive 挡住 */
     const toBanks = await evalAsync(ffA.client, `
       const cb = arguments[arguments.length - 1];
       const back = document.querySelector('[data-act="back-banks"]');
