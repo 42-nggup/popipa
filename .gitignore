@@ -5,6 +5,7 @@ data/state.json.tmp
 
 # 构建产物（npm run build 生成，不提交）
 dist/
+src/vendor/
 
 # Tailwind 构建依赖
 node_modules/

@@ -29,8 +29,8 @@ localStorage**（登录态传不到下一个 HTML），所以此时 `app.js` 会
 Docker 部署：
 
 ```bash
-npm run build              # 先把 src/ 组装成最新 dist/
 docker compose up -d --build
+# 构建阶段会 npm ci，并拉取 Bootstrap Icons / html2canvas
 # Node 只暴露在 127.0.0.1:3000，供 OpenResty 反向代理
 # 真实数据落在 ./popipa-data/state.json
 ```
@@ -73,7 +73,7 @@ src/
   app.data.js       题库（自动生成，勿手改）
   tailwind.css      Tailwind 源文件
   assets/           编译后的 CSS、站点图标
-  vendor/           Bootstrap Icons、html2canvas
+  vendor/           npm 依赖生成（Bootstrap Icons / html2canvas，不提交）
   demo/app-shell/   持久 App Shell 演示（仅开发，不部署）
 
 server.js           零依赖静态服务器 + /api/state 数据落盘
@@ -86,6 +86,9 @@ dist/               构建产物，Docker 部署使用
 Dockerfile
 docker-compose.yml
 ```
+
+Bootstrap Icons 和 html2canvas 通过 `npm install` 安装，并在构建时复制到
+`src/vendor/`；它们不提交到仓库，但会进入最终的 `dist/`，运行时不依赖外部 CDN。
 
 所有页面共用同一份 `app.js`。`#top` 和 `#side` 是持久 App Shell，
 `#app` 是唯一会被替换的主内容区域。`goPage()` 在 `http(s)` 下用 History API

@@ -2102,7 +2102,7 @@ function exportPng() {
   /* App Shell 是单文档切换：如果从首页进入答题页，quiz.html 里的
      html2canvas 不会自动加载，这里按需补一次。 */
   if (typeof document === 'undefined' || !document.head || !document.head.appendChild) {
-    toast('分享图组件没加载，请检查 vendor/html2canvas.min.js');
+    toast('分享图组件没加载，请刷新后重试');
     return;
   }
   toast('正在加载分享图组件…');

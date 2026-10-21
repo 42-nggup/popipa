@@ -4,13 +4,18 @@
   "private": true,
   "description": "popipa 在线刷题 · 纯静态前端 + 零依赖本地服务器",
   "scripts": {
+    "vendor": "node scripts/vendor.js",
     "build:css": "tailwindcss -i ./src/tailwind.css -o ./src/assets/app.css",
-    "build": "npm run build:css && node scripts/build.js",
+    "build": "npm run vendor && npm run build:css && node scripts/build.js",
     "watch:css": "tailwindcss -i ./src/tailwind.css -o ./src/assets/app.css --watch",
     "start": "node server.js",
     "test": "npm run build && node tests/logic.test.js && node tests/server.test.js && node tests/e2e.test.js"
   },
   "devDependencies": {
     "tailwindcss": "3.4.19"
+  },
+  "dependencies": {
+    "bootstrap-icons": "1.11.3",
+    "html2canvas": "1.4.1"
   }
 }

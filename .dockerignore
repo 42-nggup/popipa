@@ -1,5 +1,12 @@
-# 只把 Dockerfile 和 dist 送进构建上下文，避免把私人数据、日志、node_modules 带进去
-*
-!Dockerfile
-!dist/
-!dist/**
+# 构建上下文只保留构建需要的源码与配置
+.git
+.gitignore
+node_modules
+dist
+src/vendor
+popipa-data
+data
+docs
+tests
+*.log
+.env

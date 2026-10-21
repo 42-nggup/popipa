@@ -668,9 +668,9 @@ ok('主题开关在用户区之外，登录页也可见',
    /id="themeBtn"[\s\S]{0,400}id="whoBox"/.test(idxHtml));
 ok('用户区隐藏不会被 Tailwind 的 flex 工具类盖掉',
    /\[hidden\]\s*\{\s*display:\s*none !important/.test(cssSrc));
-ok('分享图组件只在做题页加载',
-   quizHtml.indexOf('html2canvas') >= 0 &&
-   bankHtml.indexOf('html2canvas') === -1 && idxHtml.indexOf('html2canvas') === -1);
+ok('html2canvas 按需加载构建后的 vendor 文件',
+   logicSrc.indexOf("script.src = 'vendor/html2canvas.min.js'") >= 0 &&
+   [idxHtml, bankHtml, quizHtml].every(h => h.indexOf('html2canvas') === -1));
 ok('分享预览 Modal 在做题页存在（file:// 单页模式其他页面也常驻）',
    quizHtml.indexOf('id="shareModal"') >= 0 &&
    idxHtml.indexOf('id="shareModal"') >= 0);
@@ -1121,6 +1121,10 @@ ok('Tailwind 源文件与编译产物都在',
    /@tailwind base/.test(tailwindSrc) && /\.btn-primary/.test(builtCss));
 ok('所有页面都加载 Tailwind 产物',
    allHtml.every(h => h.indexOf('assets/app.css') >= 0));
+ok('所有页面都加载构建后的 Bootstrap Icons',
+   allHtml.every(h => h.indexOf('vendor/bootstrap-icons.min.css') >= 0));
+ok('所有页面都不依赖外部 CDN',
+   allHtml.every(h => h.indexOf('cdn.jsdelivr.net') < 0));
 ok('所有页面都不再加载 Bootstrap CSS / JS',
    allHtml.every(h => h.indexOf('bootstrap.min.css') < 0 && h.indexOf('bootstrap.bundle') < 0));
 ok('所有页面顶栏都有 GitHub 仓库链接',
