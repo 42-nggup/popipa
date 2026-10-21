@@ -3,18 +3,22 @@
 一个刷题页面：登录 → 选题库 → 组卷 → 答题 → 交卷看结果。
 样式基于 **Tailwind CSS 3.4**。
 
-> 持久顶栏 / 侧边栏的小 demo 见 [demo/app-shell/README.md](demo/app-shell/README.md)。
+> 持久顶栏 / 侧边栏的小 demo 见 [src/demo/app-shell/README.md](src/demo/app-shell/README.md)。
 
 ## 运行
 
 推荐用本地服务器打开（同源页面共享 localStorage，数据自动落盘）：
 
 ```bash
+npm install             # 首次构建需要
+npm run build           # 编译 CSS 并生成 dist/
 node server.js          # 默认 8000 端口，只监听 127.0.0.1
 # 打开 http://localhost:8000/
 ```
 
-也可以直接双击 `index.html`。但浏览器在 `file://` 下会**按文件隔离
+如果 `dist/` 已经是最新版本，也可以直接运行 `node server.js`。
+
+也可以直接双击 `src/index.html`。但浏览器在 `file://` 下会**按文件隔离
 localStorage**（登录态传不到下一个 HTML），所以此时 `app.js` 会自动退回
 “单页内视图切换”：功能完整，只是地址栏不会变成 `banks.html` / `quiz.html`，
 而且**不会落盘**（顶栏会显示灰色的“仅本机”图标）。想要地址栏同步和自动持久化，
@@ -24,6 +28,7 @@ localStorage**（登录态传不到下一个 HTML），所以此时 `app.js` 会
 Docker 部署：
 
 ```bash
+npm run build              # 先把 src/ 组装成最新 dist/
 docker compose up -d --build
 # Node 只暴露在 127.0.0.1:3000，供 OpenResty 反向代理
 # 真实数据落在 ./popipa-data/state.json
@@ -44,34 +49,41 @@ HOST=0.0.0.0 node server.js             # 允许局域网访问（接口也会�
 HTTP 模式下做题页地址需要带 `?bank=<题库 id>`（从主界面点「开始答题」
 会自动带上）；直接手输不带参数会回到主界面。
 
-修改 `src/tailwind.css` 或页面 class 时需要重新构建：
+修改源码后重新构建：
 
 ```bash
 npm install
-npm run build:css       # src/tailwind.css → assets/app.css
-npm run watch:css       # 开发时监听
+npm run build           # 编译 CSS + 组装 dist/
+npm run watch:css       # 只监听 CSS 变化
 ```
 
 ## 目录
 
-```
-index.html          登录页
-home.html           新主页（侧边栏、每日目标、统计、同意弹窗）
-summary.html        题库汇总
-stats.html          学习报告（曲线、排行榜、同意弹窗）
-collection.html     错题本 / 收藏集
-banks.html          题库列表 + 组卷面板（顶栏、#app、Toast）
-server.js           零依赖静态服务器 + /api/state 数据落盘（node server.js）
-quiz.html           做题页（顶栏、#app、分享预览 Dialog、Toast）
-src/tailwind.css    Tailwind 源文件（base / components / utilities）
-tailwind.config.js  浅墨绿 / Tokyo Night 主题、字体、阴影、dark 选择器
-assets/app.css      Tailwind 编译产物（提交到仓库，运行时不需构建）
-assets/favicon.svg  站点图标
-app.js              全部逻辑（页面路由 / 渲染 / 判分 / 存储 / 同步 / 事件），各页面共用
-app.data.js         题库（自动生成，勿手改）
-data/               题库源文件与解析产物；运行时数据在 data/state.json（已 gitignore）
-scripts/            Markdown → JSON 的解析脚本
-vendor/             Bootstrap Icons、html2canvas（Bootstrap CSS / JS 已移除）
+```text
+src/
+  index.html        登录页
+  home.html         新主页（侧边栏、每日目标、统计、同意弹窗）
+  summary.html      题库汇总
+  stats.html        学习报告（曲线、排行榜、同意弹窗）
+  collection.html   错题本 / 收藏集
+  banks.html        题库列表 + 组卷面板
+  quiz.html         做题页（分享预览 Dialog）
+  app.js            页面路由 / 渲染 / 判分 / 存储 / 同步 / 事件
+  app.data.js       题库（自动生成，勿手改）
+  tailwind.css      Tailwind 源文件
+  assets/           编译后的 CSS、站点图标
+  vendor/           Bootstrap Icons、html2canvas
+  demo/app-shell/   持久 App Shell 演示
+
+server.js           零依赖静态服务器 + /api/state 数据落盘
+tailwind.config.js  主题、字体、阴影、dark 选择器
+scripts/            题库解析、dist 构建脚本
+tests/              逻辑 / 服务端 / e2e 测试
+data/               题库 JSON；运行时数据在 data/state.json（已 gitignore）
+docs/               Markdown 题库源文件、解析报告与项目文档
+dist/               构建产物，Docker 部署使用
+Dockerfile
+docker-compose.yml
 ```
 
 所有页面共用同一份 `app.js`。`#top` 和 `#side` 是持久 App Shell，

@@ -1,11 +1,11 @@
-/* 自动生成，请勿手改：由 scripts/parse-banks.js 从 data/raw/*.md 生成 */
+/* 自动生成，请勿手改：由 scripts/parse-banks.js 从 docs/raw/*.md 生成 */
 window.BANKS = [
   {
     "id": "java",
     "name": "Java程序设计题库",
     "desc": "1 个章节 · 单选题 192 + 多选题 12 + 判断题 15",
     "icon": "☕",
-    "source": "data/raw/Java题库.md",
+    "source": "docs/raw/Java题库.md",
     "chapters": [
       {
         "id": "java-c1",
@@ -3296,7 +3296,7 @@ window.BANKS = [
     "name": "Web前端题库",
     "desc": "6 个章节 · 单选题 64 + 多选题 13 + 判断题 42",
     "icon": "🌐",
-    "source": "data/raw/Web题库.md",
+    "source": "docs/raw/Web题库.md",
     "chapters": [
       {
         "id": "web-c1",

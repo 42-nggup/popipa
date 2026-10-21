@@ -3,21 +3,23 @@
    题库解析器：Markdown -> JSON
    ---------------------------------------------------------
    用法：node scripts/parse-banks.js
-   输入：data/raw/*.md
+   输入：docs/raw/*.md
    输出：
      data/web.json    单个题库
      data/java.json   单个题库
      data/banks.json  合并后的题库数组（前端/接口可直接用）
-     data/parse-report.md  本次解析发现的所有问题与处理方式
-     app.data.js     由 JSON 生成的 window.BANKS（供 file:// 直接打开用）
+     docs/parse-report.md  本次解析发现的所有问题与处理方式
+     src/app.data.js  由 JSON 生成的 window.BANKS（供 file:// 直接打开用）
    ========================================================= */
 'use strict';
 const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const RAW = path.join(ROOT, 'data', 'raw');
+const RAW = path.join(ROOT, 'docs', 'raw');
 const OUT = path.join(ROOT, 'data');
+const SRC = path.join(ROOT, 'src');
+const REPORT_OUT = path.join(ROOT, 'docs');
 
 /* 每个源文件的元信息 */
 const META = {
@@ -201,7 +203,7 @@ for (const file of fs.readdirSync(RAW).filter(f => f.endsWith('.md')).sort()) {
     name: meta.name || file.replace(/\.md$/, ''),
     desc: makeDesc(meta.summary, chapterCount, typeCount),
     icon: cfg.icon,
-    source: 'data/raw/' + file,
+    source: 'docs/raw/' + file,
     chapters: chapters.filter(c => c.questions.length)
   };
   banks.push(bank);
@@ -232,8 +234,8 @@ banks.forEach(b => fs.writeFileSync(path.join(OUT, b.id + '.json'), json(b)));
 fs.writeFileSync(path.join(OUT, 'banks.json'), json(banks));
 
 /* 供 file:// 双击打开使用（fetch 本地 json 会被浏览器拦截，所以生成一份 JS 镜像） */
-fs.writeFileSync(path.join(ROOT, 'app.data.js'),
-  '/* 自动生成，请勿手改：由 scripts/parse-banks.js 从 data/raw/*.md 生成 */\n' +
+fs.writeFileSync(path.join(SRC, 'app.data.js'),
+  '/* 自动生成，请勿手改：由 scripts/parse-banks.js 从 docs/raw/*.md 生成 */\n' +
   'window.BANKS = ' + JSON.stringify(banks, null, 2) + ';\n');
 
 /* 解析报告 */
@@ -280,11 +282,11 @@ L.push('');
 L.push('> 说明：原始题库明确要求"不要修改题目内容"，因此除上面第三节列出的两处'
   + '（依据题目自带的解析可唯一确定答案）和第二节剔除的一道不可作答题目外，'
   + '没有对题干、选项、答案做任何改动。');
-fs.writeFileSync(path.join(OUT, 'parse-report.md'), L.join('\n') + '\n');
+fs.writeFileSync(path.join(REPORT_OUT, 'parse-report.md'), L.join('\n') + '\n');
 
 /* 控制台摘要 */
 console.log('解析完成：');
 report.files.forEach(f => console.log('  ' + f.file + ' → ' + f.bankId + '.json：解析 ' +
   f.parsed + ' 保留 ' + f.kept + ' 剔除 ' + f.dropped + ' 修正 ' + f.fixed));
-console.log('  合计保留 ' + totalKept + ' 题，已写出 data/{web,java,banks}.json 与 app.data.js');
-if (report.drops.length) console.log('  剔除 ' + report.drops.length + ' 题，修正 ' + report.fixes.length + ' 题，详见 data/parse-report.md');
+console.log('  合计保留 ' + totalKept + ' 题，已写出 data/{web,java,banks}.json 与 src/app.data.js');
+if (report.drops.length) console.log('  剔除 ' + report.drops.length + ' 题，修正 ' + report.fixes.length + ' 题，详见 docs/parse-report.md');

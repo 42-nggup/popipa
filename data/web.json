@@ -3,7 +3,7 @@
   "name": "Web前端题库",
   "desc": "6 个章节 · 单选题 64 + 多选题 13 + 判断题 42",
   "icon": "🌐",
-  "source": "data/raw/Web题库.md",
+  "source": "docs/raw/Web题库.md",
   "chapters": [
     {
       "id": "web-c1",

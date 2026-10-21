@@ -3,7 +3,7 @@
   "name": "Java程序设计题库",
   "desc": "1 个章节 · 单选题 192 + 多选题 12 + 判断题 15",
   "icon": "☕",
-  "source": "data/raw/Java题库.md",
+  "source": "docs/raw/Java题库.md",
   "chapters": [
     {
       "id": "java-c1",

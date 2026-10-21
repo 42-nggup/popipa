@@ -1,0 +1,187 @@
+/* 这个 demo 只加少量演示样式，主要视觉复用 ../../assets/app.css */
+
+/* 答题态：侧边栏 hidden 后，主内容占满整行 */
+body[data-layout="focus"] .home-wrap {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* 登录页：侧栏仍在 Shell 里，但未登录时只作为结构展示。 */
+.side.is-guest .side-link { opacity: .5; pointer-events: none; }
+.side.is-guest .side-foot { display: none; }
+
+/* ---------- 页面切换动效 ----------
+   只给 #app 命名，topbar / sidebar 不参与。 */
+#app {
+  view-transition-name: app-content;
+}
+
+/* 顶栏也进入 View Transition 层，并压在主内容 / 侧栏上面。
+   否则主内容向上滑出时，快照会盖住 fixed 顶栏。 */
+#top {
+  view-transition-name: topbar;
+}
+
+::view-transition-old(root),
+::view-transition-new(root),
+::view-transition-old(topbar),
+::view-transition-new(topbar) {
+  animation: none;
+}
+
+::view-transition-group(topbar) {
+  z-index: 100;
+}
+
+::view-transition-group(sidebar) {
+  z-index: 20;
+}
+
+::view-transition-group(app-content) {
+  z-index: 10;
+}
+
+::view-transition-group(root) {
+  z-index: 0;
+}
+
+::view-transition-old(app-content) {
+  animation: demo-page-out .14s cubic-bezier(.4, 0, 1, 1) both;
+}
+
+::view-transition-new(app-content) {
+  animation: demo-page-in .34s cubic-bezier(.16, 1, .3, 1) .08s both;
+}
+
+/* 答题态切换时，侧栏单独向左滑出 / 从左侧滑入。
+   只在进入 / 离开 focus 布局时给 #side 加 .vt-sidebar，
+   普通页面切换不会让侧栏参与过渡。 */
+.vt-sidebar {
+  view-transition-name: sidebar;
+}
+
+::view-transition-old(sidebar) {
+  animation: demo-side-out .16s cubic-bezier(.4, 0, 1, 1) both;
+}
+
+::view-transition-new(sidebar) {
+  animation: demo-side-in .34s cubic-bezier(.16, 1, .3, 1) .04s both;
+}
+
+@keyframes demo-page-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-48px);
+  }
+}
+
+@keyframes demo-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(48px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes demo-side-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes demo-side-in {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 不支持 View Transition 时的降级：只有新内容从下方进入 */
+.page-enter {
+  animation: demo-page-in .34s cubic-bezier(.16, 1, .3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(app-content),
+  ::view-transition-new(app-content),
+  ::view-transition-old(sidebar),
+  ::view-transition-new(sidebar),
+  .page-enter {
+    animation: none !important;
+  }
+}
+
+.demo-instance {
+  border: 1px dashed rgb(var(--c-line));
+  border-radius: .75rem;
+  padding: .5rem;
+  text-align: center;
+  font-size: 10px;
+  color: rgb(var(--c-muted));
+}
+.demo-instance b {
+  color: rgb(var(--c-ink));
+}
+
+.demo-kv {
+  display: grid;
+  grid-template-columns: minmax(9rem, auto) 1fr;
+  gap: .45rem 1rem;
+  font-size: 13px;
+}
+.demo-kv span {
+  color: rgb(var(--c-muted));
+}
+.demo-kv b {
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.demo-ok { color: rgb(var(--c-ok)) !important; }
+.demo-bad { color: rgb(var(--c-bad)) !important; }
+
+.demo-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .4rem;
+  font-size: 12px;
+  color: rgb(var(--c-muted));
+}
+.demo-flow code {
+  font-size: 11.5px;
+}
+
+.demo-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: .5rem;
+  height: 96px;
+  padding-top: .75rem;
+}
+.demo-bars i {
+  display: block;
+  flex: 1;
+  border-radius: .35rem .35rem 0 0;
+  background: linear-gradient(180deg, rgb(var(--c-brand)), rgb(var(--c-brand-line)));
+}
+
+@media (max-width: 1023px) {
+  body[data-layout="focus"] .home-wrap {
+    grid-template-columns: 1fr;
+  }
+}

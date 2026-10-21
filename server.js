@@ -6,6 +6,7 @@
      PORT          端口，默认 8000
      HOST          监听地址，默认 127.0.0.1（只给本机用）
      POPIPA_STATE  数据文件路径，默认 data/state.json
+     POPIPA_ROOT   静态文件目录，默认 dist/（没有构建时退回 src/）
 
    为什么需要它：
    1. 多页面版靠 localStorage 在页面间共享登录态和进度，
@@ -18,10 +19,19 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = __dirname;
+const PROJECT_ROOT = __dirname;
+function defaultRoot() {
+  if (process.env.POPIPA_ROOT) return path.resolve(process.env.POPIPA_ROOT);
+  const dist = path.join(PROJECT_ROOT, 'dist');
+  if (fs.existsSync(path.join(dist, 'index.html'))) return dist;
+  const src = path.join(PROJECT_ROOT, 'src');
+  if (fs.existsSync(path.join(src, 'index.html'))) return src;
+  return PROJECT_ROOT;
+}
+const ROOT = defaultRoot();
 const PORT = Number(process.env.PORT || process.argv[2] || 8000);
 const HOST = process.env.HOST || '127.0.0.1';
-const DEFAULT_STATE_FILE = path.join(ROOT, 'data', 'state.json');
+const DEFAULT_STATE_FILE = path.join(PROJECT_ROOT, 'data', 'state.json');
 const STATE_FILE = path.resolve(process.env.POPIPA_STATE || DEFAULT_STATE_FILE);
 const STATE_BAK = STATE_FILE + '.bak';
 const MAX_BODY = 2 * 1024 * 1024;

@@ -8,8 +8,9 @@ const path = require('path');
 const vm = require('vm');
 
 const root = path.join(__dirname, '..');
-const dataSrc = fs.readFileSync(path.join(root, 'app.data.js'), 'utf8');
-const logicSrc = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+const SRC = path.join(root, 'src');
+const dataSrc = fs.readFileSync(path.join(SRC, 'app.data.js'), 'utf8');
+const logicSrc = fs.readFileSync(path.join(SRC, 'app.js'), 'utf8');
 
 /* ---- 极简 DOM 桩 ---- */
 const els = {};
@@ -350,7 +351,7 @@ ok('再点一下收起', H.S.qmapOpen === false && els['app'].innerHTML.indexOf(
 
 section('19. 答对绿色与选项字母方块一致');
 const cssSrc = fs.readFileSync(path.join(root, 'src/tailwind.css'), 'utf8');
-const builtCss = fs.readFileSync(path.join(root, 'assets/app.css'), 'utf8');
+const builtCss = fs.readFileSync(path.join(SRC, 'assets/app.css'), 'utf8');
 ok('.qmap b.ok 与 .opt.ok .k 用的是同一个实心 success 绿',
    /\.qmap b\.ok\s*\{[^}]*bg-ok[^}]*text-on-ok/.test(cssSrc) &&
    /\.opt\.ok \.k\s*\{[^}]*bg-ok[^}]*text-on-ok/.test(cssSrc));
@@ -533,7 +534,7 @@ H.S.qmapOpen = false;
 section('31. Toast 跟随主题 / 品牌可点回选题页');
 ok('Toast 背景与文字跟随主题（不再反色）',
    /\.popipa-toast\s*\{[^}]*bg-surface[^}]*text-ink/.test(cssSrc));
-const htmlSrc = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const htmlSrc = fs.readFileSync(path.join(SRC, 'index.html'), 'utf8');
 ok('品牌名绑定了回新主页的动作',
    /class="brand"[^>]*data-act="home"/.test(htmlSrc));
 H.S.view = 'banks';
@@ -653,9 +654,9 @@ sandbox.document.getElementById = realGE;
 
 
 section('37. 页面拆分：index / banks / quiz');
-const idxHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-const bankHtml = fs.readFileSync(path.join(root, 'banks.html'), 'utf8');
-const quizHtml = fs.readFileSync(path.join(root, 'quiz.html'), 'utf8');
+const idxHtml = fs.readFileSync(path.join(SRC, 'index.html'), 'utf8');
+const bankHtml = fs.readFileSync(path.join(SRC, 'banks.html'), 'utf8');
+const quizHtml = fs.readFileSync(path.join(SRC, 'quiz.html'), 'utf8');
 ok('index.html 是登录页', /<body[^>]*data-page="login"/.test(idxHtml));
 ok('banks.html 是主界面 + 选题页', /<body[^>]*data-page="banks"/.test(bankHtml));
 ok('quiz.html 是做题页', /<body[^>]*data-page="quiz"/.test(quizHtml));
@@ -922,7 +923,7 @@ ok('切换顺序只改 data-mode，不重绘整页',
 section('49. 新页面骨架与主页');
 for (const pair of [['home.html', 'home'], ['summary.html', 'summary'],
                     ['stats.html', 'stats'], ['collection.html', 'collection']]) {
-  const src = fs.readFileSync(path.join(root, pair[0]), 'utf8');
+  const src = fs.readFileSync(path.join(SRC, pair[0]), 'utf8');
   ok(pair[0] + ' 存在且 data-page 正确',
      new RegExp('<body[^>]*data-page="' + pair[1] + '"').test(src));
 }
@@ -943,8 +944,8 @@ ok('主页底部顺序：上次进度在近日统计之前',
    homeHtml.indexOf('上次进度') >= 0 &&
    homeHtml.indexOf('上次进度') < homeHtml.indexOf('近日统计'));
 ok('主页与学习报告都带同意收集弹窗',
-   /id="consentModal"/.test(fs.readFileSync(path.join(root, 'home.html'), 'utf8')) &&
-   /id="consentModal"/.test(fs.readFileSync(path.join(root, 'stats.html'), 'utf8')));
+   /id="consentModal"/.test(fs.readFileSync(path.join(SRC, 'home.html'), 'utf8')) &&
+   /id="consentModal"/.test(fs.readFileSync(path.join(SRC, 'stats.html'), 'utf8')));
 
 section('50. 终身统计 / 每日目标 / 同意收集');
 const u50 = '统计用户';
@@ -1004,7 +1005,7 @@ ok('按钮不再有装饰性内高光',
    cssSrc.indexOf('inset 0 1px 0 rgba(255,255,255,.22)') < 0);
 for (const f of ['index.html', 'home.html', 'stats.html']) {
   ok(f + ' 不再有 deco 类',
-     !/\bdeco\b/.test(fs.readFileSync(path.join(root, f), 'utf8')));
+     !/\bdeco\b/.test(fs.readFileSync(path.join(SRC, f), 'utf8')));
 }
 
 
@@ -1115,7 +1116,7 @@ ok('组卷页侧边栏仍高亮「开始练习」',
 section('59. Tailwind 迁移 / 登录回车 / 原生弹窗');
 const tailwindSrc = fs.readFileSync(path.join(root, 'src/tailwind.css'), 'utf8');
 const allHtml = ['index.html', 'home.html', 'banks.html', 'quiz.html',
-  'summary.html', 'stats.html', 'collection.html'].map(f => fs.readFileSync(path.join(root, f), 'utf8'));
+  'summary.html', 'stats.html', 'collection.html'].map(f => fs.readFileSync(path.join(SRC, f), 'utf8'));
 ok('Tailwind 源文件与编译产物都在',
    /@tailwind base/.test(tailwindSrc) && /\.btn-primary/.test(builtCss));
 ok('所有页面都加载 Tailwind 产物',
