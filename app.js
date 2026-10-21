@@ -2041,10 +2041,30 @@ function shareRecord() {
     date: dateStamp(Date.now())
   };
 }
-function exportPng() {
+let html2canvasPromise = null;
+function loadHtml2Canvas() {
+  if (typeof html2canvas === 'function') return Promise.resolve();
+  if (html2canvasPromise) return html2canvasPromise;
+  if (typeof document === 'undefined' || !document.head || !document.head.appendChild) {
+    return Promise.reject(new Error('no document head'));
+  }
+  html2canvasPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'vendor/html2canvas.min.js';
+    script.async = true;
+    script.onload = () => {
+      if (typeof html2canvas === 'function') resolve();
+      else reject(new Error('html2canvas missing'));
+    };
+    script.onerror = () => reject(new Error('html2canvas load failed'));
+    document.head.appendChild(script);
+  });
+  html2canvasPromise.catch(() => { html2canvasPromise = null; });
+  return html2canvasPromise;
+}
+function runExportPng() {
   const s = S.session;
   if (!s) { toast('没有可导出的成绩'); return; }
-  if (typeof html2canvas !== 'function') { toast('分享图组件没加载，请检查 vendor/html2canvas.min.js'); return; }
   const rec = shareRecord();
   const holder = document.createElement('div');
   holder.innerHTML = shareCardHtml(rec);
@@ -2075,6 +2095,20 @@ function exportPng() {
     if (p && typeof p.then === 'function') p.then(cv => done(cv.toDataURL('image/png'))).catch(fail);
     else done(p.toDataURL('image/png'));
   } catch (e) { fail(); }
+}
+function exportPng() {
+  if (!S.session) { toast('没有可导出的成绩'); return; }
+  if (typeof html2canvas === 'function') { runExportPng(); return; }
+  /* App Shell 是单文档切换：如果从首页进入答题页，quiz.html 里的
+     html2canvas 不会自动加载，这里按需补一次。 */
+  if (typeof document === 'undefined' || !document.head || !document.head.appendChild) {
+    toast('分享图组件没加载，请检查 vendor/html2canvas.min.js');
+    return;
+  }
+  toast('正在加载分享图组件…');
+  loadHtml2Canvas().then(runExportPng).catch(() => {
+    toast('分享图组件加载失败，请重试');
+  });
 }
 
 /* ---- 6.8 计时器 ---- */
