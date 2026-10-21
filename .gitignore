@@ -2,9 +2,9 @@
 data/state.json
 data/state.json.bak
 data/state.json.tmp
-dist/data/state.json
-dist/data/state.json.bak
-dist/data/state.json.tmp
+
+# 构建产物（npm run build 生成，不提交）
+dist/
 
 # Tailwind 构建依赖
 node_modules/
