@@ -80,7 +80,7 @@ tailwind.config.js  主题、字体、阴影、dark 选择器
 scripts/            题库解析、dist 构建脚本
 tests/              逻辑 / 服务端 / e2e 测试
 data/               题库 JSON；运行时数据在 data/state.json（已 gitignore）
-docs/               Markdown 题库源文件、解析报告与项目文档
+docs/               Markdown 题库源文件与解析报告
 demo/               持久 App Shell 演示（仅开发，不部署）
 dist/               构建产物，Docker 部署使用
 Dockerfile
